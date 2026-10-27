@@ -8,7 +8,11 @@ import android.graphics.Shader
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.person.contact.ContactType
+import dev.alializadeh.orbit.person.edit.DateRow
+import dev.alializadeh.orbit.person.detail.PersonDetailEdits
 import dev.alializadeh.orbit.person.detail.PersonDetailScreen
 import dev.alializadeh.orbit.person.detail.PersonDetailUiState
 import dev.alializadeh.orbit.person.edit.ContactRow
@@ -28,6 +32,7 @@ import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.testing.ScreenshotVariant
 import dev.alializadeh.orbit.testing.captureScreen
 import java.time.Instant
+import java.time.LocalDate
 import androidx.compose.foundation.text.input.TextFieldState
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,18 +69,23 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
 
     @Test
     fun personDetailFull() = captureScreen("person_detail_full", variant, tall = true) {
-        Detail(PersonDetailUiState.Loaded(data.fullProfile))
+        Detail(PersonDetailUiState.Loaded(data.fullProfile, today = ScreenshotToday))
     }
 
     @Test
     fun personDetailSparse() = captureScreen("person_detail_sparse", variant) {
-        Detail(PersonDetailUiState.Loaded(data.sparseProfile))
+        Detail(PersonDetailUiState.Loaded(data.sparseProfile, today = ScreenshotToday))
     }
 
     @Test
     fun personDetailArchived() = captureScreen("person_detail_archived", variant) {
         val profile = data.sparseProfile
-        Detail(PersonDetailUiState.Loaded(profile.copy(person = profile.person.copy(archivedAt = Instant.EPOCH))))
+        Detail(
+            PersonDetailUiState.Loaded(
+                profile.copy(person = profile.person.copy(archivedAt = Instant.EPOCH)),
+                today = ScreenshotToday,
+            ),
+        )
     }
 
     @Test
@@ -118,6 +128,10 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
                     ContactRow(index.toLong(), method.type, method.isPrimary, method.value, method.label.orEmpty())
                 },
                 tags = profile.tags.map(Tag::name),
+                importantDates = profile.importantDates.mapIndexed { index, date ->
+                    DateRow(index.toLong(), ImportantDateDraft.of(date))
+                },
+                today = ScreenshotToday,
                 items = mapOf(
                     PersonItemKind.CanHelpWith to profile.canHelpWith,
                     PersonItemKind.Like to profile.likes,
@@ -153,6 +167,9 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
             onDelete = {},
             onDeleteConfirm = {},
             onDeleteDismiss = {},
+            edits = NoEdits,
+            onMarkGiven = { _, _ -> },
+            onOpenLink = {},
             onContactAction = {},
             onCopy = {},
         )
@@ -174,6 +191,11 @@ private object NoActions : PersonFormActions {
     override fun removeContact(key: Long) = Unit
     override fun setPrimary(key: Long) = Unit
     override fun setContactType(key: Long, type: ContactType) = Unit
+    override fun addImportantDate(type: ImportantDateType) = Unit
+    override fun editImportantDate(key: Long) = Unit
+    override fun saveImportantDate(editingKey: Long?, draft: ImportantDateDraft) = Unit
+    override fun deleteImportantDate(key: Long) = Unit
+    override fun dismissDateSheet() = Unit
     override fun submitTag() = Unit
     override fun pickTag(suggestion: TagSuggestion) = Unit
     override fun removeTag(name: String) = Unit
@@ -185,6 +207,13 @@ private object NoActions : PersonFormActions {
     override fun save() = Unit
     override fun saveAnyway() = Unit
     override fun dismissDialog() = Unit
+}
+
+private object NoEdits : PersonDetailEdits {
+    override fun saveImportantDate(draft: ImportantDateDraft) = Unit
+    override fun deleteImportantDate(id: Long) = Unit
+    override fun saveGiftIdea(draft: GiftIdeaDraft) = Unit
+    override fun deleteGiftIdea(id: Long) = Unit
 }
 
 /** A 1200 × 800 gradient with a few discs: something to see under the crop circle. */
@@ -234,6 +263,8 @@ private fun profile(
     dislikes: List<String> = emptyList(),
     howWeMet: String? = null,
     notes: String? = null,
+    importantDates: List<Triple<ImportantDateType, String?, RecurringDate>> = emptyList(),
+    giftIdeas: List<GiftIdea> = emptyList(),
 ) = PersonProfile(
     person = Person(
         id = 1,
@@ -253,7 +284,17 @@ private fun profile(
     canHelpWith = canHelpWith,
     likes = likes,
     dislikes = dislikes,
+    importantDates = importantDates.mapIndexed { index, (type, label, date) ->
+        ImportantDate(id = index + 1L, personId = 1, type = type, label = label, date = date, position = index)
+    },
+    giftIdeas = giftIdeas,
 )
+
+/** The day every screenshot is taken on: Wednesday 28 Oct 2026, 6 Aban 1405. */
+internal val ScreenshotToday: LocalDate = LocalDate.of(2026, 10, 28)
+
+private fun idea(id: Long, text: String, link: String? = null, note: String? = null, givenOn: LocalDate? = null) =
+    GiftIdea(id = id, personId = 1, text = text, link = link, note = note, givenOn = givenOn, createdAt = Instant.ofEpochSecond(id))
 
 private val EnglishRings = listOf(ring(1, "Inner", 14), ring(2, "Close", 30), ring(3, "Friends", 90), ring(4, "Acquaintances", null))
 private val PersianRings = listOf(ring(1, "صمیمی", 14), ring(2, "نزدیک", 30), ring(3, "دوستان", 90), ring(4, "آشنایان", null))
@@ -285,6 +326,16 @@ private val EnglishData = ScreenshotData(
         dislikes = listOf("Cilantro", "Early mornings"),
         howWeMet = "Book club at the university, autumn 2019.",
         notes = "Allergic to cats. Prefers tea over coffee.",
+        importantDates = listOf(
+            Triple(ImportantDateType.Birthday, null, RecurringDate(CalendarSystem.SolarHijri, 1, 14, 1370)),
+            Triple(ImportantDateType.Anniversary, null, RecurringDate(CalendarSystem.Gregorian, 6, 12, 2019)),
+            Triple(ImportantDateType.Custom, "Moved to Berlin", RecurringDate(CalendarSystem.SolarHijri, 7, 1)),
+        ),
+        giftIdeas = listOf(
+            idea(1, "Fountain pen (Lamy 2000)", link = "lamy.com/2000", note = "Black, fine nib"),
+            idea(2, "Illustrated Divan of Hafez"),
+            idea(3, "Silk scarf", givenOn = LocalDate.of(2026, 3, 20)),
+        ),
     ),
     sparseProfile = profile(name = "Mina Karimi", otherScriptName = null, nickname = null, ring = EnglishRings[3]),
     tagInput = "",
@@ -318,6 +369,16 @@ private val PersianData = ScreenshotData(
         dislikes = listOf("گشنیز", "سحرخیزی"),
         howWeMet = "باشگاه کتاب دانشگاه، پاییز ۱۳۹۸.",
         notes = "به گربه حساسیت دارد. چای را به قهوه ترجیح می‌دهد.",
+        importantDates = listOf(
+            Triple(ImportantDateType.Birthday, null, RecurringDate(CalendarSystem.SolarHijri, 1, 14, 1370)),
+            Triple(ImportantDateType.Anniversary, null, RecurringDate(CalendarSystem.Gregorian, 6, 12, 2019)),
+            Triple(ImportantDateType.Custom, "مهاجرت به برلین", RecurringDate(CalendarSystem.SolarHijri, 7, 1)),
+        ),
+        giftIdeas = listOf(
+            idea(1, "خودنویس لامی ۲۰۰۰", link = "lamy.com/2000", note = "مشکی، نوک ریز"),
+            idea(2, "دیوان مصور حافظ"),
+            idea(3, "شال ابریشمی", givenOn = LocalDate.of(2026, 3, 20)),
+        ),
     ),
     sparseProfile = profile(name = "مینا کریمی", otherScriptName = null, nickname = null, ring = PersianRings[3]),
     tagInput = "",

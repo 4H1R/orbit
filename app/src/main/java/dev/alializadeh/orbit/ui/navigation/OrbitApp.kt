@@ -47,7 +47,7 @@ import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.rememberOrbitSnackbars
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.UpcomingKey
-import dev.alializadeh.orbit.upcoming.UpcomingScreen
+import dev.alializadeh.orbit.upcoming.UpcomingRoute
 
 /** The app shell: four bottom tabs over a single [NavDisplay]. */
 @Composable
@@ -57,7 +57,10 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
     val entries = navigator.rememberEntries(
         entryProvider {
             entry<UpcomingKey> {
-                UpcomingScreen(onNewPerson = { navigator.navigate(AddPersonKey) })
+                UpcomingRoute(
+                    onNewPerson = { navigator.navigate(AddPersonKey) },
+                    onPersonClick = { id -> navigator.navigate(PersonDetailKey(id)) },
+                )
             }
             entry<PeopleKey> {
                 PeopleRoute(

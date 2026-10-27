@@ -45,7 +45,12 @@ class MainActivity : AppCompatActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
-            OrbitTheme(appearance = ready.appearance, useLatinDigits = ready.useLatinDigits) {
+            OrbitTheme(
+                appearance = ready.appearance,
+                useLatinDigits = ready.useLatinDigits,
+                // First run shows dates (if any) in the calendar it's offering.
+                primaryCalendar = ready.primaryCalendar.takeIf { ready.firstRunFinished },
+            ) {
                 if (ready.firstRunFinished) OrbitApp() else FirstRunRoute()
             }
         }

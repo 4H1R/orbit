@@ -19,17 +19,23 @@ data class EditPersonKey(val personId: Long, val focus: PersonField? = null) : N
 data class PersonDetailKey(val personId: Long) : NavKey
 
 /**
- * Fields of the Add/Edit form that Person detail's Add details row can open. Those after
- * [ContactMethods] sit behind "More details" until they have content. Stored in saved back stacks
- * by name: never rename a constant.
+ * Fields of the Add/Edit form that Person detail's Add details row can open, in the form's order.
+ * Those after [Birthday] sit behind "More details" until they have content. Stored in saved back
+ * stacks by name: never rename a constant (new ones can go anywhere).
  */
 @Serializable
 enum class PersonField {
     Photo,
     ContactMethods,
+
+    /** Opens the date sheet for a new Birthday. */
+    Birthday,
     Nickname,
     OtherScriptName,
     Tags,
+
+    /** The other Important dates; opens the date sheet for a new one. */
+    ImportantDates,
     CanHelpWith,
     Likes,
     Dislikes,
@@ -37,7 +43,7 @@ enum class PersonField {
     Notes,
     ;
 
-    val isBehindMoreDetails: Boolean get() = this > ContactMethods
+    val isBehindMoreDetails: Boolean get() = this > Birthday
 
     companion object {
         val moreDetails: List<PersonField> = entries.filter(PersonField::isBehindMoreDetails)

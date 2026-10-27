@@ -65,6 +65,34 @@ class OrbitDateFormatter(private val numbers: OrbitNumberFormatter) {
         return listOf(primary, format(occurrence, second, today))
     }
 
+    /**
+     * The parts Person detail shows for an Important date: with a year, the original day in the
+     * Primary calendar with its year ("3 Apr 1991"), then as entered when its own Calendar differs
+     * ("14 Farvardin 1370"); without a year, its next occurrence's day and month in the Primary
+     * calendar, then its own day and month when that differs ("15 Mar", "25 Esfand"). Join them
+     * with the `separator` string.
+     */
+    fun importantDateParts(date: RecurringDate, primaryCalendar: CalendarSystem, today: LocalDate): List<String> {
+        val second = secondCalendar(date.calendar, primaryCalendar)
+        val year = date.year
+        val primary = if (year != null) {
+            format(CalendarDate(date.calendar, year, date.month, date.day).toLocalDate().inCalendar(primaryCalendar))
+        } else if (second == null) {
+            // As entered (29 Feb stays 29 Feb, even in a year it falls on the 28th).
+            format(date)
+        } else {
+            val next = date.nextOccurrence(today).date.inCalendar(primaryCalendar)
+            dayMonth(primaryCalendar, next.month, next.day)
+        }
+        return if (second == null) listOf(primary) else listOf(primary, format(date))
+    }
+
+    /** The day and month of [date] in [calendar], never a year: "27 Oct", «۵ آبان». */
+    fun formatDayMonth(date: LocalDate, calendar: CalendarSystem): String {
+        val labelled = date.inCalendar(calendar)
+        return dayMonth(calendar, labelled.month, labelled.day)
+    }
+
     /** "Oct", "Aban", «آبان», «اکتبر». [full] spells out English Gregorian months (the picker). */
     fun monthName(calendar: CalendarSystem, month: Int, full: Boolean = false): String =
         CalendarNames.month(language, calendar, month, full)

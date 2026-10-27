@@ -51,6 +51,11 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
+import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.person.ImportantDateType
+import dev.alializadeh.orbit.person.dates.DateTypeBadge
+import dev.alializadeh.orbit.person.dates.importantDateName
+import dev.alializadeh.orbit.person.dates.remindersShort
 import dev.alializadeh.orbit.person.CadenceSetting
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonItem
@@ -227,6 +232,63 @@ private fun ContactType.keyboardOptions(): KeyboardOptions = when (input) {
     ContactInput.Text -> KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next)
 }
 
+/** The Birthday, up front: its row, or Add birthday. */
+@Composable
+internal fun BirthdaySection(uiState: PersonFormUiState, actions: PersonFormActions, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OrbitSectionTitle(stringResource(R.string.important_date_type_birthday), horizontalPadding = 4.dp)
+        val birthday = uiState.birthday
+        if (birthday != null) {
+            DateRowItem(birthday, onClick = { actions.editImportantDate(birthday.key) })
+        } else {
+            TextButton(onClick = { actions.addImportantDate(ImportantDateType.Birthday) }) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.person_form_birthday_add), modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
+}
+
+/** The other Important dates, behind More details: a row each, then Add important date. */
+@Composable
+private fun ImportantDatesField(uiState: PersonFormUiState, actions: PersonFormActions, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OrbitSectionTitle(stringResource(R.string.person_section_important_dates), horizontalPadding = 4.dp)
+        uiState.otherDates.forEach { row -> DateRowItem(row, onClick = { actions.editImportantDate(row.key) }) }
+        TextButton(onClick = { actions.addImportantDate(ImportantDateType.Anniversary) }) {
+            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.person_form_important_date_add), modifier = Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
+/** One date as entered: "Birthday · 14 Farvardin 1370 · default reminders". Tapping opens its sheet. */
+@Composable
+private fun DateRowItem(row: DateRow, onClick: () -> Unit) {
+    val formats = LocalOrbitFormats.current
+    val draft = row.draft
+    val text = listOf(
+        importantDateName(draft.type, draft.label?.let(::bidiIsolate)),
+        formats.dates.format(draft.date),
+        remindersShort(draft.leadTimes),
+    ).joinToString(stringResource(R.string.separator))
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(12.dp),
+        ) {
+            DateTypeBadge(draft.type, size = 40.dp)
+            Text(text, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
 /** The fields behind "More details" that are showing, in the form's order. */
 @Composable
 internal fun MoreDetailFields(
@@ -251,6 +313,7 @@ internal fun MoreDetailFields(
                 modifier = modifier,
             )
             PersonField.Tags -> TagsField(uiState, fields.tagInput, actions, focus.requester(field), modifier)
+            PersonField.ImportantDates -> ImportantDatesField(uiState, actions, modifier)
             PersonField.CanHelpWith -> ItemsField(PersonItemKind.CanHelpWith, uiState, fields, actions, focus, modifier)
             PersonField.Likes -> ItemsField(PersonItemKind.Like, uiState, fields, actions, focus, modifier)
             PersonField.Dislikes -> ItemsField(PersonItemKind.Dislike, uiState, fields, actions, focus, modifier)
@@ -266,7 +329,7 @@ internal fun MoreDetailFields(
                 focusRequester = focus.requester(field),
                 modifier = modifier,
             )
-            PersonField.Photo, PersonField.ContactMethods -> Unit
+            PersonField.Photo, PersonField.ContactMethods, PersonField.Birthday -> Unit
         }
     }
 }

@@ -15,8 +15,11 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.person.CadenceSetting
 import dev.alializadeh.orbit.person.ContactMethodDraft
+import dev.alializadeh.orbit.person.ImportantDateDraft
+import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonDraft
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonItem
@@ -28,10 +31,13 @@ import dev.alializadeh.orbit.person.nameKey
 import dev.alializadeh.orbit.person.photo.CropImage
 import dev.alializadeh.orbit.person.photo.CropRect
 import dev.alializadeh.orbit.person.photo.PhotoStore
+import dev.alializadeh.orbit.reminders.LeadTime
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingRepository
 import dev.alializadeh.orbit.ring.outermost
 import java.io.File
+import java.time.Clock
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +56,12 @@ class ContactRow(val key: Long, type: ContactType, isPrimary: Boolean, value: St
 
     fun draft() = ContactMethodDraft(type, value.text.toString(), label.text.toString(), isPrimary)
 }
+
+/** One Important date row of the form; [key] is the form's own, stable while it's open. */
+data class DateRow(val key: Long, val draft: ImportantDateDraft)
+
+/** The Important date sheet over the form: editing the row [editingKey], or a new date of [newType]. */
+data class DateSheet(val editingKey: Long?, val newType: ImportantDateType)
 
 /** A line under the Tags field: an existing Tag, or Create "…" for a new one. */
 data class TagSuggestion(val name: String, val isNew: Boolean)
@@ -83,6 +95,11 @@ data class PersonFormUiState(
     val cadence: CadenceSetting = CadenceSetting.FromRing,
     val photo: File? = null,
     val contacts: List<ContactRow> = emptyList(),
+    /** Every Important date, the Birthday first. */
+    val importantDates: List<DateRow> = emptyList(),
+    val dateSheet: DateSheet? = null,
+    val defaultLeadTimes: Set<LeadTime> = LeadTime.DEFAULT,
+    val today: LocalDate = LocalDate.ofEpochDay(0),
     /** The row just added, whose value field takes focus. */
     val newContactKey: Long? = null,
     val tags: List<String> = emptyList(),
@@ -103,6 +120,11 @@ data class PersonFormUiState(
     val savedPersonId: Long? = null,
 ) {
     val selectedRing: Ring? get() = rings.firstOrNull { it.id == ringId }
+
+    val birthday: DateRow? get() = importantDates.firstOrNull { it.draft.type == ImportantDateType.Birthday }
+
+    /** The Important dates other than the Birthday, behind More details. */
+    val otherDates: List<DateRow> get() = importantDates.filter { it.draft.type != ImportantDateType.Birthday }
 }
 
 data class ItemRef(val kind: PersonItemKind, val index: Int)
@@ -128,6 +150,11 @@ interface PersonFormActions {
     fun removeContact(key: Long)
     fun setPrimary(key: Long)
     fun setContactType(key: Long, type: ContactType)
+    fun addImportantDate(type: ImportantDateType)
+    fun editImportantDate(key: Long)
+    fun saveImportantDate(editingKey: Long?, draft: ImportantDateDraft)
+    fun deleteImportantDate(key: Long)
+    fun dismissDateSheet()
     fun submitTag()
     fun pickTag(suggestion: TagSuggestion)
     fun removeTag(name: String)
@@ -154,7 +181,11 @@ class PersonFormViewModel @AssistedInject constructor(
     private val personRepository: PersonRepository,
     ringRepository: RingRepository,
     private val photoStore: PhotoStore,
+    preferencesRepository: PreferencesRepository,
+    clock: Clock,
 ) : ViewModel(), PersonFormActions {
+
+    private val today: LocalDate = LocalDate.now(clock)
 
     val fields = PersonFormFields()
     private val name get() = fields.name
@@ -166,6 +197,9 @@ class PersonFormViewModel @AssistedInject constructor(
     private val itemInputs get() = fields.itemInputs
 
     private val contacts = mutableStateListOf<ContactRow>()
+    private val importantDates = mutableStateListOf<DateRow>()
+    private var dateSheet by mutableStateOf<DateSheet?>(null)
+    private var defaultLeadTimes by mutableStateOf(LeadTime.DEFAULT)
     private val tags = mutableStateListOf<String>()
     private val items = PersonItemKind.entries.associateWith { mutableStateListOf<String>() }
     private var ringId by mutableStateOf<Long?>(null)
@@ -183,6 +217,7 @@ class PersonFormViewModel @AssistedInject constructor(
 
     private var initialDraft: PersonDraft? = null
     private var nextContactKey = 1L
+    private var nextDateKey = 1L
 
     /** Photos cropped while the form is open and not saved yet. */
     private val pendingPhotos = mutableSetOf<String>()
@@ -208,6 +243,7 @@ class PersonFormViewModel @AssistedInject constructor(
 
     init {
         viewModelScope.launch { personRepository.observeTags().collect { knownTags = it } }
+        viewModelScope.launch { preferencesRepository.preferences.collect { defaultLeadTimes = it.defaultLeadTimes } }
         viewModelScope.launch {
             if (personId == null) {
                 ringId = ringRepository.observeRings().first().outermost()?.id
@@ -221,6 +257,12 @@ class PersonFormViewModel @AssistedInject constructor(
             }
             initialDraft = currentDraft()
             progress = Progress.Editing
+            // The Add details chips for dates open the date sheet at once.
+            when (focus) {
+                PersonField.Birthday -> addImportantDate(ImportantDateType.Birthday)
+                PersonField.ImportantDates -> addImportantDate(ImportantDateType.Anniversary)
+                else -> Unit
+            }
         }
     }
 
@@ -238,6 +280,7 @@ class PersonFormViewModel @AssistedInject constructor(
         draft.contactMethods.forEach {
             contacts += ContactRow(nextContactKey++, it.type, it.isPrimary, it.value, it.label.orEmpty())
         }
+        draft.importantDates.forEach { importantDates += DateRow(nextDateKey++, it) }
         // Edit opens with every field that has content.
         revealed = revealed + PersonField.moreDetails.filter { field -> hasContent(field, draft) }
     }
@@ -245,6 +288,8 @@ class PersonFormViewModel @AssistedInject constructor(
     private fun hasContent(field: PersonField, draft: PersonDraft): Boolean = when (field) {
         PersonField.Photo -> draft.photoFileName != null
         PersonField.ContactMethods -> draft.contactMethods.isNotEmpty()
+        PersonField.Birthday -> draft.importantDates.any { it.type == ImportantDateType.Birthday }
+        PersonField.ImportantDates -> draft.importantDates.any { it.type != ImportantDateType.Birthday }
         PersonField.Nickname -> !draft.nickname.isNullOrBlank()
         PersonField.OtherScriptName -> !draft.otherScriptName.isNullOrBlank()
         PersonField.Tags -> draft.tags.isNotEmpty()
@@ -273,8 +318,14 @@ class PersonFormViewModel @AssistedInject constructor(
             canHelpWith = itemsWithPending(PersonItemKind.CanHelpWith),
             likes = itemsWithPending(PersonItemKind.Like),
             dislikes = itemsWithPending(PersonItemKind.Dislike),
+            importantDates = sortedDates().map(DateRow::draft),
         )
     }
+
+    /** The Birthday first, then the other dates in the order they were added. */
+    private fun sortedDates(): List<DateRow> = importantDates.sortedBy { it.draft.type != ImportantDateType.Birthday }
+
+    private fun birthdayRow(): DateRow? = importantDates.firstOrNull { it.draft.type == ImportantDateType.Birthday }
 
     private fun itemsWithPending(kind: PersonItemKind): List<String> {
         val list = items.getValue(kind).toList()
@@ -301,6 +352,10 @@ class PersonFormViewModel @AssistedInject constructor(
             cadence = cadenceSetting,
             photo = photoFileName?.let(photoStore::file),
             contacts = contacts.toList(),
+            importantDates = sortedDates(),
+            dateSheet = dateSheet,
+            defaultLeadTimes = defaultLeadTimes,
+            today = today,
             newContactKey = newContactKey,
             tags = tags.toList(),
             tagSuggestions = tagSuggestions(),
@@ -360,6 +415,49 @@ class PersonFormViewModel @AssistedInject constructor(
 
     override fun setContactType(key: Long, type: ContactType) {
         contacts.firstOrNull { it.key == key }?.type = type
+    }
+
+    // Important dates
+
+    /** Add birthday or Add important date: the date sheet for a new date of [type]. */
+    override fun addImportantDate(type: ImportantDateType) {
+        // There's at most one Birthday: asking for another edits the one there is.
+        val birthday = birthdayRow()
+        dateSheet = if (type == ImportantDateType.Birthday && birthday != null) {
+            DateSheet(editingKey = birthday.key, newType = type)
+        } else {
+            DateSheet(editingKey = null, newType = type)
+        }
+    }
+
+    override fun editImportantDate(key: Long) {
+        val row = importantDates.firstOrNull { it.key == key } ?: return
+        dateSheet = DateSheet(editingKey = row.key, newType = row.draft.type)
+    }
+
+    /** Done on the date sheet: updates the row [editingKey], or adds a new one. */
+    override fun saveImportantDate(editingKey: Long?, draft: ImportantDateDraft) {
+        dateSheet = null
+        val d = draft.normalised()
+        val index = importantDates.indexOfFirst { it.key == editingKey }
+        val otherBirthday = importantDates.any { it.draft.type == ImportantDateType.Birthday && it.key != editingKey }
+        // The sheet hides Birthday when there's one already; never keep a second.
+        if (d.type == ImportantDateType.Birthday && otherBirthday) return
+        if (index >= 0) {
+            importantDates[index] = importantDates[index].copy(draft = d.copy(id = importantDates[index].draft.id))
+        } else {
+            importantDates += DateRow(nextDateKey++, d.copy(id = null))
+        }
+    }
+
+    /** Delete on the date sheet. */
+    override fun deleteImportantDate(key: Long) {
+        dateSheet = null
+        importantDates.removeAll { it.key == key }
+    }
+
+    override fun dismissDateSheet() {
+        dateSheet = null
     }
 
     // Tags

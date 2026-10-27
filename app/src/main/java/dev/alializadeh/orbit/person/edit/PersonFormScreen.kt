@@ -33,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,7 +49,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonField
+import dev.alializadeh.orbit.person.dates.ImportantDateSheet
 import dev.alializadeh.orbit.person.photo.PhotoCropScreen
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
@@ -202,7 +205,11 @@ fun PersonFormScreen(
                     actions = actions,
                     modifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.ContactMethods)),
                 )
-                // Slice 3: the Birthday row (and "+ Important date") goes here, up front.
+                BirthdaySection(
+                    uiState = uiState,
+                    actions = actions,
+                    modifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.Birthday)),
+                )
                 MoreDetailFields(uiState, fields, actions, focus)
                 if (uiState.showsMoreDetails) {
                     MoreDetailsButton(onClick = actions::showMoreDetails)
@@ -228,6 +235,23 @@ fun PersonFormScreen(
             onPick = actions::setCadence,
             onDismiss = { cadenceSheet = false },
         )
+    }
+    uiState.dateSheet?.let { sheet ->
+        key(sheet) {
+            val editing = uiState.importantDates.firstOrNull { it.key == sheet.editingKey }
+            ImportantDateSheet(
+                initial = editing?.draft,
+                newType = sheet.newType,
+                birthdayTaken = uiState.importantDates.any {
+                    it.draft.type == ImportantDateType.Birthday && it.key != sheet.editingKey
+                },
+                defaultLeadTimes = uiState.defaultLeadTimes,
+                today = uiState.today,
+                onDone = { draft -> actions.saveImportantDate(sheet.editingKey, draft) },
+                onDelete = editing?.let { row -> { actions.deleteImportantDate(row.key) } },
+                onDismiss = actions::dismissDateSheet,
+            )
+        }
     }
     when (val dialog = uiState.dialog) {
         FormDialog.Discard -> AlertDialog(

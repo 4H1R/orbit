@@ -25,6 +25,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -32,6 +37,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -93,16 +99,17 @@ fun WheelDatePicker(
                 modifier = Modifier.weight(1.1f),
             )
         }
+        // The hint's line is always there, so the picker never changes height: a bottom sheet that
+        // shrinks right after a wheel drag gets stuck and can't animate closed (material3
+        // 1.5.0-beta02).
         val viaYear = state.convertedViaYear
-        if (viaYear != null) {
-            Text(
-                text = stringResource(R.string.date_picker_converted_using, formats.numbers.format(viaYear)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        Text(
+            text = viaYear?.let { stringResource(R.string.date_picker_converted_using, formats.numbers.format(it)) } ?: " ",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().semantics { if (viaYear == null) hideFromAccessibility() },
+        )
     }
 }
 
@@ -153,6 +160,8 @@ private fun Wheel(
     Box(
         modifier = modifier
             .height(ItemHeight * VISIBLE_ITEMS)
+            // Scrolling past a wheel's end mustn't drag the bottom sheet it sits in.
+            .nestedScroll(KeepLeftoverScroll)
             .semantics { contentDescription = description },
     ) {
         Surface(
@@ -199,6 +208,13 @@ private fun Wheel(
             }
         }
     }
+}
+
+/** Consumes whatever scroll or fling a wheel leaves, so its parents (a sheet) don't move. */
+private val KeepLeftoverScroll = object : NestedScrollConnection {
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset = available
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
 }
 
 /** Fades the wheel out towards its top and bottom edges. */

@@ -227,6 +227,94 @@
     <string name="delete_person_title">Delete %1$s?</string>
     <string name="delete_person_body">This can\'t be undone. Shared interactions stay for the others.</string>
 
+    <!-- Important dates -->
+    <string name="person_section_important_dates">Important dates</string>
+    <string name="person_field_important_date">Important date</string>
+    <string name="important_date_type">Type</string>
+    <string name="important_date_type_birthday">Birthday</string>
+    <string name="important_date_type_anniversary">Anniversary</string>
+    <string name="important_date_type_custom">Custom</string>
+    <string name="important_date_label">Label</string>
+    <string name="important_date_sheet_new">New important date</string>
+    <string name="important_date_sheet_edit">Edit important date</string>
+    <string name="person_form_birthday_add">Add birthday</string>
+    <string name="person_form_important_date_add">Add important date</string>
+    <!-- The date sheet's Reminders line; %1$s lists lead times, e.g. "1 week before · on the day". -->
+    <string name="important_date_reminders">Reminders</string>
+    <string name="important_date_reminders_default">Default (%1$s)</string>
+    <string name="important_date_reminders_custom">Custom (%1$s)</string>
+    <string name="important_date_reminders_none">No reminders</string>
+    <!-- The same, inside a form row: "Birthday · 14 Farvardin 1370 · default reminders" -->
+    <string name="important_date_reminders_default_short">default reminders</string>
+    <string name="important_date_reminders_custom_short">custom reminders</string>
+    <string name="important_date_reminders_none_short">no reminders</string>
+    <string name="lead_time_on_the_day">on the day</string>
+    <plurals name="lead_time_days_before">
+        <item quantity="one">%1$s day before</item>
+        <item quantity="other">%1$s days before</item>
+    </plurals>
+    <plurals name="lead_time_weeks_before">
+        <item quantity="one">%1$s week before</item>
+        <item quantity="other">%1$s weeks before</item>
+    </plurals>
+    <plurals name="lead_time_months_before">
+        <item quantity="one">%1$s month before</item>
+        <item quantity="other">%1$s months before</item>
+    </plurals>
+    <!-- Years count (copy deck), measured in the date's own Calendar. years_anniversary takes the ordinal. -->
+    <string name="years_birthday">Turns %1$s</string>
+    <!-- After a separator: "Today is Sara's birthday · turns 35" -->
+    <string name="years_birthday_inline">turns %1$s</string>
+    <string name="years_anniversary">%1$s anniversary</string>
+    <plurals name="years_custom">
+        <item quantity="one">%1$s year</item>
+        <item quantity="other">%1$s years</item>
+    </plurals>
+    <!-- The current age next to a Birthday with a year -->
+    <plurals name="important_date_age">
+        <item quantity="one">%1$s year old</item>
+        <item quantity="other">%1$s years old</item>
+    </plurals>
+    <!-- Whose date: %1$s is the name, %2$s a custom date's label -->
+    <string name="date_title_birthday">%1$s\'s birthday</string>
+    <string name="date_title_anniversary">%1$s\'s anniversary</string>
+    <string name="date_title_custom">%1$s\'s %2$s</string>
+    <string name="reminder_title_birthday_today">Today is %1$s\'s birthday</string>
+    <string name="reminder_title_anniversary_today">Today is %1$s\'s anniversary</string>
+    <string name="reminder_title_custom_today">Today is %1$s\'s %2$s</string>
+    <!-- Names two ideas, then list_and_more -->
+    <string name="reminder_gift_ideas">Gift ideas: %1$s</string>
+    <string name="list_and_more">%1$s and %2$s more</string>
+    <!-- Joins the items of a list inside a line (copy deck: Separator) -->
+    <string name="list_separator">", "</string>
+
+    <!-- Gift ideas -->
+    <string name="person_section_gift_ideas">Gift ideas</string>
+    <string name="gift_idea_add">Gift idea</string>
+    <string name="gift_idea_sheet_new">New gift idea</string>
+    <string name="gift_idea_sheet_edit">Gift idea</string>
+    <string name="gift_idea_text">Idea</string>
+    <string name="gift_idea_link">Link (optional)</string>
+    <string name="gift_idea_note">Note (optional)</string>
+    <string name="gift_idea_open_link">Open link</string>
+    <string name="gift_idea_mark_given">Mark as given</string>
+    <string name="gift_idea_given_on">Given %1$s</string>
+    <string name="gift_idea_given_section">Given (%1$s)</string>
+    <string name="gift_idea_given_title">When was it given?</string>
+    <string name="gift_idea_date_pick">Pick…</string>
+    <string name="gift_idea_marked_given">Marked as given</string>
+
+    <!-- Upcoming -->
+    <string name="upcoming_section_today">Today</string>
+    <string name="upcoming_section_coming_up">Coming up</string>
+    <plurals name="upcoming_gift_ideas">
+        <item quantity="one">%1$s gift idea</item>
+        <item quantity="other">%1$s gift ideas</item>
+    </plurals>
+    <string name="upcoming_all_caught_up">All caught up</string>
+    <!-- %1$s is the date and when: "Sara's birthday · 12 Jan" -->
+    <string name="upcoming_next">Next: %1$s</string>
+
     <!--
         TEMPORARY: slice 0 backup-format spike. Slice 5 replaces this row and these strings with
         the real Back up now flow (copy deck: backup_now, backed_up_result).

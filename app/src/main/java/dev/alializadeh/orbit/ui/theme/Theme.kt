@@ -15,6 +15,7 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.ktx.harmonize
 import com.materialkolor.material3.rememberDynamicColorScheme
+import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.OrbitFormats
 import dev.alializadeh.orbit.language.OrbitLanguage
@@ -36,12 +37,14 @@ data class OrbitAppearance(
  *   the seed. Match wallpaper: Android's dynamic scheme.
  * - Apricot, the Important-date accent, is the tertiary colour in every case, harmonised towards
  *   the scheme's primary so it sits well with any seed.
- * - Digits: Persian in the Persian UI unless [useLatinDigits].
+ * - Digits: Persian in the Persian UI unless [useLatinDigits]. Dates show in [primaryCalendar].
  */
 @Composable
 fun OrbitTheme(
     appearance: OrbitAppearance = OrbitAppearance(),
     useLatinDigits: Boolean = false,
+    /** Null: the UI language's own (Persian → Solar Hijri), as before first run sets it. */
+    primaryCalendar: CalendarSystem? = null,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = appearance.themeMode.isDark()
@@ -53,7 +56,8 @@ fun OrbitTheme(
     val context = LocalContext.current
     val typography = remember(context) { orbitTypography(OrbitFonts.get(context)) }
     val language = OrbitLanguage.of(LocalConfiguration.current.locales[0])
-    val formats = remember(language, useLatinDigits) { OrbitFormats(language, useLatinDigits) }
+    val calendar = primaryCalendar ?: language.defaultCalendar
+    val formats = remember(language, useLatinDigits, calendar) { OrbitFormats(language, useLatinDigits, calendar) }
     CompositionLocalProvider(LocalOrbitFormats provides formats) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,

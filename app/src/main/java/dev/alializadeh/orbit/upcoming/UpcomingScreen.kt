@@ -1,17 +1,76 @@
 package dev.alializadeh.orbit.upcoming
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.calendar.inCalendar
+import dev.alializadeh.orbit.format.LocalOrbitFormats
+import dev.alializadeh.orbit.format.OrbitDateFormatter
+import dev.alializadeh.orbit.format.RelativeDays
+import dev.alializadeh.orbit.format.text
+import dev.alializadeh.orbit.person.contact.ContactAction
+import dev.alializadeh.orbit.person.contact.ContactActions
+import dev.alializadeh.orbit.person.dates.DateBadge
+import dev.alializadeh.orbit.person.dates.dateTitle
+import dev.alializadeh.orbit.person.dates.giftIdeasLine
+import dev.alializadeh.orbit.person.dates.todayTitle
+import dev.alializadeh.orbit.person.dates.yearsCountText
 import dev.alializadeh.orbit.person.list.NewPersonFab
+import dev.alializadeh.orbit.person.ui.PersonAvatar
+import dev.alializadeh.orbit.person.ui.icon
+import dev.alializadeh.orbit.person.ui.label
+import dev.alializadeh.orbit.settings.MaxContentWidth
+import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
+import dev.alializadeh.orbit.ui.components.OrbitSectionTitle
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
+import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
+import dev.alializadeh.orbit.ui.expressive.OrbitShapes
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
+import java.io.File
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 
 /** The Upcoming tab's root, which is also Home. */
@@ -19,19 +78,359 @@ import kotlinx.serialization.Serializable
 data object UpcomingKey : NavKey
 
 /**
- * Upcoming (Home). A stub until slice 3 adds Today and Coming up; the New person FAB already
- * works.
+ * Upcoming's sections, top to bottom. Empty ones are hidden; when all are, an empty state shows.
+ * The screen draws them in this order, so a later slice only fills its own.
  */
+enum class UpcomingSection {
+    /** Slices 6 and 7: a critical Reminder health problem, App lock paused. */
+    Warnings,
+
+    /** Slice 5: the Backup nudge card. */
+    BackupNudge,
+    Today,
+
+    /** Slice 4: Due People. */
+    Due,
+    ComingUp,
+}
+
 @Composable
-fun UpcomingScreen(onNewPerson: () -> Unit, modifier: Modifier = Modifier) {
+fun UpcomingRoute(
+    onNewPerson: () -> Unit,
+    onPersonClick: (personId: Long) -> Unit,
+    viewModel: UpcomingViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Back from the background: it may be another day.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.checkDate()
+        onPauseOrDispose {}
+    }
+    val context = LocalContext.current
+    val snackbars = LocalOrbitSnackbars.current
+    val noApp = stringResource(R.string.contact_no_app)
+    UpcomingScreen(
+        uiState = uiState,
+        onNewPerson = onNewPerson,
+        onPersonClick = onPersonClick,
+        onContactAction = { action ->
+            try {
+                context.startActivity(Intent(action.intentAction, action.uri.toUri()))
+            } catch (_: ActivityNotFoundException) {
+                snackbars?.show(noApp)
+            }
+        },
+    )
+}
+
+/** Upcoming (Home): [UpcomingSection]s in order, or an empty state. */
+@Composable
+fun UpcomingScreen(
+    uiState: UpcomingUiState,
+    onNewPerson: () -> Unit,
+    onPersonClick: (personId: Long) -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
     Scaffold(
         modifier = modifier,
         topBar = { OrbitTopAppBar(title = stringResource(R.string.nav_tab_upcoming)) },
         snackbarHost = { OrbitSnackbarHost() },
-        // Slice 3 gives Upcoming a list, whose scrolling then shrinks the FAB.
-        floatingActionButton = { NewPersonFab(onClick = onNewPerson) },
+        floatingActionButton = { NewPersonFab(onClick = onNewPerson, listState = listState) },
     ) { innerPadding ->
-        // Empty until the slice that builds this screen.
-        Box(Modifier.fillMaxSize().padding(innerPadding))
+        when {
+            uiState !is UpcomingUiState.Loaded -> Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                OrbitLoadingIndicator()
+            }
+
+            !uiState.feed.hasPeople -> EmptyState(
+                title = stringResource(R.string.empty_no_people_title),
+                body = stringResource(R.string.empty_no_people_body),
+                modifier = Modifier.padding(innerPadding),
+            )
+
+            uiState.isEmpty -> EmptyState(
+                title = stringResource(R.string.upcoming_all_caught_up),
+                body = uiState.feed.next?.let { nextLine(it, uiState.today) },
+                modifier = Modifier.padding(innerPadding),
+            )
+
+            else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.widthIn(max = MaxContentWidth).fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = innerPadding.calculateTopPadding(),
+                        // Room for the FAB over the last row.
+                        bottom = innerPadding.calculateBottomPadding() + 96.dp,
+                    ),
+                ) {
+                    UpcomingSection.entries.forEach { section ->
+                        when (section) {
+                            UpcomingSection.Warnings, UpcomingSection.BackupNudge, UpcomingSection.Due -> Unit
+                            UpcomingSection.Today -> todaySection(uiState, onPersonClick, onContactAction)
+                            UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The nearest date today as the hero card, then any others today as rows. */
+private fun LazyListScope.todaySection(
+    uiState: UpcomingUiState.Loaded,
+    onPersonClick: (Long) -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+) {
+    val dates = uiState.feed.today
+    if (dates.isEmpty()) return
+    item(key = "today_title") { SectionTitle(stringResource(R.string.upcoming_section_today)) }
+    val hero = dates.first()
+    item(key = "today_hero") {
+        HeroCard(
+            date = hero,
+            photo = uiState.photos[hero.person.id],
+            today = uiState.today,
+            onClick = { onPersonClick(hero.person.id) },
+            onContactAction = onContactAction,
+        )
+    }
+    val rest = dates.drop(1)
+    itemsIndexed(rest, key = { _, it -> "today_${it.importantDate.id}" }) { index, date ->
+        TodayRow(
+            date = date,
+            photo = uiState.photos[date.person.id],
+            index = index,
+            count = rest.size,
+            onClick = { onPersonClick(date.person.id) },
+            onContactAction = onContactAction,
+            modifier = if (index == 0) Modifier.padding(top = 8.dp) else Modifier,
+        )
+    }
+}
+
+/** Important dates in the next 30 days. Rows open Person detail; no inline actions. */
+private fun LazyListScope.comingUpSection(uiState: UpcomingUiState.Loaded, onPersonClick: (Long) -> Unit) {
+    val dates = uiState.feed.comingUp
+    if (dates.isEmpty()) return
+    item(key = "coming_up_title") { SectionTitle(stringResource(R.string.upcoming_section_coming_up)) }
+    itemsIndexed(dates, key = { _, it -> "coming_up_${it.importantDate.id}" }) { index, date ->
+        ComingUpRow(
+            date = date,
+            today = uiState.today,
+            index = index,
+            count = dates.size,
+            onClick = { onPersonClick(date.person.id) },
+        )
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    OrbitSectionTitle(text, horizontalPadding = 4.dp, modifier = Modifier.padding(top = 8.dp))
+}
+
+/**
+ * The nearest date today: the photo, "Today is Sara's birthday · turns 35", the date, the open
+ * Gift ideas, and the primary contact action (slice 4 adds Log interaction beside it).
+ */
+@Composable
+private fun HeroCard(
+    date: UpcomingDate,
+    photo: File?,
+    today: LocalDate,
+    onClick: () -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+) {
+    val formats = LocalOrbitFormats.current
+    val separator = stringResource(R.string.separator)
+    val name = date.person.names.displayName(formats.language)
+    val type = date.importantDate.type
+    val label = date.importantDate.label
+    val title = listOfNotNull(
+        todayTitle(name, type, label),
+        yearsCountText(type, date.occurrence.yearsCount, inline = true),
+    ).joinToString(separator)
+    val dateLine = formats.dates
+        .occurrenceParts(date.date, date.importantDate.date.calendar, formats.primaryCalendar, today, withWeekday = true)
+        .joinToString(separator)
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(36.dp),
+        color = colors.tertiaryContainer,
+        contentColor = colors.onTertiaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box {
+            // Decoration: a sunny shape over the corner.
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 46.dp, y = (-46).dp)
+                    .size(170.dp)
+                    .clip(OrbitShapes.sunny())
+                    .background(colors.tertiary.copy(alpha = 0.16f)),
+            )
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                PersonAvatar(
+                    name = name,
+                    photo = photo,
+                    size = 72.dp,
+                    shape = OrbitShapes.cookie(),
+                    textStyle = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                Text(title, style = MaterialTheme.typography.headlineSmall)
+                Text(dateLine, style = MaterialTheme.typography.bodyMedium)
+                giftIdeasLine(date.person.openGiftIdeas)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                val action = date.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
+                // Slice 4: [Log interaction] joins this row.
+                if (action != null) {
+                    Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { onContactAction(action) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colors.onTertiaryContainer,
+                                contentColor = colors.tertiaryContainer,
+                            ),
+                        ) {
+                            Icon(action.kind.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text(action.kind.label(), modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Another date today: whose it is, the years count and Gift ideas, and the contact action. */
+@Composable
+private fun TodayRow(
+    date: UpcomingDate,
+    photo: File?,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val formats = LocalOrbitFormats.current
+    val name = date.person.names.displayName(formats.language)
+    val supporting = detailsLine(date)
+    val action = date.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = { PersonAvatar(name = name, photo = photo) },
+        supportingContent = supporting?.let { { Text(it) } },
+        trailingContent = action?.let {
+            {
+                IconButton(onClick = { onContactAction(it) }) {
+                    Icon(it.kind.icon, contentDescription = it.kind.label())
+                }
+            }
+        },
+        modifier = modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+    ) {
+        Text(
+            dateTitle(name, date.importantDate.type, date.importantDate.label),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * A date in the next 30 days: the day badge, whose date it is, when (relative words up to a week
+ * ahead, then the date with its weekday) with the date's own Calendar when it differs, then the
+ * years count and "2 gift ideas".
+ */
+@Composable
+private fun ComingUpRow(date: UpcomingDate, today: LocalDate, index: Int, count: Int, onClick: () -> Unit) {
+    val formats = LocalOrbitFormats.current
+    val separator = stringResource(R.string.separator)
+    val name = date.person.names.displayName(formats.language)
+    val ownCalendar = date.importantDate.date.calendar
+    val inPrimary = date.date.inCalendar(formats.primaryCalendar)
+    val whenText = RelativeDays.ahead(date.date, today)?.text()
+        ?: formats.dates.formatWithWeekday(date.date, formats.primaryCalendar, today)
+    val second = OrbitDateFormatter.secondCalendar(ownCalendar, formats.primaryCalendar)
+        ?.let { formats.dates.format(date.date, it, today) }
+    val whenLine = listOfNotNull(whenText, second).joinToString(separator)
+    val details = detailsLine(date)
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = {
+            DateBadge(
+                day = formats.numbers.format(inPrimary.day),
+                month = formats.dates.monthName(formats.primaryCalendar, inPrimary.month),
+            )
+        },
+        supportingContent = {
+            Column {
+                Text(whenLine)
+                if (details != null) Text(details)
+            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+    ) {
+        Text(dateTitle(name, date.importantDate.type, date.importantDate.label), maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** "Turns 32 · 2 gift ideas": the years count and the open Gift ideas, or null with neither. */
+@Composable
+private fun detailsLine(date: UpcomingDate): String? {
+    val ideas = date.person.openGiftIdeas.size
+    val parts = listOfNotNull(
+        yearsCountText(date.importantDate.type, date.occurrence.yearsCount),
+        if (ideas > 0) {
+            pluralStringResource(R.plurals.upcoming_gift_ideas, ideas, LocalOrbitFormats.current.numbers.format(ideas))
+        } else {
+            null
+        },
+    )
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(stringResource(R.string.separator))
+}
+
+/** "Next: Sara's birthday · 12 Jan". */
+@Composable
+private fun nextLine(date: UpcomingDate, today: LocalDate): String {
+    val formats = LocalOrbitFormats.current
+    val name = date.person.names.displayName(formats.language)
+    val what = dateTitle(name, date.importantDate.type, date.importantDate.label)
+    val whenText = formats.dates.format(date.date, formats.primaryCalendar, today)
+    return stringResource(R.string.upcoming_next, what + stringResource(R.string.separator) + whenText)
+}
+
+@Composable
+private fun EmptyState(title: String, body: String?, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text = title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        if (body != null) {
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

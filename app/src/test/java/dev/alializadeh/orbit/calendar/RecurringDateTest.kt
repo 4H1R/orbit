@@ -139,4 +139,35 @@ class RecurringDateTest {
     }
 
     private fun shamsi(year: Int, month: Int, day: Int) = CalendarDate(SolarHijri, year, month, day).toLocalDate()
+
+    // --- Age (completed years) -----------------------------------------------------------------
+
+    @Test
+    fun theAgeGoesUpOnTheDayTheDateFallsOn() {
+        val birthday = RecurringDate(Gregorian, 10, 28, 1991)
+        assertEquals(34, birthday.completedYears(LocalDate.of(2026, 10, 27)))
+        assertEquals(35, birthday.completedYears(today))
+        assertEquals(35, birthday.completedYears(LocalDate.of(2027, 10, 27)))
+    }
+
+    @Test
+    fun theAgeIsCountedInTheDatesOwnCalendar() {
+        // 7 Aban 1370: on 6 Aban 1405 (28 Oct 2026) the 35th Solar Hijri birthday is a day away.
+        val birthday = RecurringDate(SolarHijri, 8, 7, 1370)
+        assertEquals(34, birthday.completedYears(today))
+        assertEquals(35, birthday.completedYears(today.plusDays(1)))
+        assertEquals(35, birthday.nextOccurrence(today).yearsCount)
+    }
+
+    @Test
+    fun aLeapDayBirthdayAgesOnTheLastDayOfFebruaryInOtherYears() {
+        val birthday = RecurringDate(Gregorian, 2, 29, 2000)
+        assertEquals(25, birthday.completedYears(LocalDate.of(2026, 2, 27)))
+        assertEquals(26, birthday.completedYears(LocalDate.of(2026, 2, 28)))
+    }
+
+    @Test
+    fun noYearNoAge() {
+        assertNull(RecurringDate(Gregorian, 3, 1).completedYears(today))
+    }
 }

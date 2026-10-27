@@ -44,6 +44,17 @@ data class RecurringDate(
     }
 
     /**
+     * Whole years since [year] as of [date], measured in the date's own Calendar: a Birthday's
+     * current age. It goes up on the day the date falls on. Null when the year is unknown.
+     */
+    fun completedYears(date: LocalDate): Int? {
+        val since = year ?: return null
+        val thisYear = calendar.yearOf(date)
+        val years = thisYear - since - if (occurrenceIn(thisYear) > date) 1 else 0
+        return years.coerceAtLeast(0)
+    }
+
+    /**
      * This date in [target]. With a [year] it's exact. Without one it goes through this year's
      * occurrence (this year of the date's own Calendar, as of [today]), and [Conversion.viaYear]
      * says which year was used ("Converted using 1405").

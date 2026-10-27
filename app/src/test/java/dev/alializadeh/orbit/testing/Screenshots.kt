@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.testing
 
 import androidx.compose.runtime.Composable
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.ui.theme.OrbitAppearance
 import dev.alializadeh.orbit.ui.theme.OrbitTheme
 import org.robolectric.RuntimeEnvironment
@@ -23,6 +24,8 @@ fun captureScreen(
     variant: ScreenshotVariant,
     appearance: OrbitAppearance = OrbitAppearance(),
     useLatinDigits: Boolean = false,
+    /** Null: the language's own (Gregorian in English, Solar Hijri in Persian). */
+    primaryCalendar: CalendarSystem? = null,
     /** A taller screen (1600dp), to see a whole scrolling page at once. */
     tall: Boolean = false,
     content: @Composable () -> Unit,
@@ -30,7 +33,7 @@ fun captureScreen(
     val qualifiers = if (tall) variant.qualifiers.replace(NIGHT_QUALIFIER, "-h1600dp$1") else variant.qualifiers
     RuntimeEnvironment.setQualifiers(qualifiers)
     captureRoboImage("src/test/screenshots/${screen}_${variant.id}.png") {
-        OrbitTheme(appearance = appearance, useLatinDigits = useLatinDigits) { content() }
+        OrbitTheme(appearance = appearance, useLatinDigits = useLatinDigits, primaryCalendar = primaryCalendar) { content() }
     }
 }
 

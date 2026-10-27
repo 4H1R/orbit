@@ -46,13 +46,21 @@ import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.person.PersonDetailKey
+import dev.alializadeh.orbit.person.ImportantDateDraft
+import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonField
+import dev.alializadeh.orbit.person.contact.ContactActions
+import dev.alializadeh.orbit.person.contact.ContactType
+import dev.alializadeh.orbit.person.dates.ImportantDateSheet
+import dev.alializadeh.orbit.person.gifts.GiftIdeaSheet
+import dev.alializadeh.orbit.person.gifts.GivenDateSheet
 import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 
 @Composable
@@ -75,6 +83,15 @@ fun PersonDetailRoute(
     val language = LocalOrbitFormats.current.language
     val noApp = stringResource(R.string.contact_no_app)
     val copied = stringResource(R.string.contact_copied)
+    val markedGiven = stringResource(R.string.gift_idea_marked_given)
+    val undo = stringResource(R.string.common_undo)
+    val startAction: (ContactAction) -> Unit = { action ->
+        try {
+            context.startActivity(Intent(action.intentAction, action.uri.toUri()))
+        } catch (_: ActivityNotFoundException) {
+            snackbars?.show(noApp)
+        }
+    }
 
     val loaded = uiState as? PersonDetailUiState.Loaded
     LaunchedEffect(loaded?.exit) {
@@ -95,13 +112,14 @@ fun PersonDetailRoute(
         onDelete = viewModel::askToDelete,
         onDeleteConfirm = viewModel::delete,
         onDeleteDismiss = viewModel::dismissDelete,
-        onContactAction = { action ->
-            try {
-                context.startActivity(Intent(action.intentAction, action.uri.toUri()))
-            } catch (_: ActivityNotFoundException) {
-                snackbars?.show(noApp)
-            }
+        edits = viewModel,
+        onMarkGiven = { id, date ->
+            viewModel.markGiven(id, date)
+            val undoGiven = viewModel.undoGiven
+            snackbars?.show(markedGiven, actionLabel = undo) { undoGiven(id) }
         },
+        onOpenLink = { link -> ContactActions.of(ContactType.Link, link).firstOrNull()?.let(startAction) },
+        onContactAction = startAction,
         onCopy = { value ->
             scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(value, value))) }
             // Android 13 and later confirm a copy themselves.
@@ -125,12 +143,19 @@ fun PersonDetailScreen(
     onDelete: () -> Unit,
     onDeleteConfirm: () -> Unit,
     onDeleteDismiss: () -> Unit,
+    edits: PersonDetailEdits,
+    onMarkGiven: (id: Long, date: LocalDate) -> Unit,
+    onOpenLink: (String) -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onCopy: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val loaded = uiState as? PersonDetailUiState.Loaded
     var moreContactSheet by rememberSaveable { mutableStateOf(false) }
+    // Which date or idea a sheet is open on (NEW_GIFT_IDEA: a new idea).
+    var dateSheet by rememberSaveable { mutableStateOf<Long?>(null) }
+    var giftSheet by rememberSaveable { mutableStateOf<Long?>(null) }
+    var givenSheet by rememberSaveable { mutableStateOf<Long?>(null) }
     Scaffold(
         modifier = modifier,
         snackbarHost = { OrbitSnackbarHost() },
@@ -192,7 +217,16 @@ fun PersonDetailScreen(
                         onContactAction = onContactAction,
                         onMoreContact = { moreContactSheet = true },
                     )
-                    PersonSections(uiState.profile, onContactAction = onContactAction, onCopy = onCopy)
+                    PersonSections(
+                        uiState = uiState,
+                        onOpenDate = { dateSheet = it.id },
+                        onAddGiftIdea = { giftSheet = NEW_GIFT_IDEA },
+                        onOpenGiftIdea = { giftSheet = it.id },
+                        onMarkGiven = { givenSheet = it.id },
+                        onOpenLink = onOpenLink,
+                        onContactAction = onContactAction,
+                        onCopy = onCopy,
+                    )
                     AddDetails(uiState.missingFields, onAddDetail)
                 }
             }
@@ -205,6 +239,21 @@ fun PersonDetailScreen(
             onContactAction = onContactAction,
             onCopy = onCopy,
             onDismiss = { moreContactSheet = false },
+        )
+    }
+    if (loaded != null) {
+        DetailSheets(
+            uiState = loaded,
+            dateSheet = dateSheet,
+            giftSheet = giftSheet,
+            givenSheet = givenSheet,
+            edits = edits,
+            onMarkGiven = onMarkGiven,
+            onOpenLink = onOpenLink,
+            onGiven = { givenSheet = it },
+            onDismissDate = { dateSheet = null },
+            onDismissGift = { giftSheet = null },
+            onDismissGiven = { givenSheet = null },
         )
     }
     if (loaded != null && loaded.confirmingDelete) {
@@ -256,5 +305,67 @@ private fun OverflowMenu(archived: Boolean, onArchive: () -> Unit, onUnarchive: 
                 },
             )
         }
+    }
+}
+
+private const val NEW_GIFT_IDEA = -1L
+
+/** The date sheet, the Gift idea sheet and the given-date sheet, whichever is open. */
+@Composable
+private fun DetailSheets(
+    uiState: PersonDetailUiState.Loaded,
+    dateSheet: Long?,
+    giftSheet: Long?,
+    givenSheet: Long?,
+    edits: PersonDetailEdits,
+    onMarkGiven: (id: Long, date: LocalDate) -> Unit,
+    onOpenLink: (String) -> Unit,
+    onGiven: (id: Long) -> Unit,
+    onDismissDate: () -> Unit,
+    onDismissGift: () -> Unit,
+    onDismissGiven: () -> Unit,
+) {
+    val profile = uiState.profile
+    val date = dateSheet?.let { id -> profile.importantDates.firstOrNull { it.id == id } }
+    if (date != null) {
+        ImportantDateSheet(
+            initial = ImportantDateDraft.of(date),
+            newType = date.type,
+            birthdayTaken = profile.importantDates.any { it.type == ImportantDateType.Birthday && it.id != date.id },
+            defaultLeadTimes = uiState.defaultLeadTimes,
+            today = uiState.today,
+            onDone = edits::saveImportantDate,
+            onDelete = { edits.deleteImportantDate(date.id) },
+            onDismiss = onDismissDate,
+        )
+    }
+    if (giftSheet != null) {
+        val idea = profile.giftIdeas.firstOrNull { it.id == giftSheet }
+        // A deleted idea's sheet doesn't reopen as a new one.
+        if (idea != null || giftSheet == NEW_GIFT_IDEA) {
+            GiftIdeaSheet(
+                initial = idea,
+                today = uiState.today,
+                onSave = edits::saveGiftIdea,
+                onDelete = idea?.let { { edits.deleteGiftIdea(it.id) } },
+                onMarkGiven = if (idea != null && !idea.isGiven) {
+                    { draft ->
+                        edits.saveGiftIdea(draft)
+                        onGiven(idea.id)
+                    }
+                } else {
+                    null
+                },
+                onOpenLink = onOpenLink,
+                onDismiss = onDismissGift,
+            )
+        }
+    }
+    if (givenSheet != null) {
+        GivenDateSheet(
+            today = uiState.today,
+            onConfirm = { onMarkGiven(givenSheet, it) },
+            onDismiss = onDismissGiven,
+        )
     }
 }

@@ -8,9 +8,10 @@ import org.junit.Test
 import org.w3c.dom.Element
 
 /**
- * English and Persian stay in step (docs/copy-deck-v1.md): the same keys, the same placeholders in
- * the same order, the plural quantities each language needs, and no `%d` (numbers are formatted
- * by OrbitNumberFormatter and passed as `%s`).
+ * English and Persian stay in step (docs/copy-deck-v1.md): the same keys, the same placeholders
+ * (positional, so a language may put them in its own word order, as Persian's «%2$s %1$s» does),
+ * the plural quantities each language needs, and no `%d` (numbers are formatted by
+ * OrbitNumberFormatter and passed as `%s`).
  */
 class StringResourcesTest {
 
@@ -23,10 +24,10 @@ class StringResourcesTest {
     }
 
     @Test
-    fun placeholdersMatchInCountAndOrder() {
+    fun placeholdersMatch() {
         val mismatches = english.keys.intersect(persian.keys).mapNotNull { key ->
-            val en = english.getValue(key).placeholders()
-            val fa = persian.getValue(key).placeholders()
+            val en = english.getValue(key).placeholders().sorted()
+            val fa = persian.getValue(key).placeholders().sorted()
             if (en == fa) null else "$key: en $en, fa $fa"
         }
         assertTrue(mismatches.joinToString("\n"), mismatches.isEmpty())

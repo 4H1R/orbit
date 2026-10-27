@@ -215,6 +215,85 @@
     <string name="delete_person_title">%1$s حذف شود؟</string>
     <string name="delete_person_body">این کار برگشت‌پذیر نیست. ارتباط‌های مشترک برای دیگران می‌مانند.</string>
 
+    <!-- Important dates -->
+    <string name="person_section_important_dates">تاریخ‌های مهم</string>
+    <string name="person_field_important_date">تاریخ مهم</string>
+    <string name="important_date_type">نوع</string>
+    <string name="important_date_type_birthday">تولد</string>
+    <string name="important_date_type_anniversary">سالگرد</string>
+    <string name="important_date_type_custom">دلخواه</string>
+    <string name="important_date_label">عنوان</string>
+    <string name="important_date_sheet_new">تاریخ مهم جدید</string>
+    <string name="important_date_sheet_edit">ویرایش تاریخ مهم</string>
+    <string name="person_form_birthday_add">افزودن تولد</string>
+    <string name="person_form_important_date_add">افزودن تاریخ مهم</string>
+    <string name="important_date_reminders">یادآوری‌ها</string>
+    <string name="important_date_reminders_default">پیش‌فرض (%1$s)</string>
+    <string name="important_date_reminders_custom">دلخواه (%1$s)</string>
+    <string name="important_date_reminders_none">بدون یادآوری</string>
+    <string name="important_date_reminders_default_short">یادآوری‌های پیش‌فرض</string>
+    <string name="important_date_reminders_custom_short">یادآوری‌های دلخواه</string>
+    <string name="important_date_reminders_none_short">بدون یادآوری</string>
+    <string name="lead_time_on_the_day">همان روز</string>
+    <plurals name="lead_time_days_before">
+        <item quantity="one">%1$s روز قبل</item>
+        <item quantity="other">%1$s روز قبل</item>
+    </plurals>
+    <plurals name="lead_time_weeks_before">
+        <item quantity="one">%1$s هفته قبل</item>
+        <item quantity="other">%1$s هفته قبل</item>
+    </plurals>
+    <plurals name="lead_time_months_before">
+        <item quantity="one">%1$s ماه قبل</item>
+        <item quantity="other">%1$s ماه قبل</item>
+    </plurals>
+    <string name="years_birthday">%1$s ساله می‌شود</string>
+    <string name="years_birthday_inline">%1$s ساله می‌شود</string>
+    <string name="years_anniversary">%1$s سالگرد</string>
+    <plurals name="years_custom">
+        <item quantity="one">%1$s سال</item>
+        <item quantity="other">%1$s سال</item>
+    </plurals>
+    <plurals name="important_date_age">
+        <item quantity="one">%1$s ساله</item>
+        <item quantity="other">%1$s ساله</item>
+    </plurals>
+    <string name="date_title_birthday">تولد %1$s</string>
+    <string name="date_title_anniversary">سالگرد %1$s</string>
+    <string name="date_title_custom">%2$s %1$s</string>
+    <string name="reminder_title_birthday_today">امروز تولد %1$s است</string>
+    <string name="reminder_title_anniversary_today">امروز سالگرد %1$s است</string>
+    <string name="reminder_title_custom_today">امروز %2$s %1$s است</string>
+    <string name="reminder_gift_ideas">ایده‌های هدیه: %1$s</string>
+    <string name="list_and_more">%1$s و %2$s مورد دیگر</string>
+    <string name="list_separator">"، "</string>
+
+    <!-- Gift ideas -->
+    <string name="person_section_gift_ideas">ایده‌های هدیه</string>
+    <string name="gift_idea_add">ایدهٔ هدیه</string>
+    <string name="gift_idea_sheet_new">ایدهٔ هدیهٔ جدید</string>
+    <string name="gift_idea_sheet_edit">ایدهٔ هدیه</string>
+    <string name="gift_idea_text">ایده</string>
+    <string name="gift_idea_link">پیوند (اختیاری)</string>
+    <string name="gift_idea_note">یادداشت (اختیاری)</string>
+    <string name="gift_idea_open_link">باز کردن پیوند</string>
+    <string name="gift_idea_mark_given">هدیه داده شد</string>
+    <string name="gift_idea_given_on">داده‌شده در %1$s</string>
+    <string name="gift_idea_given_section">داده‌شده (%1$s)</string>
+    <string name="gift_idea_given_title">چه روزی داده شد؟</string>
+    <string name="gift_idea_date_pick">انتخاب…</string>
+    <string name="gift_idea_marked_given">به‌عنوان داده‌شده ثبت شد</string>
+
+    <!-- Upcoming -->
+    <string name="upcoming_section_today">امروز</string>
+    <string name="upcoming_section_coming_up">به‌زودی</string>
+    <plurals name="upcoming_gift_ideas">
+        <item quantity="one">%1$s ایدهٔ هدیه</item>
+        <item quantity="other">%1$s ایدهٔ هدیه</item>
+    </plurals>
+    <string name="upcoming_all_caught_up">فعلاً خبری نیست</string>
+    <string name="upcoming_next">بعدی: %1$s</string>
+
     <!-- TEMPORARY: slice 0 backup-format spike. Slice 5 replaces these. -->
     <string name="settings_spike_backup_title">پشتیبان‌گیری (آزمایشی)</string>
     <string name="settings_spike_backup_body">آزمایش موقت: یک پشتیبان رمزگذاری‌شده با عبارت عبور ثابت %1$s ذخیره می‌شود و سپس دوباره باز می‌شود تا بررسی شود.</string>

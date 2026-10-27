@@ -1,6 +1,12 @@
 package dev.alializadeh.orbit.testing
 
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.GiftIdea
+import dev.alializadeh.orbit.person.GiftIdeaDraft
+import dev.alializadeh.orbit.person.GiftIdeaOrder
+import dev.alializadeh.orbit.person.ImportantDate
+import dev.alializadeh.orbit.person.ImportantDateDraft
+import dev.alializadeh.orbit.person.ImportantDateOrder
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonDraft
 import dev.alializadeh.orbit.person.PersonItemKind
@@ -9,10 +15,12 @@ import dev.alializadeh.orbit.person.PersonRepository
 import dev.alializadeh.orbit.person.PersonSummary
 import dev.alializadeh.orbit.person.Tag
 import dev.alializadeh.orbit.person.nameKey
+import dev.alializadeh.orbit.person.requireOneBirthdayAtMost
 import dev.alializadeh.orbit.person.names
 import dev.alializadeh.orbit.person.withCadenceSetting
 import dev.alializadeh.orbit.ring.Ring
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -58,6 +66,7 @@ class FakePersonRepository(
     override suspend fun save(draft: PersonDraft): Long {
         saved += draft
         val d = draft.normalised()
+        requireOneBirthdayAtMost(d.importantDates.map(ImportantDateDraft::type))
         val existing = d.id?.let { profiles.value[it]?.person }
         val id = existing?.id ?: ((profiles.value.keys.maxOrNull() ?: 0) + 1)
         val person = (existing ?: Person(id = id, name = d.name, ringId = d.ringId!!, createdAt = Instant.EPOCH))
@@ -93,8 +102,79 @@ class FakePersonRepository(
             canHelpWith = d.canHelpWith,
             likes = d.likes,
             dislikes = d.dislikes,
+            importantDates = d.importantDates.mapIndexed { position, date ->
+                ImportantDate(
+                    id = date.id ?: nextDateId++,
+                    personId = id,
+                    type = date.type,
+                    label = date.label,
+                    date = date.date,
+                    leadTimes = date.leadTimes,
+                    position = position,
+                )
+            }.sortedWith(ImportantDateOrder),
+            giftIdeas = profiles.value[id]?.giftIdeas.orEmpty(),
         )
         return id
+    }
+
+    private var nextDateId = 1000L
+    private var nextGiftId = 1L
+
+    private fun update(personId: Long, transform: (PersonProfile) -> PersonProfile) {
+        val profile = profiles.value[personId] ?: return
+        profiles.value += personId to transform(profile)
+    }
+
+    private fun ownerOf(predicate: (PersonProfile) -> Boolean): Long? = profiles.value.values.firstOrNull(predicate)?.person?.id
+
+    override suspend fun saveImportantDate(personId: Long, draft: ImportantDateDraft): Long {
+        val d = draft.normalised()
+        val existing = profiles.value[personId]?.importantDates.orEmpty()
+        requireOneBirthdayAtMost(existing.filter { it.id != d.id }.map(ImportantDate::type) + d.type)
+        val current = existing.firstOrNull { it.id == d.id }
+        val date = ImportantDate(
+            id = current?.id ?: nextDateId++,
+            personId = personId,
+            type = d.type,
+            label = d.label,
+            date = d.date,
+            leadTimes = d.leadTimes,
+            position = current?.position ?: ((existing.maxOfOrNull(ImportantDate::position) ?: -1) + 1),
+        )
+        update(personId) { profile ->
+            profile.copy(importantDates = (profile.importantDates.filter { it.id != date.id } + date).sortedWith(ImportantDateOrder))
+        }
+        return date.id
+    }
+
+    override suspend fun deleteImportantDate(id: Long) {
+        val owner = ownerOf { profile -> profile.importantDates.any { it.id == id } } ?: return
+        update(owner) { profile -> profile.copy(importantDates = profile.importantDates.filter { it.id != id }) }
+    }
+
+    override suspend fun saveGiftIdea(personId: Long, draft: GiftIdeaDraft): Long {
+        val d = draft.normalised()
+        require(d.text.isNotEmpty())
+        val current = profiles.value[personId]?.giftIdeas?.firstOrNull { it.id == d.id }
+        val idea = current?.copy(text = d.text, link = d.link, note = d.note)
+            ?: GiftIdea(id = nextGiftId++, personId = personId, text = d.text, link = d.link, note = d.note, createdAt = Instant.EPOCH)
+        update(personId) { profile ->
+            profile.copy(giftIdeas = (profile.giftIdeas.filter { it.id != idea.id } + idea).sortedWith(GiftIdeaOrder))
+        }
+        return idea.id
+    }
+
+    override suspend fun setGiftIdeaGiven(id: Long, date: LocalDate?) {
+        val owner = ownerOf { profile -> profile.giftIdeas.any { it.id == id } } ?: return
+        update(owner) { profile ->
+            profile.copy(giftIdeas = profile.giftIdeas.map { if (it.id == id) it.copy(givenOn = date) else it })
+        }
+    }
+
+    override suspend fun deleteGiftIdea(id: Long) {
+        val owner = ownerOf { profile -> profile.giftIdeas.any { it.id == id } } ?: return
+        update(owner) { profile -> profile.copy(giftIdeas = profile.giftIdeas.filter { it.id != id }) }
     }
 
     override suspend fun setArchived(id: Long, archived: Boolean) {

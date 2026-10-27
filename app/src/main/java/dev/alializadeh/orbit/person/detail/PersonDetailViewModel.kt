@@ -6,15 +6,23 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.person.GiftIdeaDraft
+import dev.alializadeh.orbit.person.ImportantDateDraft
+import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonProfile
 import dev.alializadeh.orbit.person.PersonRepository
 import dev.alializadeh.orbit.person.photo.PhotoStore
+import dev.alializadeh.orbit.reminders.LeadTime
 import java.io.File
+import java.time.Clock
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -27,6 +35,10 @@ sealed interface PersonDetailUiState {
     data class Loaded(
         val profile: PersonProfile,
         val photo: File? = null,
+        /** Today, for occurrences, years counts and the year shown in dates. */
+        val today: LocalDate = LocalDate.ofEpochDay(0),
+        /** The default lead times, for the date sheet's Reminders line. */
+        val defaultLeadTimes: Set<LeadTime> = LeadTime.DEFAULT,
         val confirmingDelete: Boolean = false,
         /** Set once Archive or Delete is done; the screen then leaves. */
         val exit: DetailExit? = null,
@@ -38,6 +50,8 @@ sealed interface PersonDetailUiState {
                 when (field) {
                     PersonField.Photo -> person.photoFileName == null
                     PersonField.ContactMethods -> profile.contactMethods.isEmpty()
+                    PersonField.Birthday -> profile.birthday == null
+                    PersonField.ImportantDates -> profile.importantDates.all { it.type == ImportantDateType.Birthday }
                     PersonField.Nickname -> person.nickname.isNullOrBlank()
                     PersonField.OtherScriptName -> person.otherScriptName.isNullOrBlank()
                     PersonField.Tags -> profile.tags.isEmpty()
@@ -54,18 +68,32 @@ sealed interface PersonDetailUiState {
     data object NotFound : PersonDetailUiState
 }
 
+/** Changes Person detail makes in place: Important dates (edit, delete) and Gift ideas. */
+interface PersonDetailEdits {
+    fun saveImportantDate(draft: ImportantDateDraft)
+    fun deleteImportantDate(id: Long)
+    fun saveGiftIdea(draft: GiftIdeaDraft)
+    fun deleteGiftIdea(id: Long)
+}
+
 @HiltViewModel(assistedFactory = PersonDetailViewModel.Factory::class)
 class PersonDetailViewModel @AssistedInject constructor(
     @Assisted private val personId: Long,
     private val personRepository: PersonRepository,
     private val photoStore: PhotoStore,
-) : ViewModel() {
+    preferencesRepository: PreferencesRepository,
+    private val clock: Clock,
+) : ViewModel(), PersonDetailEdits {
 
     private val phase = MutableStateFlow(Phase.Showing)
     private var lastLoaded: PersonDetailUiState.Loaded? = null
 
     val uiState: StateFlow<PersonDetailUiState> =
-        combine(personRepository.observeProfile(personId), phase) { profile, phase ->
+        combine(
+            personRepository.observeProfile(personId),
+            phase,
+            preferencesRepository.preferences.map { it.defaultLeadTimes },
+        ) { profile, phase, defaultLeadTimes ->
             val exit = when (phase) {
                 Phase.Archived -> DetailExit.Archived
                 Phase.Deleted -> DetailExit.Deleted
@@ -75,6 +103,8 @@ class PersonDetailViewModel @AssistedInject constructor(
                 profile != null -> PersonDetailUiState.Loaded(
                     profile = profile,
                     photo = profile.person.photoFileName?.let(photoStore::file),
+                    today = LocalDate.now(clock),
+                    defaultLeadTimes = defaultLeadTimes,
                     confirmingDelete = phase == Phase.ConfirmingDelete,
                     exit = exit,
                 ).also { lastLoaded = it }
@@ -114,6 +144,30 @@ class PersonDetailViewModel @AssistedInject constructor(
             phase.value = Phase.Deleted
         }
     }
+
+    override fun saveImportantDate(draft: ImportantDateDraft) {
+        viewModelScope.launch { personRepository.saveImportantDate(personId, draft) }
+    }
+
+    override fun deleteImportantDate(id: Long) {
+        viewModelScope.launch { personRepository.deleteImportantDate(id) }
+    }
+
+    override fun saveGiftIdea(draft: GiftIdeaDraft) {
+        if (draft.normalised().text.isEmpty()) return
+        viewModelScope.launch { personRepository.saveGiftIdea(personId, draft) }
+    }
+
+    override fun deleteGiftIdea(id: Long) {
+        viewModelScope.launch { personRepository.deleteGiftIdea(id) }
+    }
+
+    fun markGiven(id: Long, date: LocalDate) {
+        viewModelScope.launch { personRepository.setGiftIdeaGiven(id, date) }
+    }
+
+    /** Undoes [markGiven]; safe to run after this ViewModel is gone (from the snackbar). */
+    val undoGiven: suspend (id: Long) -> Unit = { id -> personRepository.setGiftIdeaGiven(id, null) }
 
     private enum class Phase { Showing, ConfirmingDelete, Deleting, Archived, Deleted }
 

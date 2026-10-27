@@ -4,6 +4,12 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshots.Snapshot
 import app.cash.turbine.test
+import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
+import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
+import dev.alializadeh.orbit.calendar.RecurringDate
+import dev.alializadeh.orbit.person.edit.DateSheet
+import dev.alializadeh.orbit.reminders.LeadTime
+import java.time.LocalDate
 import dev.alializadeh.orbit.person.contact.ContactType
 import dev.alializadeh.orbit.person.detail.DetailExit
 import dev.alializadeh.orbit.person.detail.PersonDetailUiState
@@ -17,11 +23,15 @@ import dev.alializadeh.orbit.person.list.PeopleViewModel
 import dev.alializadeh.orbit.person.photo.CropRect
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.testing.FakePersonRepository
+import dev.alializadeh.orbit.testing.FakePreferencesRepository
 import dev.alializadeh.orbit.testing.FakePhotoStore
 import dev.alializadeh.orbit.testing.FakeRingRepository
 import dev.alializadeh.orbit.testing.MainDispatcherRule
 import dev.alializadeh.orbit.testing.TestRings
 import dev.alializadeh.orbit.testing.profileOf
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -43,6 +53,7 @@ class PersonViewModelsTest {
 
     private val sara = profileOf(1, "Sara Ahmadi")
     private val photos = FakePhotoStore()
+    private val clock = Clock.fixed(Instant.parse("2026-10-28T09:00:00Z"), ZoneOffset.UTC)
 
     // People list
 
@@ -67,7 +78,7 @@ class PersonViewModelsTest {
     @Test
     fun personDetailShowsThePersonThenNotFoundOnceTheyAreGone() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
 
         viewModel.uiState.test {
             assertEquals(sara, (awaitItem() as PersonDetailUiState.Loaded).profile)
@@ -79,7 +90,7 @@ class PersonViewModelsTest {
     @Test
     fun archiveLeavesAndUndoBringsThemBack() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.archive()
@@ -93,7 +104,7 @@ class PersonViewModelsTest {
     @Test
     fun deleteAsksFirstThenLeavesWithoutFlashingNotFound() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
         val states = mutableListOf<PersonDetailUiState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect { states += it } }
 
@@ -109,7 +120,7 @@ class PersonViewModelsTest {
     @Test
     fun addDetailsOffersTheEmptyFields() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara.copy(likes = listOf("Jazz"))))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
 
         viewModel.uiState.test {
             val missing = (awaitItem() as PersonDetailUiState.Loaded).missingFields
@@ -126,7 +137,7 @@ class PersonViewModelsTest {
         personId: Long? = null,
         focus: PersonField? = null,
     ): PersonFormViewModel {
-        val viewModel = PersonFormViewModel(personId, focus, repository, FakeRingRepository(), photos)
+        val viewModel = PersonFormViewModel(personId, focus, repository, FakeRingRepository(), photos, FakePreferencesRepository(), clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         settle()
         return viewModel
@@ -464,5 +475,159 @@ class PersonViewModelsTest {
         val viewModel = form(personId = 42)
 
         assertTrue(viewModel.state.notFound)
+    }
+
+    // Important dates on the form
+
+    private val birthday = ImportantDateDraft(type = ImportantDateType.Birthday, date = RecurringDate(SolarHijri, 1, 14, 1370))
+    private val anniversary = ImportantDateDraft(type = ImportantDateType.Anniversary, date = RecurringDate(Gregorian, 6, 1))
+
+    @Test
+    fun aBirthdayAddedOnTheFormIsSavedWithThePerson() = runTest {
+        val repository = FakePersonRepository()
+        val viewModel = form(repository)
+        type(viewModel.fields.name, "Sara")
+
+        viewModel.addImportantDate(ImportantDateType.Birthday)
+        settle()
+        assertEquals(DateSheet(editingKey = null, newType = ImportantDateType.Birthday), viewModel.state.dateSheet)
+        viewModel.saveImportantDate(null, birthday)
+        settle()
+
+        assertNull(viewModel.state.dateSheet)
+        assertEquals(birthday, viewModel.state.birthday?.draft)
+        assertTrue(viewModel.state.hasChanges)
+        viewModel.save()
+        settle()
+        assertEquals(listOf(birthday), repository.saved.single().importantDates)
+        assertEquals(ImportantDateType.Birthday, repository.profiles.value.values.single().birthday?.type)
+    }
+
+    @Test
+    fun thereIsNeverASecondBirthdayOnTheForm() = runTest {
+        val viewModel = form()
+        viewModel.addImportantDate(ImportantDateType.Birthday)
+        viewModel.saveImportantDate(null, birthday)
+        settle()
+        val key = viewModel.state.birthday!!.key
+
+        // Asking for a Birthday again edits the one there is.
+        viewModel.addImportantDate(ImportantDateType.Birthday)
+        settle()
+        assertEquals(key, viewModel.state.dateSheet?.editingKey)
+        // A new date can't become a second Birthday.
+        viewModel.saveImportantDate(null, birthday.copy(date = RecurringDate(Gregorian, 1, 1)))
+        settle()
+        assertEquals(listOf(birthday), viewModel.state.importantDates.map { it.draft })
+    }
+
+    @Test
+    fun otherDatesAreEditedAndDeletedThroughTheSheet() = runTest {
+        val viewModel = form()
+        viewModel.addImportantDate(ImportantDateType.Anniversary)
+        viewModel.saveImportantDate(null, anniversary)
+        settle()
+        val key = viewModel.state.otherDates.single().key
+
+        viewModel.editImportantDate(key)
+        val moved = anniversary.copy(date = RecurringDate(Gregorian, 6, 2))
+        viewModel.saveImportantDate(key, moved)
+        settle()
+        assertEquals(listOf(moved), viewModel.state.otherDates.map { it.draft })
+
+        viewModel.deleteImportantDate(key)
+        settle()
+        assertTrue(viewModel.state.importantDates.isEmpty())
+        assertFalse(viewModel.state.hasChanges)
+    }
+
+    @Test
+    fun editingKeepsEachDatesIdAndShowsTheOtherDates() = runTest {
+        val dates = listOf(
+            ImportantDate(id = 7, personId = 1, type = ImportantDateType.Birthday, date = birthday.date, position = 0),
+            ImportantDate(id = 8, personId = 1, type = ImportantDateType.Anniversary, date = anniversary.date, position = 1),
+        )
+        val repository = FakePersonRepository(initial = listOf(sara.copy(importantDates = dates)))
+        val viewModel = form(repository, personId = sara.person.id)
+
+        assertTrue(PersonField.ImportantDates in viewModel.state.visibleFields)
+        assertFalse(viewModel.state.hasChanges)
+        val row = viewModel.state.otherDates.single()
+        viewModel.editImportantDate(row.key)
+        viewModel.saveImportantDate(row.key, row.draft.copy(id = null, date = RecurringDate(Gregorian, 6, 3)))
+        settle()
+        viewModel.save()
+        settle()
+
+        assertEquals(listOf(7L, 8L), repository.saved.single().importantDates.map { it.id })
+    }
+
+    @Test
+    fun theBirthdayChipOpensTheDateSheet() = runTest {
+        val repository = FakePersonRepository(initial = listOf(sara))
+        val birthdayForm = form(repository, personId = sara.person.id, focus = PersonField.Birthday)
+        assertEquals(DateSheet(editingKey = null, newType = ImportantDateType.Birthday), birthdayForm.state.dateSheet)
+
+        val datesForm = form(repository, personId = sara.person.id, focus = PersonField.ImportantDates)
+        assertEquals(ImportantDateType.Anniversary, datesForm.state.dateSheet?.newType)
+        assertTrue(PersonField.ImportantDates in datesForm.state.visibleFields)
+    }
+
+    // Important dates and Gift ideas on Person detail
+
+    private fun TestScope.detail(repository: FakePersonRepository): PersonDetailViewModel {
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        return viewModel
+    }
+
+    private val PersonDetailViewModel.loaded get() = uiState.value as PersonDetailUiState.Loaded
+
+    @Test
+    fun addDetailsOffersBirthdayAndImportantDateUntilThereAreSome() = runTest {
+        val repository = FakePersonRepository(initial = listOf(sara))
+        val viewModel = detail(repository)
+
+        assertTrue(PersonField.Birthday in viewModel.loaded.missingFields)
+        assertTrue(PersonField.ImportantDates in viewModel.loaded.missingFields)
+        repository.saveImportantDate(sara.person.id, birthday)
+        assertFalse(PersonField.Birthday in viewModel.loaded.missingFields)
+        assertTrue(PersonField.ImportantDates in viewModel.loaded.missingFields)
+        repository.saveImportantDate(sara.person.id, anniversary)
+        assertFalse(PersonField.ImportantDates in viewModel.loaded.missingFields)
+    }
+
+    @Test
+    fun detailEditsAndDeletesADateInPlace() = runTest {
+        val repository = FakePersonRepository(initial = listOf(sara))
+        val id = repository.saveImportantDate(sara.person.id, anniversary)
+        val viewModel = detail(repository)
+
+        viewModel.saveImportantDate(anniversary.copy(id = id, date = RecurringDate(SolarHijri, 3, 11)))
+        assertEquals(RecurringDate(SolarHijri, 3, 11), viewModel.loaded.profile.importantDates.single().date)
+        assertEquals(LocalDate.of(2026, 10, 28), viewModel.loaded.today)
+        assertEquals(LeadTime.DEFAULT, viewModel.loaded.defaultLeadTimes)
+
+        viewModel.deleteImportantDate(id)
+        assertTrue(viewModel.loaded.profile.importantDates.isEmpty())
+    }
+
+    @Test
+    fun giftIdeasAreNotedGivenWithUndoAndDeleted() = runTest {
+        val repository = FakePersonRepository(initial = listOf(sara))
+        val viewModel = detail(repository)
+
+        viewModel.saveGiftIdea(GiftIdeaDraft(text = "  "))
+        assertTrue(viewModel.loaded.profile.giftIdeas.isEmpty())
+        viewModel.saveGiftIdea(GiftIdeaDraft(text = "Fountain pen", link = "lamy.com"))
+        val idea = viewModel.loaded.profile.openGiftIdeas.single()
+
+        viewModel.markGiven(idea.id, LocalDate.of(2026, 10, 20))
+        assertEquals(LocalDate.of(2026, 10, 20), viewModel.loaded.profile.givenGiftIdeas.single().givenOn)
+        viewModel.undoGiven(idea.id)
+        assertEquals(listOf(idea.id), viewModel.loaded.profile.openGiftIdeas.map { it.id })
+
+        viewModel.deleteGiftIdea(idea.id)
+        assertTrue(viewModel.loaded.profile.giftIdeas.isEmpty())
     }
 }

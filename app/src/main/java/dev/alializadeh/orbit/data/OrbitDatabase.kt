@@ -6,6 +6,8 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.GiftIdea
+import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.person.PersonItem
@@ -31,11 +33,13 @@ import dev.alializadeh.orbit.ring.RingDao
         Tag::class,
         PersonTag::class,
         ContactMethod::class,
+        ImportantDate::class,
+        GiftIdea::class,
     ],
     version = OrbitDatabase.VERSION,
     exportSchema = true,
 )
-@ColumnTypeConverters(InstantConverters::class, PreferenceConverters::class)
+@ColumnTypeConverters(InstantConverters::class, LocalDateConverters::class, PreferenceConverters::class)
 abstract class OrbitDatabase : RoomDatabase() {
 
     abstract fun personDao(): PersonDao

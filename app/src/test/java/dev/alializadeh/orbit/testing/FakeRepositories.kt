@@ -6,7 +6,14 @@ import dev.alializadeh.orbit.person.photo.CropRect
 import dev.alializadeh.orbit.person.photo.PhotoStore
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingRepository
+import dev.alializadeh.orbit.upcoming.UpcomingPerson
+import dev.alializadeh.orbit.upcoming.UpcomingRepository
 import java.io.File
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -38,4 +45,23 @@ class FakePhotoStore : PhotoStore {
 
 class FakeCropImage(override val width: Int, override val height: Int) : CropImage {
     override fun imageBitmap(): ImageBitmap = error("Not drawn in JVM tests")
+}
+
+class FakeUpcomingRepository(people: List<UpcomingPerson> = emptyList()) : UpcomingRepository {
+    val people = MutableStateFlow(people)
+
+    override fun observePeople(): Flow<List<UpcomingPerson>> = this.people
+}
+
+/** A [Clock] whose instant tests move by hand. */
+class MutableClock(var instant: Instant, private val zone: ZoneId = ZoneOffset.UTC) : Clock() {
+    override fun instant(): Instant = instant
+
+    override fun getZone(): ZoneId = zone
+
+    override fun withZone(zone: ZoneId): Clock = MutableClock(instant, zone)
+
+    fun advance(duration: Duration) {
+        instant += duration
+    }
 }

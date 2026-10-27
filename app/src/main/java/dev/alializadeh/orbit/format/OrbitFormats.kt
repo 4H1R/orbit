@@ -6,16 +6,24 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalResources
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.language.OrbitLanguage
 
-/** The number and date formatters for the current UI language and digit setting. */
-class OrbitFormats(language: OrbitLanguage, useLatinDigits: Boolean) {
+/**
+ * The number and date formatters for the current UI language and digit setting, and the Primary
+ * calendar dates are shown in.
+ */
+class OrbitFormats(
+    language: OrbitLanguage,
+    useLatinDigits: Boolean,
+    val primaryCalendar: CalendarSystem = language.defaultCalendar,
+) {
     val numbers = OrbitNumberFormatter(language, useLatinDigits)
     val dates = OrbitDateFormatter(numbers)
     val language: OrbitLanguage get() = numbers.language
 }
 
-/** Provided by `OrbitTheme` from the UI locale and the "Use Latin digits" preference. */
+/** Provided by `OrbitTheme` from the UI locale and the "Use Latin digits" and Primary calendar preferences. */
 val LocalOrbitFormats = staticCompositionLocalOf<OrbitFormats> {
     error("No OrbitFormats: wrap the content in OrbitTheme")
 }

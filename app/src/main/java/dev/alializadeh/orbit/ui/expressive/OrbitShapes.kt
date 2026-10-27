@@ -18,4 +18,14 @@ object OrbitShapes {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun flower(): Shape = MaterialShapes.Flower.toShape()
+
+    /** Important-date badges: the day on Coming up rows, the type icon on Person detail. */
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Composable
+    fun dateBadge(): Shape = MaterialShapes.Cookie4Sided.toShape()
+
+    /** The decoration on Upcoming's hero card. */
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Composable
+    fun sunny(): Shape = MaterialShapes.Sunny.toShape()
 }

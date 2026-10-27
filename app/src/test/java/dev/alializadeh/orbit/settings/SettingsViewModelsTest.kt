@@ -36,7 +36,12 @@ class SettingsViewModelsTest {
     @Test
     fun theHostIsReadyWithTheThemeAndFirstRunStateOnceRead() = runTest {
         preferences.update {
-            it.copy(theme = ThemeMode.Dark, colourSource = ColourSource.Custom, customSeedArgb = 0xFF12A594.toInt())
+            it.copy(
+                theme = ThemeMode.Dark,
+                colourSource = ColourSource.Custom,
+                customSeedArgb = 0xFF12A594.toInt(),
+                primaryCalendar = CalendarSystem.SolarHijri,
+            )
         }
         preferences.updateDeviceState { DeviceState(firstRunFinished = true) }
 
@@ -46,6 +51,7 @@ class SettingsViewModelsTest {
             MainUiState.Ready(
                 appearance = OrbitAppearance(ThemeMode.Dark, ColourSource.Custom, Color(0xFF12A594)),
                 useLatinDigits = false,
+                primaryCalendar = CalendarSystem.SolarHijri,
                 firstRunFinished = true,
             ),
             ready,

@@ -13,8 +13,20 @@ data class PersonProfile(
     val canHelpWith: List<String>,
     val likes: List<String>,
     val dislikes: List<String>,
+    /** Birthday first, then in the order added ([ImportantDateOrder]). */
+    val importantDates: List<ImportantDate> = emptyList(),
+    /** Oldest first, open and given ones together. */
+    val giftIdeas: List<GiftIdea> = emptyList(),
 ) {
     val names: PersonNames get() = person.names
+
+    val birthday: ImportantDate? get() = importantDates.firstOrNull { it.type == ImportantDateType.Birthday }
+
+    val openGiftIdeas: List<GiftIdea> get() = giftIdeas.filterNot(GiftIdea::isGiven)
+
+    /** Given ideas, most recently given first. */
+    val givenGiftIdeas: List<GiftIdea>
+        get() = giftIdeas.filter(GiftIdea::isGiven).sortedWith(compareByDescending<GiftIdea> { it.givenOn }.thenByDescending { it.id })
 
     val primaryContactMethod: ContactMethod? get() = contactMethods.firstOrNull(ContactMethod::isPrimary)
 
@@ -37,6 +49,8 @@ data class PersonProfile(
                 canHelpWith = texts(PersonItemKind.CanHelpWith),
                 likes = texts(PersonItemKind.Like),
                 dislikes = texts(PersonItemKind.Dislike),
+                importantDates = details.importantDates.sortedWith(ImportantDateOrder),
+                giftIdeas = details.giftIdeas.sortedWith(GiftIdeaOrder),
             )
         }
     }
@@ -69,6 +83,8 @@ data class PersonDraft(
     val canHelpWith: List<String> = emptyList(),
     val likes: List<String> = emptyList(),
     val dislikes: List<String> = emptyList(),
+    /** Saved with the Person; at most one Birthday. Gift ideas are managed from Person detail only. */
+    val importantDates: List<ImportantDateDraft> = emptyList(),
 ) {
     fun items(kind: PersonItemKind): List<String> = when (kind) {
         PersonItemKind.CanHelpWith -> canHelpWith
@@ -79,7 +95,7 @@ data class PersonDraft(
     /**
      * Text trimmed and blanks dropped; Contact methods without a value dropped, phone digits as
      * ASCII, and exactly one primary when there are any (the first starred one, else the first);
-     * Tags without repeats (ignoring case).
+     * Tags without repeats (ignoring case); Important dates' labels trimmed (kept for Custom only).
      */
     fun normalised(): PersonDraft = copy(
         name = name.trim(),
@@ -95,6 +111,7 @@ data class PersonDraft(
         canHelpWith = canHelpWith.normalisedItems(),
         likes = likes.normalisedItems(),
         dislikes = dislikes.normalisedItems(),
+        importantDates = importantDates.map(ImportantDateDraft::normalised),
     )
 
     companion object {
@@ -115,6 +132,7 @@ data class PersonDraft(
             canHelpWith = profile.canHelpWith,
             likes = profile.likes,
             dislikes = profile.dislikes,
+            importantDates = profile.importantDates.map(ImportantDateDraft::of),
         )
     }
 }

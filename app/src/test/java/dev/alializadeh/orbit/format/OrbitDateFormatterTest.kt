@@ -111,4 +111,28 @@ class OrbitDateFormatterTest {
         assertEquals("فروردین", persian.monthName(SolarHijri, 1))
         assertEquals("اسفند", persian.monthName(SolarHijri, 12, full = true))
     }
+
+    @Test
+    fun personDetailShowsADateWithAYearAsEntered() {
+        val today = LocalDate.of(2026, 10, 28)
+        val farvardin = RecurringDate(SolarHijri, 1, 14, 1370)
+        assertEquals(listOf("3 Apr 1991", "14 Farvardin 1370"), english.importantDateParts(farvardin, Gregorian, today))
+        assertEquals(listOf("۱۴ فروردین ۱۳۷۰"), persian.importantDateParts(farvardin, SolarHijri, today))
+        assertEquals(
+            listOf("۱۴ فروردین ۱۳۷۰", "۳ آوریل ۱۹۹۱"),
+            persian.importantDateParts(RecurringDate(Gregorian, 4, 3, 1991), SolarHijri, today),
+        )
+    }
+
+    @Test
+    fun personDetailShowsAYearlessDateThroughItsNextOccurrence() {
+        val today = LocalDate.of(2026, 10, 28)
+        // 25 Esfand 1405 is 16 Mar 2027.
+        assertEquals(
+            listOf("16 Mar", "25 Esfand"),
+            english.importantDateParts(RecurringDate(SolarHijri, 12, 25), Gregorian, today),
+        )
+        // In its own Calendar it reads as entered, even a leap day in a year without one.
+        assertEquals(listOf("29 Feb"), english.importantDateParts(RecurringDate(Gregorian, 2, 29), Gregorian, today))
+    }
 }

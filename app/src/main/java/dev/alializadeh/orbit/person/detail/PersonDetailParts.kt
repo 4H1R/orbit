@@ -41,6 +41,8 @@ import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.bidiIsolateLtr
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.GiftIdea
+import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonItemKind
 import dev.alializadeh.orbit.person.PersonProfile
@@ -187,13 +189,32 @@ private class ButtonSpec(
     val onClick: () -> Unit,
 )
 
-/** The sections with content, in order. Important dates and Gift ideas come first from slice 3. */
+/**
+ * The sections in order: Important dates (when there are any), Gift ideas (always), then the
+ * others that have content.
+ */
 @Composable
 internal fun PersonSections(
-    profile: PersonProfile,
+    uiState: PersonDetailUiState.Loaded,
+    onOpenDate: (ImportantDate) -> Unit,
+    onAddGiftIdea: () -> Unit,
+    onOpenGiftIdea: (GiftIdea) -> Unit,
+    onMarkGiven: (GiftIdea) -> Unit,
+    onOpenLink: (String) -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onCopy: (String) -> Unit,
 ) {
+    val profile = uiState.profile
+    ImportantDatesSection(profile.importantDates, uiState.today, onOpenDate)
+    GiftIdeasSection(
+        open = profile.openGiftIdeas,
+        given = profile.givenGiftIdeas,
+        today = uiState.today,
+        onAdd = onAddGiftIdea,
+        onOpen = onOpenGiftIdea,
+        onMarkGiven = onMarkGiven,
+        onOpenLink = onOpenLink,
+    )
     if (profile.contactMethods.isNotEmpty()) {
         Column {
             OrbitSectionTitle(stringResource(R.string.person_section_contact_methods), horizontalPadding = 4.dp)
@@ -348,6 +369,8 @@ private fun fieldName(field: PersonField): String = stringResource(
     when (field) {
         PersonField.Photo -> R.string.person_field_photo
         PersonField.ContactMethods -> R.string.person_field_contact_method
+        PersonField.Birthday -> R.string.important_date_type_birthday
+        PersonField.ImportantDates -> R.string.person_field_important_date
         PersonField.Nickname -> R.string.person_field_nickname
         PersonField.OtherScriptName -> R.string.person_field_other_script_name
         PersonField.Tags -> R.string.person_section_tags

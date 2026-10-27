@@ -8,6 +8,7 @@ import androidx.room3.Query
 import androidx.room3.Relation
 import androidx.room3.Transaction
 import androidx.room3.Update
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 /** A Person with everything stored around them, read in one transaction. */
@@ -25,6 +26,21 @@ data class PersonWithDetails(
         associateBy = Junction(PersonTag::class, parentColumns = ["personId"], entityColumns = ["tagId"]),
     )
     val tags: List<Tag>,
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val importantDates: List<ImportantDate>,
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val giftIdeas: List<GiftIdea>,
+)
+
+/** A Person with what Upcoming needs about them, read in one transaction. */
+data class PersonWithDates(
+    @Embedded val person: Person,
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val importantDates: List<ImportantDate>,
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val giftIdeas: List<GiftIdea>,
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val contactMethods: List<ContactMethod>,
 )
 
 @Dao
@@ -58,7 +74,18 @@ interface PersonDao {
     @Query("UPDATE person SET archivedAt = :archivedAt WHERE id = :id")
     suspend fun setArchivedAt(id: Long, archivedAt: Long?)
 
-    /** Deletes the Person; their items, Tags links and Contact methods go with them (CASCADE). */
+    /**
+     * Every Person, Archived ones included (Upcoming leaves those out itself), with their
+     * Important dates, Gift ideas and Contact methods.
+     */
+    @Transaction
+    @Query("SELECT * FROM person")
+    fun observeWithDates(): Flow<List<PersonWithDates>>
+
+    /**
+     * Deletes the Person; their items, Tags links, Contact methods, Important dates and Gift ideas
+     * go with them (CASCADE).
+     */
     @Query("DELETE FROM person WHERE id = :id")
     suspend fun delete(id: Long)
 
@@ -84,6 +111,37 @@ interface PersonDao {
 
     @Query("DELETE FROM contact_method WHERE personId = :personId")
     suspend fun deleteContactMethods(personId: Long)
+
+    // Important dates
+
+    @Query("SELECT * FROM important_date WHERE personId = :personId")
+    suspend fun getImportantDates(personId: Long): List<ImportantDate>
+
+    @Insert
+    suspend fun insertImportantDate(date: ImportantDate): Long
+
+    @Update
+    suspend fun updateImportantDate(date: ImportantDate)
+
+    @Query("DELETE FROM important_date WHERE id = :id")
+    suspend fun deleteImportantDate(id: Long)
+
+    // Gift ideas
+
+    @Query("SELECT * FROM gift_idea WHERE id = :id")
+    suspend fun getGiftIdea(id: Long): GiftIdea?
+
+    @Insert
+    suspend fun insertGiftIdea(idea: GiftIdea): Long
+
+    @Update
+    suspend fun updateGiftIdea(idea: GiftIdea)
+
+    @Query("UPDATE gift_idea SET givenOn = :givenOn WHERE id = :id")
+    suspend fun setGiftIdeaGivenOn(id: Long, givenOn: LocalDate?)
+
+    @Query("DELETE FROM gift_idea WHERE id = :id")
+    suspend fun deleteGiftIdea(id: Long)
 
     // Tags on a Person
 

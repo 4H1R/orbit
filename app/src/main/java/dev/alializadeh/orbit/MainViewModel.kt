@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.ui.theme.OrbitAppearance
 import javax.inject.Inject
@@ -19,6 +20,7 @@ sealed interface MainUiState {
     data class Ready(
         val appearance: OrbitAppearance,
         val useLatinDigits: Boolean,
+        val primaryCalendar: CalendarSystem,
         val firstRunFinished: Boolean,
     ) : MainUiState
 }
@@ -38,6 +40,7 @@ class MainViewModel @Inject constructor(
                     customSeed = preferences.customSeedArgb?.let(::Color),
                 ),
                 useLatinDigits = preferences.useLatinDigits,
+                primaryCalendar = preferences.primaryCalendar,
                 firstRunFinished = device.firstRunFinished,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, MainUiState.Loading)
