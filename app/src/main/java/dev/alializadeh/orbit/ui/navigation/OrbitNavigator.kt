@@ -59,6 +59,12 @@ class OrbitNavigator(
         backStack(currentTab).add(key)
     }
 
+    /** Replaces the top of the current tab's stack: Add person → the new Person's detail. */
+    fun replaceTop(key: NavKey) {
+        val stack = backStack(currentTab)
+        if (stack.size > 1) stack[stack.lastIndex] = key else stack.add(key)
+    }
+
     fun goBack() {
         val stack = backStack(currentTab)
         when {

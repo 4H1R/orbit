@@ -5,8 +5,13 @@ import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
+import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonDao
+import dev.alializadeh.orbit.person.PersonItem
+import dev.alializadeh.orbit.person.PersonTag
+import dev.alializadeh.orbit.person.Tag
+import dev.alializadeh.orbit.person.TagDao
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingDao
 
@@ -18,7 +23,15 @@ import dev.alializadeh.orbit.ring.RingDao
  * every change ships a migration and its test. Destructive fallback is never used.
  */
 @Database(
-    entities = [Person::class, BackedUpPreferences::class, Ring::class],
+    entities = [
+        Person::class,
+        BackedUpPreferences::class,
+        Ring::class,
+        PersonItem::class,
+        Tag::class,
+        PersonTag::class,
+        ContactMethod::class,
+    ],
     version = OrbitDatabase.VERSION,
     exportSchema = true,
 )
@@ -30,6 +43,8 @@ abstract class OrbitDatabase : RoomDatabase() {
     abstract fun backedUpPreferencesDao(): BackedUpPreferencesDao
 
     abstract fun ringDao(): RingDao
+
+    abstract fun tagDao(): TagDao
 
     /**
      * Seeds the single [BackedUpPreferences] row (with its column defaults) when the database file

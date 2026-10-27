@@ -4,6 +4,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import dev.alializadeh.orbit.AppVersion
 import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.TestDatabases
+import dev.alializadeh.orbit.data.insertTestRing
 import dev.alializadeh.orbit.person.Person
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -50,8 +51,9 @@ class BackupRoundTripTest {
     @Before
     fun setUp() = runTest {
         database = TestDatabases.onDisk(temp.newFile("orbit.db").apply { delete() })
-        database.personDao().insert(Person(name = "Sara", createdAt = now))
-        database.personDao().insert(Person(name = "بابک", createdAt = now))
+        val ringId = database.insertTestRing()
+        database.personDao().insert(Person(name = "Sara", ringId = ringId, createdAt = now))
+        database.personDao().insert(Person(name = "بابک", ringId = ringId, createdAt = now))
         workDir = temp.newFolder("backup-work")
         writer = BackupWriter(
             snapshotter = RoomDatabaseSnapshotter(database),
@@ -274,7 +276,8 @@ class BackupRoundTripTest {
 
     /** Adds enough rows that the snapshot is far bigger than the 4 KiB the failing stream accepts. */
     private suspend fun OrbitDatabase.addManyPeople() {
-        repeat(500) { personDao().insert(Person(name = "Person $it with a longer name", createdAt = now)) }
+        val ringId = insertTestRing("Many", position = 1)
+        repeat(500) { personDao().insert(Person(name = "Person $it with a longer name", ringId = ringId, createdAt = now)) }
     }
 
     private fun namesIn(databaseFile: File): List<String> =

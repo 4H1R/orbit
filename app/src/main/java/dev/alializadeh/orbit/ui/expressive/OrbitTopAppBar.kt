@@ -9,14 +9,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.stringResource
 import dev.alializadeh.orbit.R
 
 /**
  * Orbit's top app bar (still `ExperimentalMaterial3Api`). With [onBack] it shows a back arrow,
- * which mirrors in RTL.
+ * which mirrors in RTL; [navigationIcon] replaces it (a close button).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,16 +26,23 @@ fun OrbitTopAppBar(
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     containerColor: Color = Color.Unspecified,
+    contentColor: Color = Color.Unspecified,
+    navigationIcon: (@Composable () -> Unit)? = null,
 ) {
+    val defaults = TopAppBarDefaults.topAppBarColors()
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = containerColor,
             scrolledContainerColor = containerColor,
+            titleContentColor = contentColor.takeOrElse { defaults.titleContentColor },
+            navigationIconContentColor = contentColor.takeOrElse { defaults.navigationIconContentColor },
+            actionIconContentColor = contentColor.takeOrElse { defaults.actionIconContentColor },
         ),
         title = { if (title != null) Text(title) },
         navigationIcon = {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
+            when {
+                navigationIcon != null -> navigationIcon()
+                onBack != null -> IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.common_back),

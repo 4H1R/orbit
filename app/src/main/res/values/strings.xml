@@ -18,6 +18,13 @@
     <string name="common_loading">Loading</string>
     <string name="common_save">Save</string>
     <string name="common_new_person">New person</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_more_options">More options</string>
+    <string name="common_done">Done</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_undo">Undo</string>
+    <!-- Content description of a chip's remove button -->
+    <string name="common_remove_item">Remove %1$s</string>
 
     <!-- Joins every "A · B" line (copy deck: Separator). -->
     <string name="separator">" · "</string>
@@ -53,6 +60,25 @@
         <item quantity="one">%1$s year ago</item>
         <item quantity="other">%1$s years ago</item>
     </plurals>
+
+    <!-- Cadence (copy deck). The one-unit forms are their own strings, since a plural's
+         quantities must share their placeholders. -->
+    <string name="cadence_every_day">every day</string>
+    <string name="cadence_every_week">every week</string>
+    <string name="cadence_every_month">every month</string>
+    <plurals name="cadence_every_days">
+        <item quantity="one">every %1$s day</item>
+        <item quantity="other">every %1$s days</item>
+    </plurals>
+    <plurals name="cadence_every_weeks">
+        <item quantity="one">every %1$s week</item>
+        <item quantity="other">every %1$s weeks</item>
+    </plurals>
+    <plurals name="cadence_every_months">
+        <item quantity="one">every %1$s month</item>
+        <item quantity="other">every %1$s months</item>
+    </plurals>
+    <string name="cadence_none">No cadence</string>
 
     <!-- Seed Rings: written once, in the language chosen on Welcome (copy deck) -->
     <string name="seed_ring_inner">Inner</string>
@@ -110,12 +136,96 @@
     <string name="empty_no_people_body">Add someone you want to stay close to.</string>
     <string name="action_add_person">Add person</string>
 
-    <!-- Add person -->
+    <!-- A Person's fields and sections, shared by the form and Person detail -->
+    <string name="person_section_ring">Ring</string>
+    <string name="person_section_tags">Tags</string>
+    <string name="person_section_contact_methods">Contact methods</string>
+    <string name="person_section_can_help_with">Can help with</string>
+    <string name="person_section_likes">Likes</string>
+    <string name="person_section_dislikes">Dislikes</string>
+    <string name="person_section_how_we_met">How we met</string>
+    <string name="person_section_notes">Notes</string>
+    <string name="person_field_photo">Photo</string>
+    <string name="person_field_contact_method">Contact method</string>
+    <string name="person_field_nickname">Nickname</string>
+    <string name="person_field_other_script_name">Name in other script</string>
+    <string name="person_field_cadence">Cadence</string>
+
+    <!-- Contact method types (copy deck) -->
+    <string name="contact_type_phone">Phone</string>
+    <string name="contact_type_whatsapp">WhatsApp</string>
+    <string name="contact_type_telegram">Telegram</string>
+    <string name="contact_type_signal">Signal</string>
+    <string name="contact_type_email">Email</string>
+    <string name="contact_type_instagram">Instagram</string>
+    <string name="contact_type_linkedin">LinkedIn</string>
+    <string name="contact_type_x">X</string>
+    <string name="contact_type_address">Address</string>
+    <string name="contact_type_link">Website / Other link</string>
+    <!-- Contact method actions (copy deck); app actions use the type names above -->
+    <string name="contact_action_call">Call</string>
+    <string name="contact_action_sms">SMS</string>
+    <string name="contact_action_email">Email</string>
+    <string name="contact_action_map">Map</string>
+    <string name="contact_action_open">Open</string>
+    <string name="contact_no_app">No app on this phone can open this</string>
+    <string name="contact_copied">Copied</string>
+    <!-- The value field's label, per type -->
+    <string name="contact_value_number">Number</string>
+    <string name="contact_value_username">Username</string>
+    <string name="contact_value_username_or_number">Username or number</string>
+    <string name="contact_value_email">Email address</string>
+    <string name="contact_value_link">Link</string>
+    <string name="contact_value_address">Address</string>
+
+    <!-- Add/Edit person -->
     <string name="person_add_title">New person</string>
-    <string name="person_add_name_label">Name</string>
+    <string name="person_edit_title">Edit person</string>
+    <string name="person_form_name">Name</string>
+    <string name="person_form_photo_add">Add photo</string>
+    <string name="person_form_photo_change">Change photo</string>
+    <string name="person_form_cadence">Cadence: %1$s</string>
+    <string name="person_form_cadence_from_ring">%1$s (from ring)</string>
+    <string name="person_form_cadence_change">Change</string>
+    <string name="person_form_contact_add">Add contact method</string>
+    <string name="person_form_contact_type">Type</string>
+    <string name="person_form_contact_label">Label (optional)</string>
+    <string name="person_form_contact_make_primary">Make primary</string>
+    <string name="person_form_contact_primary">Primary</string>
+    <string name="person_form_contact_remove">Remove contact method</string>
+    <string name="person_form_more_details">More details</string>
+    <string name="person_form_tag_add">Add tag</string>
+    <string name="person_form_tag_create">Create \"%1$s\"</string>
+    <string name="person_form_item_add">Add…</string>
+    <string name="cadence_sheet_use_ring">Use ring default</string>
+    <string name="cadence_sheet_count">Number</string>
+    <string name="cadence_unit_days">Days</string>
+    <string name="cadence_unit_weeks">Weeks</string>
+    <string name="cadence_unit_months">Months</string>
+    <string name="discard_title">Discard changes?</string>
+    <string name="discard_confirm">Discard</string>
+    <string name="discard_keep">Keep editing</string>
+    <string name="duplicate_name_title">You already have someone called %1$s</string>
+    <string name="duplicate_save_anyway">Save anyway</string>
+    <string name="duplicate_go_back">Go back</string>
+
+    <!-- Photo -->
+    <string name="photo_choose">Choose photo</string>
+    <string name="photo_remove">Remove photo</string>
+    <string name="photo_crop_title">Crop photo</string>
+    <string name="photo_crop_failed">This photo couldn\'t be opened</string>
 
     <!-- Person detail -->
     <string name="person_detail_not_found">This person is no longer in Orbit</string>
+    <string name="person_detail_archive">Archive</string>
+    <string name="person_detail_unarchive">Unarchive</string>
+    <string name="person_detail_delete">Delete…</string>
+    <string name="person_detail_archived_banner">Archived</string>
+    <string name="person_detail_more_contact">More contact</string>
+    <string name="person_detail_add_details">Add details</string>
+    <string name="archived_snackbar">%1$s archived</string>
+    <string name="delete_person_title">Delete %1$s?</string>
+    <string name="delete_person_body">This can\'t be undone. Shared interactions stay for the others.</string>
 
     <!--
         TEMPORARY: slice 0 backup-format spike. Slice 5 replaces this row and these strings with

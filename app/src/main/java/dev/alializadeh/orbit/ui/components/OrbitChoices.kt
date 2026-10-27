@@ -2,12 +2,15 @@ package dev.alializadeh.orbit.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
@@ -57,6 +62,50 @@ fun <T> OrbitConnectedChoice(
         }
     }
 }
+
+/**
+ * [OrbitConnectedChoice] when every label fits in an equal share of the row, otherwise wrapping
+ * single-select chips (the Ring picker, whose names are user text of any length).
+ */
+@Composable
+fun <T> OrbitAdaptiveChoice(
+    options: List<T>,
+    selected: T?,
+    onSelect: (T) -> Unit,
+    label: (T) -> String,
+    modifier: Modifier = Modifier,
+) {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val gap = ButtonGroupDefaults.ConnectedSpaceBetween
+        val share = (maxWidth - gap * (options.size - 1).coerceAtLeast(0)) / options.size.coerceAtLeast(1)
+        val widest = options.maxOfOrNull { option ->
+            with(density) { measurer.measure(label(option), style, maxLines = 1).size.width.toDp() }
+        } ?: 0.dp
+        if (selected != null && widest + ConnectedChoicePadding <= share) {
+            OrbitConnectedChoice(options = options, selected = selected, onSelect = onSelect, label = { label(it) })
+        } else {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                options.forEach { option ->
+                    FilterChip(
+                        selected = option == selected,
+                        onClick = { onSelect(option) },
+                        label = { Text(label(option)) },
+                        modifier = Modifier.semantics { role = Role.RadioButton },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** A connected toggle button's horizontal padding around its label, both sides. */
+private val ConnectedChoicePadding = 40.dp
 
 /** A titled group of segmented list items with the Expressive gaps between them. */
 @Composable

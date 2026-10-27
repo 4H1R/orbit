@@ -33,6 +33,17 @@ class OrbitNavigatorTest {
     }
 
     @Test
+    fun addingAPersonLandsOnTheirDetailAndBackSkipsTheForm() {
+        navigator.navigate(AddPersonKey)
+
+        navigator.replaceTop(PersonDetailKey(3))
+
+        assertEquals(listOf(UpcomingKey, PersonDetailKey(3)), navigator.backStack(TopLevelTab.Upcoming).toList())
+        navigator.goBack()
+        assertEquals(listOf(UpcomingKey), navigator.backStack(TopLevelTab.Upcoming).toList())
+    }
+
+    @Test
     fun pushingHidesTheBarAndBackShowsItAgain() {
         navigator.selectTab(TopLevelTab.People)
         navigator.navigate(AddPersonKey)

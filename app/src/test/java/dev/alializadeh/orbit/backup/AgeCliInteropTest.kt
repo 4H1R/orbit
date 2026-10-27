@@ -3,6 +3,7 @@ package dev.alializadeh.orbit.backup
 import dev.alializadeh.orbit.AppVersion
 import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.TestDatabases
+import dev.alializadeh.orbit.data.insertTestRing
 import dev.alializadeh.orbit.person.Person
 import java.io.File
 import java.time.Clock
@@ -50,7 +51,9 @@ class AgeCliInteropTest {
             ageDir.listFiles().orEmpty().any { it.name.startsWith("age-plugin-batchpass") },
         )
         database = TestDatabases.onDisk(File(temp.root, "orbit.db"))
-        runBlocking { database.personDao().insert(Person(name = "Sara", createdAt = Instant.EPOCH)) }
+        runBlocking {
+            database.personDao().insert(Person(name = "Sara", ringId = database.insertTestRing(), createdAt = Instant.EPOCH))
+        }
     }
 
     @Test

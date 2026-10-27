@@ -2,6 +2,8 @@ package dev.alializadeh.orbit.data
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import dev.alializadeh.orbit.ring.Cadence
+import dev.alializadeh.orbit.ring.Ring
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 
@@ -27,3 +29,7 @@ object TestDatabases {
             .setQueryCoroutineContext(Dispatchers.IO)
             .addCallback(OrbitDatabase.SeedCallback)
 }
+
+/** A Ring for tests that only need People to have one (every Person sits in a Ring). */
+suspend fun OrbitDatabase.insertTestRing(name: String = "Friends", position: Int = 0): Long =
+    ringDao().insert(Ring(name = name, position = position, cadence = Cadence.days(30)))

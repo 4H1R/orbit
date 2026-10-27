@@ -15,6 +15,12 @@
     <string name="common_loading">در حال بارگذاری</string>
     <string name="common_save">ذخیره</string>
     <string name="common_new_person">فرد جدید</string>
+    <string name="common_edit">ویرایش</string>
+    <string name="common_more_options">گزینه‌های بیشتر</string>
+    <string name="common_done">تمام</string>
+    <string name="common_delete">حذف</string>
+    <string name="common_undo">واگرد</string>
+    <string name="common_remove_item">حذف %1$s</string>
 
     <!-- Joins every "A · B" line (copy deck: Separator). -->
     <string name="separator">"، "</string>
@@ -45,6 +51,24 @@
         <item quantity="one">%1$s سال پیش</item>
         <item quantity="other">%1$s سال پیش</item>
     </plurals>
+
+    <!-- Cadence (copy deck) -->
+    <string name="cadence_every_day">هر روز</string>
+    <string name="cadence_every_week">هر هفته</string>
+    <string name="cadence_every_month">هر ماه</string>
+    <plurals name="cadence_every_days">
+        <item quantity="one">هر %1$s روز</item>
+        <item quantity="other">هر %1$s روز</item>
+    </plurals>
+    <plurals name="cadence_every_weeks">
+        <item quantity="one">هر %1$s هفته</item>
+        <item quantity="other">هر %1$s هفته</item>
+    </plurals>
+    <plurals name="cadence_every_months">
+        <item quantity="one">هر %1$s ماه</item>
+        <item quantity="other">هر %1$s ماه</item>
+    </plurals>
+    <string name="cadence_none">بدون فاصلهٔ ارتباط</string>
 
     <!-- Seed Rings (copy deck) -->
     <string name="seed_ring_inner">صمیمی</string>
@@ -102,12 +126,94 @@
     <string name="empty_no_people_body">کسی را اضافه کنید که می‌خواهید با او در ارتباط بمانید.</string>
     <string name="action_add_person">افزودن فرد</string>
 
-    <!-- Add person -->
+    <!-- A Person's fields and sections, shared by the form and Person detail -->
+    <string name="person_section_ring">حلقه</string>
+    <string name="person_section_tags">برچسب‌ها</string>
+    <string name="person_section_contact_methods">راه‌های ارتباطی</string>
+    <string name="person_section_can_help_with">در این‌ها کمک می‌کند</string>
+    <string name="person_section_likes">دوست دارد</string>
+    <string name="person_section_dislikes">دوست ندارد</string>
+    <string name="person_section_how_we_met">چطور آشنا شدیم</string>
+    <string name="person_section_notes">یادداشت‌ها</string>
+    <string name="person_field_photo">عکس</string>
+    <string name="person_field_contact_method">راه ارتباطی</string>
+    <string name="person_field_nickname">نام خودمانی</string>
+    <string name="person_field_other_script_name">نام به خط دیگر</string>
+    <string name="person_field_cadence">فاصلهٔ ارتباط</string>
+
+    <!-- Contact method types (copy deck) -->
+    <string name="contact_type_phone">تلفن</string>
+    <string name="contact_type_whatsapp">واتس‌اپ</string>
+    <string name="contact_type_telegram">تلگرام</string>
+    <string name="contact_type_signal">سیگنال</string>
+    <string name="contact_type_email">ایمیل</string>
+    <string name="contact_type_instagram">اینستاگرام</string>
+    <string name="contact_type_linkedin">لینکدین</string>
+    <string name="contact_type_x">ایکس</string>
+    <string name="contact_type_address">نشانی</string>
+    <string name="contact_type_link">وب‌سایت / پیوند دیگر</string>
+    <string name="contact_action_call">تماس</string>
+    <string name="contact_action_sms">پیامک</string>
+    <string name="contact_action_email">ایمیل</string>
+    <string name="contact_action_map">نقشه</string>
+    <string name="contact_action_open">باز کردن</string>
+    <string name="contact_no_app">هیچ برنامه‌ای در این گوشی نمی‌تواند این را باز کند</string>
+    <string name="contact_copied">کپی شد</string>
+    <string name="contact_value_number">شماره</string>
+    <string name="contact_value_username">نام کاربری</string>
+    <string name="contact_value_username_or_number">نام کاربری یا شماره</string>
+    <string name="contact_value_email">نشانی ایمیل</string>
+    <string name="contact_value_link">پیوند</string>
+    <string name="contact_value_address">نشانی</string>
+
+    <!-- Add/Edit person -->
     <string name="person_add_title">فرد جدید</string>
-    <string name="person_add_name_label">نام</string>
+    <string name="person_edit_title">ویرایش فرد</string>
+    <string name="person_form_name">نام</string>
+    <string name="person_form_photo_add">افزودن عکس</string>
+    <string name="person_form_photo_change">تغییر عکس</string>
+    <string name="person_form_cadence">فاصلهٔ ارتباط: %1$s</string>
+    <string name="person_form_cadence_from_ring">%1$s (از حلقه)</string>
+    <string name="person_form_cadence_change">تغییر</string>
+    <string name="person_form_contact_add">افزودن راه ارتباطی</string>
+    <string name="person_form_contact_type">نوع</string>
+    <string name="person_form_contact_label">عنوان (اختیاری)</string>
+    <string name="person_form_contact_make_primary">اصلی شود</string>
+    <string name="person_form_contact_primary">اصلی</string>
+    <string name="person_form_contact_remove">حذف راه ارتباطی</string>
+    <string name="person_form_more_details">جزئیات بیشتر</string>
+    <string name="person_form_tag_add">افزودن برچسب</string>
+    <string name="person_form_tag_create">ساختن برچسب %1$s</string>
+    <string name="person_form_item_add">افزودن…</string>
+    <string name="cadence_sheet_use_ring">پیش‌فرض حلقه</string>
+    <string name="cadence_sheet_count">تعداد</string>
+    <string name="cadence_unit_days">روز</string>
+    <string name="cadence_unit_weeks">هفته</string>
+    <string name="cadence_unit_months">ماه</string>
+    <string name="discard_title">تغییرات کنار گذاشته شود؟</string>
+    <string name="discard_confirm">کنار گذاشتن</string>
+    <string name="discard_keep">ادامهٔ ویرایش</string>
+    <string name="duplicate_name_title">فردی به نام %1$s از قبل دارید</string>
+    <string name="duplicate_save_anyway">باز هم ذخیره شود</string>
+    <string name="duplicate_go_back">برگشت</string>
+
+    <!-- Photo -->
+    <string name="photo_choose">انتخاب عکس</string>
+    <string name="photo_remove">حذف عکس</string>
+    <string name="photo_crop_title">برش عکس</string>
+    <string name="photo_crop_failed">این عکس باز نشد</string>
 
     <!-- Person detail -->
     <string name="person_detail_not_found">این فرد دیگر در Orbit نیست</string>
+    <string name="person_detail_archive">بایگانی</string>
+    <string name="person_detail_unarchive">خروج از بایگانی</string>
+    <string name="person_detail_delete">حذف…</string>
+    <string name="person_detail_archived_banner">بایگانی‌شده</string>
+    <string name="person_detail_more_contact">راه‌های دیگر</string>
+    <string name="person_detail_add_details">افزودن جزئیات</string>
+    <string name="archived_snackbar">%1$s بایگانی شد</string>
+    <string name="delete_person_title">%1$s حذف شود؟</string>
+    <string name="delete_person_body">این کار برگشت‌پذیر نیست. ارتباط‌های مشترک برای دیگران می‌مانند.</string>
 
     <!-- TEMPORARY: slice 0 backup-format spike. Slice 5 replaces these. -->
     <string name="settings_spike_backup_title">پشتیبان‌گیری (آزمایشی)</string>

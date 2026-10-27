@@ -1,6 +1,6 @@
 # Orbit
 
-A personal, offline relationship manager for one person on one Android phone, in English and Persian. The spec is [docs/prd-v1.md](docs/prd-v1.md) (build order at the end); words are in [GLOSSARY.md](GLOSSARY.md), UI wording rules in [docs/copy-deck-v1.md](docs/copy-deck-v1.md), hard decisions in [docs/adr/](docs/adr/). Slices 0 (walking skeleton) and 1 (language, dates and first run) are done.
+A personal, offline relationship manager for one person on one Android phone, in English and Persian. The spec is [docs/prd-v1.md](docs/prd-v1.md) (build order at the end); words are in [GLOSSARY.md](GLOSSARY.md), UI wording rules in [docs/copy-deck-v1.md](docs/copy-deck-v1.md), hard decisions in [docs/adr/](docs/adr/). Slices 0 (walking skeleton), 1 (language, dates and first run) and 2 (Person profile) are done.
 
 ## Commands (Git Bash on Windows)
 
@@ -25,7 +25,8 @@ export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
 
 Single `:app` module, package by feature under `dev.alializadeh.orbit`:
 
-- `person/` Person entity, DAO, repository, `list/` `add/` `detail/` screens; `upcoming/`, `orbitview/` (stubs).
+- `person/` the Person model: `Person` (Ring FK, `CadenceSetting` = FromRing / Own(cadence or none)), `PersonDetails.kt` (items, `Tag` + `PersonTag`, `ContactMethod`), `PersonDao`/`TagDao` (`PersonWithDetails` via `@Relation`), `PersonRepository` (save = one transaction from a `PersonDraft`; `PersonDraft.normalised()` is what's stored and what "changed?" compares), `PersonNames` (script detection, displayed name, subtitle), `NameCollation` (ICU collator), `PersonKeys` (`AddPersonKey`, `EditPersonKey(id, focus: PersonField)`, `PersonDetailKey`). Screens: `list/`, `detail/`, `edit/` (one Add/Edit form + its sheets), `photo/` (`PhotoStore`, `CropTransform` maths, `PhotoCropScreen`), `contact/` (`ContactType`, `ContactActions` = intent URIs), `ui/` (avatar, contact icons, `cadenceText`). `upcoming/`, `orbitview/` are stubs.
+- `ring/` also has `RingRepository` (read-only until slice 4) and `outermost()` (a new Person's Ring).
 - `settings/` the grouped root list, Appearance, Language & dates (`OrbitSettingsScaffold`), plus the temporary Backup spike row.
 - `firstrun/` the step sequence (`FirstRunStep`; Welcome now, App lock offer in slice 7, Restore branch in slice 5) and `FirstRunRepository.finish()` (Welcome choices + seed Rings, then the device-bound flag). `MainActivity` shows it until `DeviceState.firstRunFinished`.
 - `calendar/` pure Kotlin: `CalendarSystem`, `SolarHijriRules` (33-year rule, tested against the vendored official table `src/test/resources/calendar/kabise.txt`), `CalendarDate` (a day in a Calendar), `RecurringDate` ((Calendar, month, day, year?): occurrences, missing day → month's last day, years count, conversion between Calendars).
@@ -33,16 +34,21 @@ Single `:app` module, package by feature under `dev.alializadeh.orbit`:
 - `language/` `OrbitLanguage` (en, fa with `fa-IR` formatting: Saturday week start), `AppLanguage` (AppCompat per-app locales; setting it recreates the activity).
 - `ring/` `Ring` entity (+ `SeedRing`, max 6) and `Cadence` (count + DAYS/WEEKS/MONTHS; "no Cadence" is null). `reminders/LeadTime`, `backup/BackupNudgeInterval`, `person/PeopleSort` are the backed-up preference types.
 - `ui/datepicker/` the wheel picker: rules in the plain `WheelDatePickerState` (JVM-tested), drawing in `WheelDatePicker`. Not used by a screen yet (slices 3 and 4).
-- `ui/components/` `OrbitConnectedChoice` (connected toggle-button group) and `OrbitListGroup` rows (Expressive `SegmentedListItem`s).
+- `ui/components/` `OrbitConnectedChoice` (connected toggle-button group), `OrbitAdaptiveChoice` (connected group, or wrapping chips when labels don't fit), `OrbitListGroup` rows (Expressive `SegmentedListItem`s), `OrbitSnackbars` (app-wide, see Conventions).
 - `backup/` the Backup format: `BackupWriter` (VACUUM INTO → ZIP → age), `BackupReader` (decrypt to the end, verify), `AgeDecryptingInputStream`, manifest. `backup/spike/` is TEMPORARY; slice 5 deletes it.
 - `data/` `OrbitDatabase`, the single-row `BackedUpPreferences` table (ADR 0006: every backed-up column exists already), `DeviceState` (typed JSON DataStore, device-bound), `PreferencesRepository` over both, Hilt modules.
-- `ui/theme/` (MaterialKolor scheme, fonts, typography), `ui/navigation/` (tabs, `OrbitNavigator`, `OrbitApp`), `ui/expressive/` (wrappers for experimental Material APIs), `ui/icons/`.
+- `ui/theme/` (MaterialKolor scheme, fonts, typography), `ui/navigation/` (tabs, `OrbitNavigator`, `OrbitApp`), `ui/expressive/` (wrappers for experimental Material APIs: top bar, `OrbitShapes` cookie/flower, `OrbitBottomSheet`, `OrbitSelectField`/`OrbitAutocompleteField`), `ui/icons/` (`OrbitIcons`: the few Material Symbols material-icons-core lacks, as path data).
 - Not created yet, add when needed: `search/`, `lock/`.
 
 ## Conventions
 
 - **MVVM + UDF**: one `StateFlow<XUiState>` per screen via `stateIn(viewModelScope, WhileSubscribed(5_000), initial)`; user actions are plain methods; a stateless `XScreen(uiState, callbacks)` plus a stateful `XRoute` that gets the ViewModel with `hiltViewModel()`. Keys needed by a ViewModel come through assisted injection (`PersonDetailViewModel`). Text fields hold a `TextFieldState` in the ViewModel, not a String flow.
 - **Navigation 3**: every destination is a `@Serializable` `NavKey` declared next to its screen; register it in `OrbitApp`'s `entryProvider`. Push with `navigator.navigate(key)`. Tab rules live in `OrbitNavigator` (tested in `OrbitNavigatorTest`).
+- **Language-dependent presentation** (displayed name, subtitle, People sort) is computed in the composable from `LocalOrbitFormats.current.language`, not in the ViewModel: a language switch recreates the activity but not the ViewModels.
+- **Forms with many fields** (`PersonFormViewModel`): text in `TextFieldState`s, everything else in snapshot state, one `snapshotFlow { snapshot() }` into the `StateFlow`. The screen takes `uiState` + a fields holder + an actions interface the ViewModel implements, so screenshot tests pass a no-op. JVM tests call `Snapshot.sendApplyNotifications()` + `runCurrent()` after each change.
+- **Snackbars** that must outlive a screen (Archive's Undo) go through `LocalOrbitSnackbars` (provided by `OrbitApp`); every screen `Scaffold` sets `snackbarHost = { OrbitSnackbarHost() }`. Undo lambdas must not capture `viewModelScope`.
+- **Contact values** are shown with `bidiIsolateLtr` (Address with `bidiIsolate`, it follows its own script) and edited with `TextDirection.Ltr`. Implicit intents only (no permission); catch `ActivityNotFoundException` and show `contact_no_app`.
+- **Photos**: only through `PhotoStore` (768 px JPEG q85 in `filesDir/photos`, Room keeps the file name). A form owns photos it cropped until saved and deletes them on discard/`onCleared`; the repository deletes a replaced or deleted Person's file.
 - **Time**: inject `java.time.Clock`; never call `Instant.now()`/`LocalDate.now()` without it.
 - **Numbers and dates are shown only through `LocalOrbitFormats.current`** (`numbers.format()`, `dates.format()`...), never `"$n"`, `%d`, `DateTimeFormatter` or ICU. Month and weekday names live in `format/CalendarNames` (data, not sentences). Join "A · B" parts with the `separator` string. Wrap user values placed in a sentence with `bidiIsolate()`.
 - **Dates**: absolute days are `LocalDate`; anything that recurs is a `RecurringDate` in its own Calendar (ADR 0003). Never compute Solar Hijri any other way than `calendar/`.
@@ -53,7 +59,9 @@ Single `:app` module, package by feature under `dev.alializadeh.orbit`:
 - **Experimental Material APIs** (`@ExperimentalMaterial3Api`, `@ExperimentalMaterial3ExpressiveApi`) only inside `ui/expressive/`.
 - **Schema policy until the end of slice 5**: database version stays 1 and the schema is edited in place (commit the regenerated `app/schemas/.../1.json`). From slice 5 on: frozen, every change ships a migration and a migration test. Never use destructive fallback.
 - **No INTERNET permission.** After adding a dependency, check `app/build/intermediates/merged_manifest/*/process*MainManifest/AndroidManifest.xml`.
-- Room DAO tests run on the **plain JVM** (no Robolectric): `TestDatabases.inMemory()` / `onDisk(file)` with `BundledSQLiteDriver`. Robolectric is for Compose tests and Roborazzi only.
+- Room DAO tests run on the **plain JVM** (no Robolectric): `TestDatabases.inMemory()` / `onDisk(file)` with `BundledSQLiteDriver`. Every Person needs a Ring (FK, foreign keys are on): use `database.insertTestRing()`. Robolectric is for Compose tests, Roborazzi, and anything needing Android's ICU (Persian collation, `NameCollationTest`).
+- ViewModel tests use the fakes in `testing/` (`FakePersonRepository` keeps the Room repository's rules, `FakeRingRepository` with `TestRings`, `FakePhotoStore`).
+- Screenshots: `captureScreen(..., tall = true)` renders a 1600dp-high screen for long pages.
 
 ## Version gotchas (stack locked in ticket 11)
 
@@ -71,3 +79,11 @@ Single `:app` module, package by feature under `dev.alializadeh.orbit`:
 - The splash screen (`Theme.Orbit.Starting`) stays up until `MainViewModel` has read the preferences and `DeviceState`.
 - `SegmentedListItem`, `ToggleButton` and button groups are stable in material3 1.5.0-beta02 (no opt-in needed).
 - Robolectric screenshot helpers: `testing/Screenshots.kt` (`captureScreen(name, variant)`, en/fa × light/dark).
+- Room 3 `@Relation`/`Junction` take arrays: `parentColumns = ["id"], entityColumns = ["personId"]` (not Room 2's singular `parentColumn`/`entityColumn`).
+- material3 1.5: `ExposedDropdownMenu` is a top-level extension (import it explicitly); `ModalBottomSheet`, `ExposedDropdownMenuBox` and `MaterialShapes` are still experimental (hence `ui/expressive`).
+- `URLEncoder.encode(String, Charset)` is API 33: use the `"UTF-8"` overload (lint `NewApi` fails the build).
+- The JDK's `java.text.Collator` has no Persian rules (sorts پ چ ژ گ after و); production uses `android.icu.text.Collator`. CLDR's Persian collation puts Persian-script names before Latin ones.
+- A Kotlin `var cadence` in a class with `fun setCadence(...)` clashes on the JVM (`Platform declaration clash`).
+- After editing the schema in place, uninstall the debug app on the emulator (`adb uninstall dev.alializadeh.orbit.debug`): Room refuses the old identity hash.
+- The `Pixel_9_Pro_API_35` image has no system photo picker (`PICK_IMAGES`): the form falls back to `OpenDocument`. Push a test image with `adb push x.png /sdcard/Pictures/` + `am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/x.png`, then Show roots → Images → Pictures.
+- `adb shell input text` can't type Persian; Gboard on the emulator has the Persian layout added, so tap its keys (screenshot to find them). The phone pad gives Latin digits; Persian digits come from the Persian ?۳۲۱ layout on a text field.

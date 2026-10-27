@@ -44,9 +44,15 @@ interface RingDao {
     @Query("SELECT * FROM ring ORDER BY position, id")
     fun observeAll(): Flow<List<Ring>>
 
+    @Query("SELECT * FROM ring WHERE id = :id")
+    suspend fun get(id: Long): Ring?
+
     @Query("SELECT COUNT(*) FROM ring")
     suspend fun count(): Int
 
     @Insert
     suspend fun insertAll(rings: List<Ring>)
+
+    @Insert
+    suspend fun insert(ring: Ring): Long
 }

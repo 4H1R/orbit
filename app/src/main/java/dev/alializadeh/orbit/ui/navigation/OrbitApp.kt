@@ -17,18 +17,24 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.orbitview.OrbitViewKey
 import dev.alializadeh.orbit.orbitview.OrbitViewScreen
+import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.person.AddPersonKey
+import dev.alializadeh.orbit.person.EditPersonKey
 import dev.alializadeh.orbit.person.PeopleKey
 import dev.alializadeh.orbit.person.PersonDetailKey
-import dev.alializadeh.orbit.person.add.AddPersonRoute
+import dev.alializadeh.orbit.person.edit.PersonFormRoute
 import dev.alializadeh.orbit.person.detail.PersonDetailRoute
 import dev.alializadeh.orbit.person.list.PeopleRoute
 import dev.alializadeh.orbit.settings.AppearanceRoute
@@ -37,6 +43,8 @@ import dev.alializadeh.orbit.settings.LanguageDatesRoute
 import dev.alializadeh.orbit.settings.LanguageDatesSettingsKey
 import dev.alializadeh.orbit.settings.SettingsKey
 import dev.alializadeh.orbit.settings.SettingsRoute
+import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
+import dev.alializadeh.orbit.ui.components.rememberOrbitSnackbars
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.UpcomingKey
 import dev.alializadeh.orbit.upcoming.UpcomingScreen
@@ -44,6 +52,8 @@ import dev.alializadeh.orbit.upcoming.UpcomingScreen
 /** The app shell: four bottom tabs over a single [NavDisplay]. */
 @Composable
 fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
+    val snackbars = rememberOrbitSnackbars()
+    val resources = LocalResources.current
     val entries = navigator.rememberEntries(
         entryProvider {
             entry<UpcomingKey> {
@@ -56,10 +66,36 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
                 )
             }
             entry<AddPersonKey> {
-                AddPersonRoute(onBack = navigator::goBack, onSaved = navigator::goBack)
+                PersonFormRoute(
+                    personId = null,
+                    focus = null,
+                    onClose = navigator::goBack,
+                    // After Add, land on the new Person's detail.
+                    onSaved = { id -> navigator.replaceTop(PersonDetailKey(id)) },
+                )
+            }
+            entry<EditPersonKey> { key ->
+                PersonFormRoute(
+                    personId = key.personId,
+                    focus = key.focus,
+                    onClose = navigator::goBack,
+                    onSaved = { navigator.goBack() },
+                )
             }
             entry<PersonDetailKey> { key ->
-                PersonDetailRoute(key = key, onBack = navigator::goBack)
+                PersonDetailRoute(
+                    key = key,
+                    onBack = navigator::goBack,
+                    onEdit = { focus -> navigator.navigate(EditPersonKey(key.personId, focus)) },
+                    onArchived = { name, undo ->
+                        snackbars.show(
+                            message = resources.getString(R.string.archived_snackbar, bidiIsolate(name)),
+                            actionLabel = resources.getString(R.string.common_undo),
+                            onAction = undo,
+                        )
+                        navigator.goBack()
+                    },
+                )
             }
             entry<OrbitViewKey> { OrbitViewScreen() }
             entry<SettingsKey> { SettingsRoute(onOpen = navigator::navigate) }
@@ -68,6 +104,13 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
         },
     )
 
+    CompositionLocalProvider(LocalOrbitSnackbars provides snackbars) {
+        OrbitShell(navigator, entries)
+    }
+}
+
+@Composable
+private fun OrbitShell(navigator: OrbitNavigator, entries: List<NavEntry<NavKey>>) {
     Scaffold(
         // Each screen's own Scaffold handles the system bars, so its background reaches behind
         // them; this one only makes room for the navigation bar.

@@ -23,10 +23,16 @@ fun captureScreen(
     variant: ScreenshotVariant,
     appearance: OrbitAppearance = OrbitAppearance(),
     useLatinDigits: Boolean = false,
+    /** A taller screen (1600dp), to see a whole scrolling page at once. */
+    tall: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    RuntimeEnvironment.setQualifiers(variant.qualifiers)
+    val qualifiers = if (tall) variant.qualifiers.replace(NIGHT_QUALIFIER, "-h1600dp$1") else variant.qualifiers
+    RuntimeEnvironment.setQualifiers(qualifiers)
     captureRoboImage("src/test/screenshots/${screen}_${variant.id}.png") {
         OrbitTheme(appearance = appearance, useLatinDigits = useLatinDigits) { content() }
     }
 }
+
+/** The night-mode qualifier at the end; screen height has to come before it. */
+private val NIGHT_QUALIFIER = Regex("(-(?:not)?night)$")

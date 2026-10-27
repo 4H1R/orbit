@@ -14,6 +14,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.person.PersonDao
+import dev.alializadeh.orbit.person.TagDao
 import dev.alializadeh.orbit.ring.RingDao
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,9 @@ object DatabaseModule {
 
     @Provides
     fun providePersonDao(database: OrbitDatabase): PersonDao = database.personDao()
+
+    @Provides
+    fun provideTagDao(database: OrbitDatabase): TagDao = database.tagDao()
 
     @Provides
     fun provideRingDao(database: OrbitDatabase): RingDao = database.ringDao()
