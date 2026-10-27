@@ -78,6 +78,9 @@ android {
     lint {
         // Copy deck: English and Persian always ship together.
         error += listOf("MissingTranslation", "ExtraTranslation")
+        // Orbit ships sideloaded APKs, never App Bundles, so per-app locale switching needs no
+        // Play Core language downloads.
+        disable += "AppBundleLocaleChanges"
         abortOnError = true
         checkDependencies = false
     }
@@ -120,6 +123,7 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -150,12 +154,12 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kage)
 
-    // Locked by ticket 11 for later slices (biometric: App lock; DataStore: device-bound state;
-    // Coil: photos, with no network artifact). Declared now so the whole locked stack resolves
-    // together and the merged-manifest check (no INTERNET permission) covers them. R8 strips
-    // them from the release APK until they're used.
-    implementation(libs.androidx.biometric)
+    // Device-bound state (ADR 0006): a typed DataStore with a kotlinx-serialization JSON serializer.
     implementation(libs.androidx.datastore)
+    // Locked by ticket 11 for later slices (biometric: App lock; Coil: photos, with no network
+    // artifact). Declared now so the whole locked stack resolves together and the merged-manifest
+    // check (no INTERNET permission) covers them. R8 strips them until they're used.
+    implementation(libs.androidx.biometric)
     implementation(libs.coil.compose)
 
     testImplementation(libs.junit)

@@ -16,6 +16,87 @@
     <string name="common_save">ذخیره</string>
     <string name="common_new_person">فرد جدید</string>
 
+    <!-- Joins every "A · B" line (copy deck: Separator). -->
+    <string name="separator">"، "</string>
+    <string name="common_cancel">لغو</string>
+
+    <!-- Calendars -->
+    <string name="calendar_gregorian">میلادی</string>
+    <string name="calendar_solar_hijri">شمسی</string>
+
+    <!-- Relative time (copy deck) -->
+    <string name="time_today">امروز</string>
+    <string name="time_tomorrow">فردا</string>
+    <plurals name="time_in_days">
+        <item quantity="one">%1$s روز دیگر</item>
+        <item quantity="other">%1$s روز دیگر</item>
+    </plurals>
+    <string name="time_today_inline">امروز</string>
+    <string name="time_yesterday">دیروز</string>
+    <plurals name="time_days_ago">
+        <item quantity="one">%1$s روز پیش</item>
+        <item quantity="other">%1$s روز پیش</item>
+    </plurals>
+    <plurals name="time_months_ago">
+        <item quantity="one">%1$s ماه پیش</item>
+        <item quantity="other">%1$s ماه پیش</item>
+    </plurals>
+    <plurals name="time_years_ago">
+        <item quantity="one">%1$s سال پیش</item>
+        <item quantity="other">%1$s سال پیش</item>
+    </plurals>
+
+    <!-- Seed Rings (copy deck) -->
+    <string name="seed_ring_inner">صمیمی</string>
+    <string name="seed_ring_close">نزدیک</string>
+    <string name="seed_ring_friends">دوستان</string>
+    <string name="seed_ring_acquaintances">آشنایان</string>
+
+    <!-- Welcome (first run) -->
+    <string name="welcome_title">به Orbit خوش آمدید</string>
+    <string name="welcome_line">کسانی را که برایتان مهم‌اند در مدار نگه دارید.</string>
+    <string name="welcome_language">زبان</string>
+    <string name="welcome_primary_calendar">تقویم اصلی</string>
+    <string name="welcome_latin_digits">استفاده از ارقام لاتین</string>
+    <string name="welcome_continue">ادامه</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance_title">ظاهر</string>
+    <string name="settings_language_dates_title">زبان و تاریخ</string>
+
+    <!-- Settings → Appearance -->
+    <string name="appearance_theme">پوسته</string>
+    <string name="theme_system">سیستم</string>
+    <string name="theme_light">روشن</string>
+    <string name="theme_dark">تیره</string>
+    <string name="appearance_colour">رنگ</string>
+    <string name="colour_orbit_violet">بنفش Orbit</string>
+    <string name="colour_orbit_violet_summary">پیش‌فرض</string>
+    <string name="colour_wallpaper">هم‌رنگ کاغذدیواری</string>
+    <string name="colour_wallpaper_summary">رنگ‌ها از کاغذدیواری گوشی گرفته می‌شوند</string>
+    <string name="colour_custom">رنگ دلخواه</string>
+    <string name="colour_custom_summary">هر رنگی را انتخاب کنید تا Orbit رنگ‌ها را از آن بسازد</string>
+    <string name="colour_swatch_description">رنگ %1$s</string>
+    <string name="colour_pick">انتخاب رنگ</string>
+    <string name="colour_picker_hue">فام</string>
+    <string name="colour_picker_saturation">اشباع</string>
+    <string name="colour_picker_brightness">روشنایی</string>
+    <string name="colour_picker_use">استفاده از این رنگ</string>
+
+    <!-- Settings → Language & dates -->
+    <string name="language_dates_language">زبان</string>
+    <string name="language_dates_primary_calendar">تقویم اصلی</string>
+    <string name="language_dates_latin_digits">استفاده از ارقام لاتین</string>
+    <string name="language_dates_latin_digits_summary">نمایش اعداد به صورت 123 به جای ۱۲۳</string>
+
+    <!-- Date picker -->
+    <string name="date_picker_calendar">تقویم</string>
+    <string name="date_picker_day">روز</string>
+    <string name="date_picker_month">ماه</string>
+    <string name="date_picker_year">سال</string>
+    <string name="date_picker_no_year">بدون سال</string>
+    <string name="date_picker_converted_using">تبدیل‌شده با سال %1$s</string>
+
     <!-- People list -->
     <string name="empty_no_people_title">کسانی را که برایتان مهم‌اند در مدار نگه دارید</string>
     <string name="empty_no_people_body">کسی را اضافه کنید که می‌خواهید با او در ارتباط بمانید.</string>

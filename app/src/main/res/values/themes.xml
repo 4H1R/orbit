@@ -4,4 +4,10 @@
     <style name="Theme.Orbit" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/orbit_window_background</item>
     </style>
+
+    <!-- Shown until the first preferences read completes (MainActivity), so the theme never flashes. -->
+    <style name="Theme.Orbit.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/orbit_window_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.Orbit</item>
+    </style>
 </resources>

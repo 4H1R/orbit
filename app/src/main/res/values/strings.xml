@@ -19,6 +19,92 @@
     <string name="common_save">Save</string>
     <string name="common_new_person">New person</string>
 
+    <!-- Joins every "A · B" line (copy deck: Separator). -->
+    <string name="separator">" · "</string>
+    <string name="common_cancel">Cancel</string>
+
+    <!-- Language names, each in its own script in both UIs -->
+    <string name="language_name_english" translatable="false">English</string>
+    <string name="language_name_persian" translatable="false">فارسی</string>
+
+    <!-- Calendars -->
+    <string name="calendar_gregorian">Gregorian</string>
+    <string name="calendar_solar_hijri">Solar Hijri</string>
+
+    <!-- Relative time (copy deck). Numbers arrive formatted, as %1$s. -->
+    <string name="time_today">Today</string>
+    <string name="time_tomorrow">Tomorrow</string>
+    <plurals name="time_in_days">
+        <item quantity="one">In %1$s day</item>
+        <item quantity="other">In %1$s days</item>
+    </plurals>
+    <!-- "Last talked today": the lower-case form for use inside a sentence. -->
+    <string name="time_today_inline">today</string>
+    <string name="time_yesterday">yesterday</string>
+    <plurals name="time_days_ago">
+        <item quantity="one">%1$s day ago</item>
+        <item quantity="other">%1$s days ago</item>
+    </plurals>
+    <plurals name="time_months_ago">
+        <item quantity="one">%1$s month ago</item>
+        <item quantity="other">%1$s months ago</item>
+    </plurals>
+    <plurals name="time_years_ago">
+        <item quantity="one">%1$s year ago</item>
+        <item quantity="other">%1$s years ago</item>
+    </plurals>
+
+    <!-- Seed Rings: written once, in the language chosen on Welcome (copy deck) -->
+    <string name="seed_ring_inner">Inner</string>
+    <string name="seed_ring_close">Close</string>
+    <string name="seed_ring_friends">Friends</string>
+    <string name="seed_ring_acquaintances">Acquaintances</string>
+
+    <!-- Welcome (first run) -->
+    <string name="welcome_title">Welcome to Orbit</string>
+    <string name="welcome_line">Keep the people who matter in orbit.</string>
+    <string name="welcome_language">Language</string>
+    <string name="welcome_primary_calendar">Primary calendar</string>
+    <string name="welcome_latin_digits">Use Latin digits</string>
+    <string name="welcome_continue">Continue</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_language_dates_title">Language &amp; dates</string>
+
+    <!-- Settings → Appearance -->
+    <string name="appearance_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="appearance_colour">Colour</string>
+    <string name="colour_orbit_violet">Orbit violet</string>
+    <string name="colour_orbit_violet_summary">Default</string>
+    <string name="colour_wallpaper">Match wallpaper</string>
+    <string name="colour_wallpaper_summary">Colours from your wallpaper</string>
+    <string name="colour_custom">Your colour</string>
+    <string name="colour_custom_summary">Pick any colour and Orbit builds the palette from it</string>
+    <string name="colour_swatch_description">Colour %1$s</string>
+    <string name="colour_pick">Pick a colour</string>
+    <string name="colour_picker_hue">Hue</string>
+    <string name="colour_picker_saturation">Saturation</string>
+    <string name="colour_picker_brightness">Brightness</string>
+    <string name="colour_picker_use">Use colour</string>
+
+    <!-- Settings → Language & dates -->
+    <string name="language_dates_language">Language</string>
+    <string name="language_dates_primary_calendar">Primary calendar</string>
+    <string name="language_dates_latin_digits">Use Latin digits</string>
+    <string name="language_dates_latin_digits_summary">Show numbers as 123 instead of ۱۲۳</string>
+
+    <!-- Date picker -->
+    <string name="date_picker_calendar">Calendar</string>
+    <string name="date_picker_day">Day</string>
+    <string name="date_picker_month">Month</string>
+    <string name="date_picker_year">Year</string>
+    <string name="date_picker_no_year">No year</string>
+    <string name="date_picker_converted_using">Converted using %1$s</string>
+
     <!-- People list -->
     <string name="empty_no_people_title">Keep the people who matter in orbit</string>
     <string name="empty_no_people_body">Add someone you want to stay close to.</string>

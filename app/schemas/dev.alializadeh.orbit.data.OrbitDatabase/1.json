@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d9668cf3221b731051521f62f354e150",
+    "identityHash": "a3f44a18cc112a1e18b5009484173d19",
     "entities": [
       {
         "tableName": "person",
@@ -47,13 +47,74 @@
       },
       {
         "tableName": "backed_up_preferences",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `theme` TEXT NOT NULL DEFAULT 'System', `colourSource` TEXT NOT NULL DEFAULT 'OrbitViolet', `customSeedArgb` INTEGER, `primaryCalendar` TEXT NOT NULL DEFAULT 'Gregorian', `useLatinDigits` INTEGER NOT NULL DEFAULT 0, `reminderTime` INTEGER NOT NULL DEFAULT 540, `defaultLeadTimes` TEXT NOT NULL DEFAULT 'OneWeek,OnTheDay', `backupNudgeInterval` TEXT NOT NULL DEFAULT 'Days30', `peopleSort` TEXT NOT NULL DEFAULT 'Name', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "theme",
+            "columnName": "theme",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'System'"
+          },
+          {
+            "fieldPath": "colourSource",
+            "columnName": "colourSource",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'OrbitViolet'"
+          },
+          {
+            "fieldPath": "customSeedArgb",
+            "columnName": "customSeedArgb",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "primaryCalendar",
+            "columnName": "primaryCalendar",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'Gregorian'"
+          },
+          {
+            "fieldPath": "useLatinDigits",
+            "columnName": "useLatinDigits",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "reminderTime",
+            "columnName": "reminderTime",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "540"
+          },
+          {
+            "fieldPath": "defaultLeadTimes",
+            "columnName": "defaultLeadTimes",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'OneWeek,OnTheDay'"
+          },
+          {
+            "fieldPath": "backupNudgeInterval",
+            "columnName": "backupNudgeInterval",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'Days30'"
+          },
+          {
+            "fieldPath": "peopleSort",
+            "columnName": "peopleSort",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'Name'"
           }
         ],
         "primaryKey": {
@@ -62,11 +123,51 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "ring",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `position` INTEGER NOT NULL, `cadence_count` INTEGER, `cadence_unit` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cadence.count",
+            "columnName": "cadence_count",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cadence.unit",
+            "columnName": "cadence_unit",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd9668cf3221b731051521f62f354e150')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a3f44a18cc112a1e18b5009484173d19')"
     ]
   }
 }

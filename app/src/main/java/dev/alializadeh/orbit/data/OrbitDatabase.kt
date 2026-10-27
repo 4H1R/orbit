@@ -7,6 +7,8 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonDao
+import dev.alializadeh.orbit.ring.Ring
+import dev.alializadeh.orbit.ring.RingDao
 
 /**
  * Orbit's one database.
@@ -16,18 +18,24 @@ import dev.alializadeh.orbit.person.PersonDao
  * every change ships a migration and its test. Destructive fallback is never used.
  */
 @Database(
-    entities = [Person::class, BackedUpPreferences::class],
+    entities = [Person::class, BackedUpPreferences::class, Ring::class],
     version = OrbitDatabase.VERSION,
     exportSchema = true,
 )
-@ColumnTypeConverters(InstantConverters::class)
+@ColumnTypeConverters(InstantConverters::class, PreferenceConverters::class)
 abstract class OrbitDatabase : RoomDatabase() {
 
     abstract fun personDao(): PersonDao
 
     abstract fun backedUpPreferencesDao(): BackedUpPreferencesDao
 
-    /** Seeds the single [BackedUpPreferences] row when the database file is first created. */
+    abstract fun ringDao(): RingDao
+
+    /**
+     * Seeds the single [BackedUpPreferences] row (with its column defaults) when the database file
+     * is first created. The seed Rings are not created here but when first run finishes, in the
+     * language chosen on Welcome.
+     */
     object SeedCallback : Callback() {
         override suspend fun onCreate(connection: SQLiteConnection) {
             connection.execSQL(

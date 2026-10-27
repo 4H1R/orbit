@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.ui.navigation
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,10 @@ import dev.alializadeh.orbit.person.PersonDetailKey
 import dev.alializadeh.orbit.person.add.AddPersonRoute
 import dev.alializadeh.orbit.person.detail.PersonDetailRoute
 import dev.alializadeh.orbit.person.list.PeopleRoute
+import dev.alializadeh.orbit.settings.AppearanceRoute
+import dev.alializadeh.orbit.settings.AppearanceSettingsKey
+import dev.alializadeh.orbit.settings.LanguageDatesRoute
+import dev.alializadeh.orbit.settings.LanguageDatesSettingsKey
 import dev.alializadeh.orbit.settings.SettingsKey
 import dev.alializadeh.orbit.settings.SettingsRoute
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
@@ -57,11 +62,16 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
                 PersonDetailRoute(key = key, onBack = navigator::goBack)
             }
             entry<OrbitViewKey> { OrbitViewScreen() }
-            entry<SettingsKey> { SettingsRoute() }
+            entry<SettingsKey> { SettingsRoute(onOpen = navigator::navigate) }
+            entry<AppearanceSettingsKey> { AppearanceRoute(onBack = navigator::goBack) }
+            entry<LanguageDatesSettingsKey> { LanguageDatesRoute(onBack = navigator::goBack) }
         },
     )
 
     Scaffold(
+        // Each screen's own Scaffold handles the system bars, so its background reaches behind
+        // them; this one only makes room for the navigation bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (navigator.showsNavigationBar) {
                 OrbitNavigationBar(

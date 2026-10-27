@@ -1,14 +1,20 @@
 package dev.alializadeh.orbit.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.core.DataStoreFactory
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.dataStoreFile
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.person.PersonDao
+import dev.alializadeh.orbit.ring.RingDao
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 
@@ -33,6 +39,23 @@ object DatabaseModule {
     fun providePersonDao(database: OrbitDatabase): PersonDao = database.personDao()
 
     @Provides
-    fun provideBackedUpPreferencesDao(database: OrbitDatabase): BackedUpPreferencesDao =
-        database.backedUpPreferencesDao()
+    fun provideRingDao(database: OrbitDatabase): RingDao = database.ringDao()
+
+    /** Device-bound state (ADR 0006), in app storage that no Android backup includes. */
+    @Provides
+    @Singleton
+    fun provideDeviceStateStore(@ApplicationContext context: Context): DataStore<DeviceState> =
+        DataStoreFactory.create(
+            serializer = DeviceStateSerializer,
+            corruptionHandler = ReplaceFileCorruptionHandler { DeviceState() },
+            produceFile = { context.dataStoreFile(DeviceStateSerializer.FILE_NAME) },
+        )
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+interface PreferencesModule {
+
+    @Binds
+    fun bindPreferencesRepository(repository: RoomPreferencesRepository): PreferencesRepository
 }

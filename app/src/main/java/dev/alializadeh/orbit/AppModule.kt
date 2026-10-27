@@ -4,6 +4,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.alializadeh.orbit.language.AppCompatAppLanguage
+import dev.alializadeh.orbit.language.AppLanguage
 import java.time.Clock
 
 @Module
@@ -20,4 +22,7 @@ object AppModule {
 
     @Provides
     fun provideAppLocales(): AppLocales = AppCompatAppLocales
+
+    @Provides
+    fun provideAppLanguage(): AppLanguage = AppCompatAppLanguage()
 }
