@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    English strings. Rules: docs/copy-deck-v1.md. Keys are screen_element_purpose, sentence case,
+    British spelling, no %d (numbers go through OrbitNumberFormatter and are passed as %s), and every
+    key has its Persian twin in values-fa/strings.xml in the same change.
+-->
+<resources>
+    <string name="app_name" translatable="false">Orbit</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_tab_upcoming">Upcoming</string>
+    <string name="nav_tab_people">People</string>
+    <string name="nav_tab_orbit">Orbit</string>
+    <string name="nav_tab_settings">Settings</string>
+
+    <!-- Shared -->
+    <string name="common_back">Back</string>
+    <string name="common_loading">Loading</string>
+    <string name="common_save">Save</string>
+    <string name="common_new_person">New person</string>
+
+    <!-- People list -->
+    <string name="empty_no_people_title">Keep the people who matter in orbit</string>
+    <string name="empty_no_people_body">Add someone you want to stay close to.</string>
+    <string name="action_add_person">Add person</string>
+
+    <!-- Add person -->
+    <string name="person_add_title">New person</string>
+    <string name="person_add_name_label">Name</string>
+
+    <!-- Person detail -->
+    <string name="person_detail_not_found">This person is no longer in Orbit</string>
+
+    <!--
+        TEMPORARY: slice 0 backup-format spike. Slice 5 replaces this row and these strings with
+        the real Back up now flow (copy deck: backup_now, backed_up_result).
+    -->
+    <string name="settings_spike_backup_title">Back up now (spike)</string>
+    <string name="settings_spike_backup_body">Temporary test: saves an encrypted backup with the fixed passphrase %1$s, then reopens it to check it.</string>
+    <string name="settings_spike_backup_running">Backing up…</string>
+    <string name="settings_spike_backup_verified">Backup saved and checked</string>
+    <string name="settings_spike_backup_failed">Backup failed: %1$s</string>
+</resources>

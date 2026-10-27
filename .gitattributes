@@ -1,0 +1,13 @@
+* text=auto
+
+# Scripts keep the line endings their shells need.
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+
+*.jar binary
+*.png binary
+*.ttf binary
+
+# age spec test vectors: byte-exact files, some with deliberate CRLFs. Never convert them.
+app/src/test/resources/age-testkit/** binary

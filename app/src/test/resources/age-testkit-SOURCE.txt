@@ -1,0 +1,5 @@
+The files in age-testkit/ are the age file-format test vectors from C2SP/CCTV:
+https://github.com/C2SP/CCTV/tree/main/age/testdata
+commit 50a8ecf2a220f4c8bdc4f085789b8e85c26829e7 (2026-09-25), copied unmodified.
+Licence: 0BSD / CC0 1.0 / Unlicense (your choice); copying needs no attribution.
+To update: copy age/testdata/* from a newer CCTV commit and update the commit above.

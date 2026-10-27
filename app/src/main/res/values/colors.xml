@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher icon and pre-Compose window colours. In-app colours come from MaterialKolor (ui/theme). -->
+    <color name="ic_launcher_background">#5B4BD6</color>
+    <color name="orbit_window_background">#FCF8FF</color>
+</resources>

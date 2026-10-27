@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Persian strings. Rules: docs/copy-deck-v1.md. Written register (نوشتاری), the user is شما,
+    never attach a suffix to a placeholder, and "Orbit" stays in Latin script.
+-->
+<resources>
+    <!-- Bottom navigation -->
+    <string name="nav_tab_upcoming">پیش رو</string>
+    <string name="nav_tab_people">افراد</string>
+    <string name="nav_tab_orbit">مدار</string>
+    <string name="nav_tab_settings">تنظیمات</string>
+
+    <!-- Shared -->
+    <string name="common_back">بازگشت</string>
+    <string name="common_loading">در حال بارگذاری</string>
+    <string name="common_save">ذخیره</string>
+    <string name="common_new_person">فرد جدید</string>
+
+    <!-- People list -->
+    <string name="empty_no_people_title">کسانی را که برایتان مهم‌اند در مدار نگه دارید</string>
+    <string name="empty_no_people_body">کسی را اضافه کنید که می‌خواهید با او در ارتباط بمانید.</string>
+    <string name="action_add_person">افزودن فرد</string>
+
+    <!-- Add person -->
+    <string name="person_add_title">فرد جدید</string>
+    <string name="person_add_name_label">نام</string>
+
+    <!-- Person detail -->
+    <string name="person_detail_not_found">این فرد دیگر در Orbit نیست</string>
+
+    <!-- TEMPORARY: slice 0 backup-format spike. Slice 5 replaces these. -->
+    <string name="settings_spike_backup_title">پشتیبان‌گیری (آزمایشی)</string>
+    <string name="settings_spike_backup_body">آزمایش موقت: یک پشتیبان رمزگذاری‌شده با عبارت عبور ثابت %1$s ذخیره می‌شود و سپس دوباره باز می‌شود تا بررسی شود.</string>
+    <string name="settings_spike_backup_running">در حال پشتیبان‌گیری…</string>
+    <string name="settings_spike_backup_verified">پشتیبان ذخیره و بررسی شد</string>
+    <string name="settings_spike_backup_failed">پشتیبان‌گیری ناموفق بود: %1$s</string>
+</resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug builds install beside the real app (ADR 0005), so they get their own name. -->
+    <string name="app_name" translatable="false">Orbit debug</string>
+</resources>

@@ -1,0 +1,178 @@
+import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.room3)
+    alias(libs.plugins.roborazzi)
+}
+
+// Release signing (ADR 0005): the keystore and its properties live outside git. Create them once
+// with scripts/generate-release-keystore.sh. Without keystore.properties the release APK is unsigned.
+val keystorePropertiesFile: File = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) keystorePropertiesFile.inputStream().use(::load)
+}
+
+android {
+    namespace = "dev.alializadeh.orbit"
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "dev.alializadeh.orbit"
+        minSdk = 31
+        targetSdk = 37
+        versionCode = 1
+        versionName = "0.1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Installs next to the real app without touching its data (ADR 0005).
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    androidResources {
+        // Generates the locale config (en + fa) from the res/values-* folders; see res/resources.properties.
+        generateLocaleConfig = true
+    }
+
+    lint {
+        // Copy deck: English and Persian always ship together.
+        error += listOf("MissingTranslation", "ExtraTranslation")
+        abortOnError = true
+        checkDependencies = false
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
+
+room3 {
+    schemaDirectory("$projectDir/schemas")
+}
+
+roborazzi {
+    outputDir = layout.projectDirectory.dir("src/test/screenshots")
+}
+
+// Room DAO tests run on the plain JVM: unit tests get sqlite-bundled's JVM artifact (host natives)
+// instead of the Android AAR, which ships the same classes with Android-only natives.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    exclude(group = "androidx.sqlite", module = "sqlite-bundled-android")
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric 4.17 at SDK 37 reaches into FileDescriptor internals (ApplicationSharedMemory),
+    // which JDK 17+ hides unless exported.
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+    // The age CLI interop test runs only when the CLI is available; make that an input so a run
+    // with ORBIT_AGE_CLI set is never skipped as up to date after a run without it.
+    inputs.property("orbitAgeCli", providers.environmentVariable("ORBIT_AGE_CLI").orElse(""))
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.materialkolor)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+    ksp(libs.androidx.room3.compiler)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kage)
+
+    // Locked by ticket 11 for later slices (biometric: App lock; DataStore: device-bound state;
+    // Coil: photos, with no network artifact). Declared now so the whole locked stack resolves
+    // together and the merged-manifest check (no INTERNET permission) covers them. R8 strips
+    // them from the release APK until they're used.
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.datastore)
+    implementation(libs.coil.compose)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.sqlite.bundled.jvm)
+    // Robolectric at SDK 37 needs the current androidx.test stack; Compose's ui-test pulls an older
+    // Espresso whose input injection breaks on Android 17.
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.espresso.core)
+
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+}

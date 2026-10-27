@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AppCompat parent: per-app locales and biometric 1.1.0 need an AppCompatActivity host. -->
+    <style name="Theme.Orbit" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/orbit_window_background</item>
+    </style>
+</resources>
