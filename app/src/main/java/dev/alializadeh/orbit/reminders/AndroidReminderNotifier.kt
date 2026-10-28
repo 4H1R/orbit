@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.backup.BackupStatusDao
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.format.OrbitFormats
 import dev.alializadeh.orbit.language.OrbitLanguage
@@ -30,6 +31,7 @@ class AndroidReminderNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferences: PreferencesRepository,
     private val photoStore: PhotoStore,
+    private val statusDao: BackupStatusDao,
 ) : ReminderNotifier {
 
     private val manager = NotificationManagerCompat.from(context)
@@ -61,7 +63,8 @@ class AndroidReminderNotifier @Inject constructor(
             useLatinDigits = backedUp.useLatinDigits,
             primaryCalendar = backedUp.primaryCalendar,
         )
-        val built = NotificationFactory(localized, formats, photoStore).build(notification, rendering, now)
+        // Posted from inside reconcile(), which a Restore's swap waits for: the token is this data's.
+        val built = NotificationFactory(localized, formats, photoStore, statusDao.restoreToken()).build(notification, rendering, now)
         try {
             manager.notify(notification.key.tag, NotificationKey.ID, built)
         } catch (_: SecurityException) {

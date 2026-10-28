@@ -46,7 +46,7 @@ class BackupWriter(
         workFactor: Int = BACKUP_WRITE_WORK_FACTOR,
     ): WrittenBackup = withContext(Dispatchers.IO) {
         workDir.mkdirs()
-        val snapshot = File(workDir, "snapshot-${UUID.randomUUID()}.db")
+        val snapshot = File(workDir, "$SNAPSHOT_PREFIX${UUID.randomUUID()}.db")
         try {
             snapshotter.snapshotTo(snapshot)
             val contents = DatabaseFileContents.read(snapshot)
@@ -102,9 +102,19 @@ class BackupWriter(
         }
     }
 
+    /**
+     * At app start: deletes plaintext snapshots a Backup left behind when its process died (any made
+     * before [startedAtMillis]).
+     */
+    fun deleteStaleSnapshots(startedAtMillis: Long) {
+        workDir.listFiles { file -> file.name.startsWith(SNAPSHOT_PREFIX) && file.lastModified() < startedAtMillis }
+            ?.forEach { it.delete() }
+    }
+
     private class PhotoToWrite(val path: String, val file: File, val hashes: FileHashes)
 
     private companion object {
         const val BUFFER_SIZE = 64 * 1024
+        const val SNAPSHOT_PREFIX = "snapshot-"
     }
 }

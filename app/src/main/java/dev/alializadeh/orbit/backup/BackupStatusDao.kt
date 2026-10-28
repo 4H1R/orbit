@@ -16,6 +16,10 @@ interface BackupStatusDao {
     @Query("SELECT version FROM ${DataVersion.TABLE} WHERE id = ${DataVersion.SINGLE_ROW_ID}")
     suspend fun dataVersion(): Long
 
+    /** The restore token (see [DataVersion.RESTORE_TOKEN_ROW_ID]); null before the first Restore. */
+    @Query("SELECT version FROM ${DataVersion.TABLE} WHERE id = ${DataVersion.RESTORE_TOKEN_ROW_ID}")
+    suspend fun restoreToken(): Long?
+
     /** Every Person, Archived ones included. */
     @Query("SELECT COUNT(*) FROM person")
     fun observePeopleCount(): Flow<Int>

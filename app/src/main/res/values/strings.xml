@@ -535,6 +535,7 @@
     <string name="backup_result_body">Keep it somewhere other than this phone, such as a computer or cloud storage.</string>
     <string name="backup_failed_title">Backup failed</string>
     <string name="backup_failed_body">Orbit couldn\'t save the backup there, so the unfinished file was deleted. Try again, or choose another place.</string>
+    <string name="backup_failed_memory_body">This phone didn\'t give Orbit enough memory to encrypt the backup, so the unfinished file was deleted. Close other apps and try again.</string>
 
     <string name="restore_title">Restore from a backup</string>
     <string name="restore_passphrase_body">Type the passphrase this backup was made with.</string>

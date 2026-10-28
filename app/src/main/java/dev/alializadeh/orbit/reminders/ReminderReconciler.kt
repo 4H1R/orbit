@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.reminders
 
+import dev.alializadeh.orbit.backup.BackupStatusDao
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.upcoming.UpcomingRepository
@@ -76,6 +77,7 @@ class ReminderReconciler @Inject constructor(
     private val alarm: ReminderAlarm,
     private val rendering: NotificationRenderingPolicy,
     private val clock: Clock,
+    private val statusDao: BackupStatusDao,
 ) {
     private val mutex = Mutex()
 
@@ -84,9 +86,19 @@ class ReminderReconciler @Inject constructor(
         val zone = clock.zone
         val backedUp = preferences.preferences.first()
         val device = preferences.deviceState.first()
+        val token = statusDao.restoreToken()
         val people = upcoming.observePeople().first()
-        val showing = notifier.showing()
-        val state = showing?.let(device.notifications::retainShowing) ?: device.notifications
+        var showing = notifier.showing()
+        val stored = if (device.notifications.restoreToken == token) {
+            device.notifications
+        } else {
+            // A Restore replaced the data: the ids in the old state (and on screen) may name other
+            // People now. Take down whatever still shows and plan from nothing.
+            (showing ?: device.notifications.showingKeys()).forEach(notifier::cancel)
+            showing = emptySet()
+            NotificationState()
+        }
+        val state = showing?.let(stored::retainShowing) ?: stored
         val how = rendering.current()
         val plan = ReminderPlanner.plan(
             PlannerInput(
@@ -103,8 +115,29 @@ class ReminderReconciler @Inject constructor(
         plan.cancel.forEach(notifier::cancel)
         plan.post.forEach { notifier.post(it, how, now) }
         if (plan.markNotified.isNotEmpty()) personDao.setLastNotifiedDueOn(plan.markNotified.toList(), plan.today)
-        preferences.updateDeviceState { it.copy(notifications = plan.state) }
+        preferences.updateDeviceState { it.copy(notifications = plan.state.copy(restoreToken = token)) }
         alarm.set(plan.nextAlarm)
         plan
+    }
+
+    /**
+     * Runs a Restore's [replace] (the swap) with no `reconcile()` in progress, so none plans with the
+     * old data and writes to the new, then takes down the notifications showing for the old data.
+     * The next `reconcile()` sees the new restore token and starts from nothing.
+     */
+    suspend fun whileDataIsReplaced(replace: suspend () -> Unit) = mutex.withLock {
+        replace()
+        notifier.showing()?.forEach(notifier::cancel)
+    }
+
+    /**
+     * A notification action ([target]): runs [act] only when the action was posted for the data
+     * there is now (its restore token is the live one). Serialised with `reconcile()` and Restore's
+     * swap. Returns whether it ran.
+     */
+    suspend fun runAction(target: NotificationActionTarget, act: suspend () -> Unit): Boolean = mutex.withLock {
+        if (target.restoreToken != statusDao.restoreToken()) return@withLock false
+        act()
+        true
     }
 }

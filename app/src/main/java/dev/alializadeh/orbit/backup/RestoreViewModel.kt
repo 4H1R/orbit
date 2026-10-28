@@ -9,9 +9,12 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.ApplicationScope
 import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +75,7 @@ class RestoreViewModel @AssistedInject constructor(
     private val restorer: Restorer,
     private val documents: BackupDocuments,
     statusRepository: BackupStatusRepository,
+    @ApplicationScope private val applicationScope: CoroutineScope,
 ) : ViewModel() {
 
     val passphrase = TextFieldState()
@@ -159,8 +163,13 @@ class RestoreViewModel @AssistedInject constructor(
         }
     }
 
+    /**
+     * A staged Backup nobody will restore is deleted, off the main thread. One still being staged
+     * is deleted by [Restorer.stage] itself: this scope's cancel makes it drop its result.
+     */
     override fun onCleared() {
-        (step.value as? Step.Staged)?.let { restorer.discard(it.staged) }
+        val staged = (step.value as? Step.Staged)?.staged ?: return
+        applicationScope.launch(Dispatchers.IO) { restorer.discard(staged) }
     }
 
     private fun BackupException.toRestoreError() = when (this) {

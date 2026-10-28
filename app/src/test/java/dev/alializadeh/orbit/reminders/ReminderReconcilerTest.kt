@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.reminders
 
+import androidx.room3.useWriterConnection
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.data.OrbitDatabase
@@ -17,11 +18,18 @@ import dev.alializadeh.orbit.upcoming.RoomUpcomingRepository
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Collections
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -51,7 +59,7 @@ class ReminderReconcilerTest {
         people = RoomPersonRepository(database, database.personDao(), database.tagDao(), database.ringDao(), FakePhotoStore(), clock)
         interactions = RoomInteractionRepository(database, database.interactionDao(), clock)
         val upcoming = RoomUpcomingRepository(database.personDao(), database.ringDao(), database.interactionDao(), clock)
-        reconciler = ReminderReconciler(upcoming, preferences, database.personDao(), notifier, alarm, { rendering }, clock)
+        reconciler = ReminderReconciler(upcoming, preferences, database.personDao(), notifier, alarm, { rendering }, clock, database.backupStatusDao())
         ringId = database.insertTestRing()
     }
 
@@ -225,6 +233,83 @@ class ReminderReconcilerTest {
         assertEquals(1, alarm.calls)
     }
 
+    // --- Restore (review finding 6) ---------------------------------------------------------------
+
+    /** What a Restore's swap writes: a new restore token. */
+    private suspend fun writeRestoreToken(token: Long) {
+        database.useWriterConnection { connection ->
+            connection.usePrepared("INSERT OR REPLACE INTO data_version (id, version) VALUES (2, $token)") { it.step() }
+        }
+    }
+
+    @Test
+    fun aRestoreTakesDownWhatShowsAndPlansAgainFromNothing() = runTest {
+        seed()
+        reconciler.reconcile()
+        assertEquals(2, notifier.showingKeys.size)
+
+        reconciler.whileDataIsReplaced { writeRestoreToken(77) }
+
+        // Down as soon as the data is replaced: they name the old data's People.
+        assertTrue(notifier.showingKeys.isEmpty())
+        val posted = notifier.posted.size
+        reconciler.reconcile()
+        val state = preferences.device.value.notifications
+        assertEquals(77L, state.restoreToken)
+        // The old state (posted Reminders, digest ids) is forgotten: today's Reminder is the
+        // restored data's and is posted again.
+        assertTrue(notifier.posted.drop(posted).any { it.first is PlannedReminder })
+    }
+
+    @Test
+    fun aStateFromBeforeARestoreIsNeverUsedEvenAfterACrash() = runTest {
+        val (sara, _, _) = seed()
+        reconciler.reconcile()
+        // The process died right after the swap: nothing was taken down, and what shows can't be read.
+        writeRestoreToken(77)
+        notifier.unreadable = true
+
+        reconciler.reconcile()
+
+        assertTrue(notifier.cancelled.containsAll(listOf(NotificationKey.Digest, NotificationKey.DateReminder(dateIdOf(sara)))))
+        assertEquals(77L, preferences.device.value.notifications.restoreToken)
+    }
+
+    @Test
+    fun theSwapWaitsForAReconcileInProgress() = runTest {
+        seed()
+        val gate = CompletableDeferred<Unit>()
+        notifier.gate = gate
+        val events = Collections.synchronizedList(mutableListOf<String>())
+        alarm.onSet = { events += "reconciled" }
+        val reconciling = launch(Dispatchers.Default) { reconciler.reconcile() }
+        notifier.posting.await()
+
+        val swapping = launch(Dispatchers.Default) { reconciler.whileDataIsReplaced { events += "swapped" } }
+        withContext(Dispatchers.Default) { delay(300) }
+        assertTrue(events.toString(), events.isEmpty())
+        gate.complete(Unit)
+        reconciling.join()
+        swapping.join()
+
+        assertEquals(listOf("reconciled", "swapped"), events.toList())
+    }
+
+    @Test
+    fun aNotificationActionFromBeforeARestoreDoesNothing() = runTest {
+        val (sara, _, _) = seed()
+        val posted = NotificationActionTarget(NotificationActionType.MarkAsContacted, NotificationKey.Digest, sara, restoreToken = null)
+        var acted = 0
+
+        assertTrue(reconciler.runAction(posted) { acted++ })
+        writeRestoreToken(77)
+        // The same id may be someone else now.
+        assertFalse(reconciler.runAction(posted) { acted++ })
+        assertTrue(reconciler.runAction(posted.copy(restoreToken = 77)) { acted++ })
+
+        assertEquals(2, acted)
+    }
+
     private suspend fun dateIdOf(personId: Long): Long = database.personDao().getImportantDates(personId).single().id
 }
 
@@ -235,11 +320,20 @@ class FakeNotifier : ReminderNotifier {
     val showingKeys = mutableSetOf<NotificationKey>()
     var channels: Set<ReminderChannel> = ReminderChannel.entries.toSet()
 
-    override fun showing(): Set<NotificationKey> = showingKeys.toSet()
+    /** What shows can't be read (null from [showing]). */
+    var unreadable = false
+
+    /** Completed when a post starts; the post then waits for [gate], if set. */
+    val posting = CompletableDeferred<Unit>()
+    var gate: CompletableDeferred<Unit>? = null
+
+    override fun showing(): Set<NotificationKey>? = if (unreadable) null else showingKeys.toSet()
 
     override fun channelsOn(): Set<ReminderChannel> = channels
 
     override suspend fun post(notification: PlannedNotification, rendering: NotificationRendering, now: Instant) {
+        posting.complete(Unit)
+        gate?.await()
         posted += notification to rendering
         showingKeys += notification.key
     }
@@ -253,9 +347,11 @@ class FakeNotifier : ReminderNotifier {
 class FakeAlarm : ReminderAlarm {
     var at: Instant? = null
     var calls = 0
+    var onSet: () -> Unit = {}
 
     override fun set(at: Instant?) {
         this.at = at
         calls++
+        onSet()
     }
 }

@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.backup
 
 import android.content.Context
+import android.util.Log
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -66,6 +67,7 @@ object BackupModule {
         stagedDatabaseCheck = stagedDatabaseCheck,
         workDir = File(context.noBackupFilesDir, "restore"),
         photosDir = File(context.filesDir, FilesPhotoStore.DIRECTORY),
+        log = { Log.w("OrbitRestore", it) },
     )
 }
 

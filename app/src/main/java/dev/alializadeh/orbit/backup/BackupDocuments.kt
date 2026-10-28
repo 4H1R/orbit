@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.backup
 
 import android.content.Context
+import android.content.Intent
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,6 +23,15 @@ interface BackupDocuments {
 
     /** Deletes [uri] if the provider allows it; a failure is ignored. */
     fun delete(uri: String)
+
+    /**
+     * Keeps the right to [uri] across a process restart (if the picker allows it), so a Backup the
+     * process died writing can still be deleted at the next start. Best effort.
+     */
+    fun holdAccess(uri: String) {}
+
+    /** Gives back what [holdAccess] kept. Best effort. */
+    fun releaseAccess(uri: String) {}
 }
 
 class ContentResolverBackupDocuments @Inject constructor(
@@ -47,5 +57,17 @@ class ContentResolverBackupDocuments @Inject constructor(
 
     override fun delete(uri: String) {
         runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri.toUri()) }
+    }
+
+    override fun holdAccess(uri: String) {
+        runCatching { context.contentResolver.takePersistableUriPermission(uri.toUri(), READ_WRITE) }
+    }
+
+    override fun releaseAccess(uri: String) {
+        runCatching { context.contentResolver.releasePersistableUriPermission(uri.toUri(), READ_WRITE) }
+    }
+
+    private companion object {
+        const val READ_WRITE = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
     }
 }

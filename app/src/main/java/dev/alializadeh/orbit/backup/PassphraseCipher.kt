@@ -18,8 +18,14 @@ import javax.inject.Inject
 interface PassphraseCipher {
     fun seal(passphrase: String): String
 
-    /** @throws GeneralSecurityException when it can't be decrypted (the key is gone). */
+    /**
+     * @throws GeneralSecurityException when it can't be decrypted (the key is gone); the Keystore
+     *   can also throw runtime exceptions (`ProviderException`...).
+     */
     fun open(sealed: String): String
+
+    /** Deletes the key, so the next [seal] makes a new one. Whatever it sealed can't be opened since. */
+    fun reset()
 }
 
 /**
@@ -44,6 +50,10 @@ class KeystorePassphraseCipher @Inject constructor() : PassphraseCipher {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, Base64.decode(iv, Base64.NO_WRAP)))
         return cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP)).toString(Charsets.UTF_8)
+    }
+
+    override fun reset() {
+        KeyStore.getInstance(KEYSTORE).apply { load(null) }.deleteEntry(ALIAS)
     }
 
     private fun key(): SecretKey {

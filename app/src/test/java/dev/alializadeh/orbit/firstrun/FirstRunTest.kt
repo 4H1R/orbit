@@ -222,4 +222,50 @@ class FirstRunTest {
         assertEquals(FirstRunStep.AppLockOffer, viewModel.uiState.value.step)
         assertNull(viewModel.uiState.value.restoreUri)
     }
+
+    // --- Process death (review finding 7) -------------------------------------------------------
+
+    @Test
+    fun theStepAndTheRestoreSurviveProcessDeath() = runTest {
+        val saved = SavedStateHandle()
+        val before = FirstRunViewModel(FakeAppLanguage(OrbitLanguage.English), repository, { true }, saved)
+        before.startRestore("content://backup")
+        before.onRestored()
+
+        // A new process restores the same saved state into a new ViewModel.
+        val after = FirstRunViewModel(FakeAppLanguage(OrbitLanguage.English), repository, { true }, saved)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { after.uiState.collect {} }
+
+        assertEquals(FirstRunStep.AppLockOffer, after.uiState.value.step)
+        after.continueFromStep()
+        preferences.device.first { it.firstRunFinished }
+        // Only the flag: no seed Rings, no Welcome choices over the restored ones.
+        assertTrue(database.ringDao().observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun afterARestoreWhoseStepWasLostFirstRunCarriesOnAfterWelcome() = runTest {
+        // The Restore finished, then the process died before the step was saved.
+        preferences.device.value = preferences.device.value.copy(restoredDuringFirstRun = true)
+        val viewModel = viewModel(hasScreenLock = true)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(FirstRunStep.AppLockOffer, viewModel.uiState.value.step)
+    }
+
+    @Test
+    fun welcomesChoicesNeverReplaceRestoredPreferences() = runTest {
+        val preferencesDao = database.backedUpPreferencesDao()
+        preferencesDao.update(preferencesDao.get().copy(primaryCalendar = CalendarSystem.SolarHijri, useLatinDigits = true))
+        preferences.device.value = preferences.device.value.copy(restoredDuringFirstRun = true)
+
+        repository.finish(WelcomeChoices(OrbitLanguage.English, CalendarSystem.Gregorian, useLatinDigits = false))
+
+        val stored = preferencesDao.get()
+        assertEquals(CalendarSystem.SolarHijri, stored.primaryCalendar)
+        assertTrue(stored.useLatinDigits)
+        assertTrue(database.ringDao().observeAll().first().isEmpty())
+        assertTrue(preferences.device.value.firstRunFinished)
+    }
 }

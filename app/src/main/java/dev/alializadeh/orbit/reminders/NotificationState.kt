@@ -27,6 +27,12 @@ data class NotificationState(
     val digestPersonIds: List<Long> = emptyList(),
     /** How the showing notifications were rendered; null (before App lock) is the default. */
     val renderedAs: NotificationRendering? = null,
+    /**
+     * The database's restore token (`DataVersion.RESTORE_TOKEN_ROW_ID`) this state was written
+     * against. When the live one differs, a Restore has replaced the data: every id above may now
+     * name someone else, so `reconcile()` starts again from nothing.
+     */
+    val restoreToken: Long? = null,
 ) {
     /**
      * Only what [showing] says is still on screen: notifications the user dismissed are
@@ -36,6 +42,12 @@ data class NotificationState(
         showingReminders = showingReminders.filter { NotificationKey.DateReminder(it.dateId) in showing },
         digestPersonIds = if (NotificationKey.Digest in showing) digestPersonIds else emptyList(),
     )
+
+    /** The notifications this state says are showing. */
+    fun showingKeys(): Set<NotificationKey> = buildSet {
+        showingReminders.forEach { add(NotificationKey.DateReminder(it.dateId)) }
+        if (digestPersonIds.isNotEmpty()) add(NotificationKey.Digest)
+    }
 }
 
 /** One Reminder: an Important date's occurrence and one of its lead times. */

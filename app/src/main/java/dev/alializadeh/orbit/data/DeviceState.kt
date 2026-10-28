@@ -45,6 +45,16 @@ data class DeviceState(
     val batteryExemptionAsked: Boolean = false,
     /** App lock: never in a Backup, and a Restore leaves it as it was. */
     val appLock: AppLockSettings = AppLockSettings(),
+    /**
+     * The document a Backup is being written to, until it's verified and recorded (or deleted). Set
+     * at the next start, the Backup never finished: that partial document is deleted.
+     */
+    val backupInProgressUri: String? = null,
+    /**
+     * A Restore replaced the data before first run finished: finishing first run keeps the restored
+     * preferences and Rings instead of storing the Welcome choices.
+     */
+    val restoredDuringFirstRun: Boolean = false,
 )
 
 /**

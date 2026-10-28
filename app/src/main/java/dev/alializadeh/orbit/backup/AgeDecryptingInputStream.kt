@@ -48,9 +48,14 @@ internal class AgeDecryptingInputStream(
 
     override fun available(): Int = pipe.available()
 
+    /**
+     * Stops the worker. One blocked on a full pipe fails and ends at once; one blocked reading a
+     * stuck provider is interrupted and left to end when the read returns, so closing never hangs.
+     */
     override fun close() {
         pipe.close() // A worker blocked on a full pipe now fails and ends.
-        worker.join()
+        worker.join(CLOSE_WAIT_MILLIS)
+        if (worker.isAlive) worker.interrupt()
     }
 
     private fun throwIfFailed() {
@@ -61,6 +66,9 @@ internal class AgeDecryptingInputStream(
     private companion object {
         /** Matches age's 64 KiB STREAM chunk. */
         const val PIPE_BUFFER_SIZE = 64 * 1024
+
+        /** How long [close] waits for the worker to end. */
+        const val CLOSE_WAIT_MILLIS = 2_000L
     }
 }
 

@@ -43,8 +43,11 @@ sealed interface BackupFlowState {
     /** The result sheet: written, re-read and verified. */
     data class Done(val outcome: BackupOutcome) : BackupFlowState
 
-    /** Nothing was kept: the partial file is deleted and "last Backup" is unchanged. */
-    data object Failed : BackupFlowState
+    /**
+     * Nothing was kept: the partial file is deleted and "last Backup" is unchanged. [needsMoreMemory]:
+     * the phone didn't give Orbit enough memory to encrypt it.
+     */
+    data class Failed(val needsMoreMemory: Boolean = false) : BackupFlowState
 }
 
 /**
@@ -99,8 +102,7 @@ class BackupViewModel @Inject constructor(
         if (!setup.form.canSave || setup.saving) return
         flow.value = setup.copy(saving = true)
         viewModelScope.launch {
-            passphrases.remember(setup.form.newPassphrase)
-            flow.value = picking()
+            flow.value = if (passphrases.remember(setup.form.newPassphrase)) picking() else BackupFlowState.Failed()
         }
     }
 
@@ -159,10 +161,13 @@ class BackupViewModel @Inject constructor(
                 BackupFlowState.Done(outcome)
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: BackupException.NeedsMoreMemory) {
+                Log.w(TAG, "Backup failed: out of memory")
+                BackupFlowState.Failed(needsMoreMemory = true)
             } catch (e: Exception) {
                 // Storage, the provider, SQLite or the verification: whatever it was, nothing was kept.
                 Log.w(TAG, "Backup failed", e)
-                BackupFlowState.Failed
+                BackupFlowState.Failed()
             }
         }
     }

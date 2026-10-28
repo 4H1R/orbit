@@ -24,6 +24,15 @@ data class DataVersion(
     companion object {
         const val TABLE = "data_version"
         const val SINGLE_ROW_ID = 1
+
+        /**
+         * A second row (no schema change) whose [version] is the **restore token**: a random number
+         * written inside every Restore's swap transaction, absent until the first Restore. It tells
+         * whether a Restore's swap committed, and lets device-bound state that refers to rows by id
+         * (notification state, notification actions) notice that the data was replaced. The bump
+         * triggers only touch [SINGLE_ROW_ID].
+         */
+        const val RESTORE_TOKEN_ROW_ID = 2
     }
 }
 

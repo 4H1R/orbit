@@ -59,8 +59,15 @@ sealed interface BackupSettingsUiState {
 class BackupSettingsViewModel @Inject constructor(
     statusRepository: BackupStatusRepository,
     private val preferences: PreferencesRepository,
+    passphrases: BackupPassphraseStore,
     clock: Clock,
 ) : ViewModel() {
+
+    init {
+        // A remembered passphrase the Keystore can't open any more is forgotten here, so Change
+        // passphrase isn't offered for it.
+        viewModelScope.launch { passphrases.current() }
+    }
 
     private val dateChecks = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 

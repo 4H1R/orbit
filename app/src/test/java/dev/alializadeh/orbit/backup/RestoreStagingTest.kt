@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.backup
 
+import androidx.room3.useWriterConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
 import dev.alializadeh.orbit.AppVersion
@@ -12,17 +13,22 @@ import dev.alializadeh.orbit.testing.FakePreferencesRepository
 import dev.alializadeh.orbit.testing.TestAppLocales
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CountDownLatch
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kage.Age
 import kage.Identity
-import kage.format.AgeStanza
 import kage.crypto.scrypt.ScryptRecipient
+import kage.format.AgeStanza
 import kotlin.reflect.KClass
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -190,6 +196,118 @@ class RestoreStagingTest {
             }
         }
         assertRefused(BackupException.NeedsMoreMemory::class, good, reader = greedy)
+    }
+
+    // --- Review fixes ---------------------------------------------------------------------------
+
+    /** A Backup written from [source] after [change]. */
+    private suspend fun backupOf(change: suspend (OrbitDatabase) -> Unit): ByteArray {
+        val source = TestDatabases.onDisk(File(temp.newFolder(), "orbit.db"))
+        try {
+            source.personDao().insert(Person(name = "Sara", ringId = source.insertTestRing(), createdAt = now))
+            change(source)
+            val out = ByteArrayOutputStream()
+            BackupWriter(
+                snapshotter = RoomDatabaseSnapshotter(source),
+                clock = Clock.fixed(now, ZoneOffset.UTC),
+                appVersion = AppVersion("0.1.0", 1),
+                appLocales = TestAppLocales(),
+                workDir = temp.newFolder(),
+                photosDir = temp.newFolder(),
+            ).write(out, PASSPHRASE, FAST)
+            return out.toByteArray()
+        } finally {
+            source.close()
+        }
+    }
+
+    private suspend fun OrbitDatabase.execute(sql: String) {
+        useWriterConnection { connection -> connection.usePrepared(sql) { it.step() } }
+    }
+
+    /** Finding 10: a photo "file name" that's a path could reach outside the photos folder. */
+    @Test
+    fun aPhotoFileNameThatIsAPathIsRefused() {
+        for (name in listOf("../../shared_prefs/x.xml", "photos/a.jpg", "a.jpg", "..")) {
+            val bytes = runBlocking { backupOf { it.execute("UPDATE person SET photoFileName = '$name'") } }
+            assertRefused(BackupException.Corrupt::class, bytes)
+        }
+    }
+
+    /** Finding 10: Room validates the schema, not the single rows every screen relies on. */
+    @Test
+    fun aMissingPreferencesRowIsRefused() {
+        val bytes = runBlocking { backupOf { it.execute("DELETE FROM backed_up_preferences") } }
+        assertRefused(BackupException.Corrupt::class, bytes)
+    }
+
+    /** Finding 10: a missing data_version row used to escape as an IllegalStateException (a crash). */
+    @Test
+    fun aMissingDataVersionRowIsDamagedNotACrash() {
+        val bytes = runBlocking {
+            val source = TestDatabases.onDisk(File(temp.newFolder(), "orbit.db"))
+            val snapshot = File(temp.newFolder(), "snapshot.db")
+            try {
+                source.personDao().insert(Person(name = "Sara", ringId = source.insertTestRing(), createdAt = now))
+                source.execute("DELETE FROM data_version")
+                RoomDatabaseSnapshotter(source).snapshotTo(snapshot)
+            } finally {
+                source.close()
+            }
+            snapshot.readBytes()
+        }
+        assertRefused(BackupException.Corrupt::class, craft(manifest(listOf(entry(DATABASE_ENTRY, bytes))), DATABASE_ENTRY to bytes))
+    }
+
+    /** Finding 11: the provider failing to read is "can't read this file", not "damaged". */
+    @Test
+    fun aReadErrorFromTheProviderIsNotReportedAsDamaged() = runBlocking {
+        val failing = object : InputStream() {
+            private val bytes = good.inputStream()
+            private var read = 0
+
+            override fun read(): Int = if (read++ < 300) bytes.read() else throw IOException("provider went away")
+
+            override fun read(b: ByteArray, off: Int, len: Int): Int {
+                if (read >= 300) throw IOException("provider went away")
+                val n = bytes.read(b, off, minOf(len, 300 - read))
+                read += n
+                return n
+            }
+        }
+        try {
+            restorer().stage({ failing }, PASSPHRASE)
+            fail("Expected an IOException")
+        } catch (e: BackupException) {
+            fail("Reported as $e")
+        } catch (_: IOException) {
+            // Unreadable.
+        }
+        assertTrue(workDir.listFiles()!!.isEmpty())
+    }
+
+    /** Finding 12: a stage cancelled while it works leaves no staging folder, even if it then finishes. */
+    @Test
+    fun aCancelledStageLeavesNothingBehind() = runBlocking {
+        val opened = CountDownLatch(1)
+        val proceed = CountDownLatch(1)
+        val job = launch(Dispatchers.Default) {
+            restorer().stage(
+                {
+                    opened.countDown()
+                    proceed.await()
+                    good.inputStream()
+                },
+                PASSPHRASE,
+            )
+            fail("A cancelled stage returned its result")
+        }
+        opened.await()
+        job.cancel()
+        proceed.countDown()
+        job.join()
+
+        assertTrue("Staging left behind: ${workDir.list()!!.toList()}", workDir.listFiles()!!.isEmpty())
     }
 
     private fun manifest(

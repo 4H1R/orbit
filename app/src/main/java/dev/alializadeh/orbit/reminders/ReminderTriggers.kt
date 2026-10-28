@@ -63,8 +63,15 @@ class ReminderTriggers @Inject constructor(
     }
 }
 
-/** After a Restore: the restored data's Reminders and Due People (PRD: swap, reconcile, Upcoming). */
+/**
+ * Restore: the swap waits for any `reconcile()` in progress and holds the next off; then the
+ * restored data's Reminders and Due People (PRD: swap, reconcile, Upcoming).
+ */
 class ReminderRestoreListener @Inject constructor(private val reconciler: ReminderReconciler) : RestoreListener {
+    override suspend fun aroundSwap(swap: suspend () -> Unit) {
+        reconciler.whileDataIsReplaced(swap)
+    }
+
     override suspend fun onRestored() {
         reconciler.reconcile()
     }

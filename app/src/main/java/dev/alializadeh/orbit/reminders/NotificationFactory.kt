@@ -21,12 +21,14 @@ import java.time.Instant
  * slice 7) uses the discreet text everywhere and drops the photo, Gift ideas and actions; actions
  * ask for the device unlock when [NotificationRendering.actionsNeedUnlock].
  *
- * [context] must carry Orbit's UI language; [formats] its digits and names.
+ * [context] must carry Orbit's UI language; [formats] its digits and names. Background actions
+ * carry [restoreToken], the data they were posted for, so one tapped after a Restore does nothing.
  */
 class NotificationFactory(
     private val context: Context,
     formats: OrbitFormats,
     private val photoStore: PhotoStore,
+    private val restoreToken: Long? = null,
 ) {
     private val texts = NotificationTexts(context.resources, formats)
     private val intents = NotificationIntents(context)
@@ -52,7 +54,7 @@ class NotificationFactory(
                 contactAction(reminder.person)?.let(builder::addAction)
                 builder.addAction(
                     backgroundAction(
-                        NotificationActionTarget(NotificationActionType.MarkAsContacted, reminder.key, reminder.person.id),
+                        NotificationActionTarget(NotificationActionType.MarkAsContacted, reminder.key, reminder.person.id, restoreToken),
                         R.string.action_mark_as_contacted,
                         rendering,
                     ),
@@ -75,14 +77,14 @@ class NotificationFactory(
                 contactAction(single)?.let(builder::addAction)
                 builder.addAction(
                     backgroundAction(
-                        NotificationActionTarget(NotificationActionType.MarkAsContacted, digest.key, single.id),
+                        NotificationActionTarget(NotificationActionType.MarkAsContacted, digest.key, single.id, restoreToken),
                         R.string.action_mark_as_contacted,
                         rendering,
                     ),
                 )
                 builder.addAction(
                     backgroundAction(
-                        NotificationActionTarget(NotificationActionType.SnoozeWeek, digest.key, single.id),
+                        NotificationActionTarget(NotificationActionType.SnoozeWeek, digest.key, single.id, restoreToken),
                         R.string.action_snooze_week,
                         rendering,
                     ),

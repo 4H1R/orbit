@@ -95,10 +95,12 @@ fun BackupHost(viewModel: BackupViewModel) {
             BackupResultContent(current.outcome, onDone = { sheet.close {} })
         }
 
-        BackupFlowState.Failed -> AlertDialog(
+        is BackupFlowState.Failed -> AlertDialog(
             onDismissRequest = viewModel::dismiss,
             title = { Text(stringResource(R.string.backup_failed_title)) },
-            text = { Text(stringResource(R.string.backup_failed_body)) },
+            text = {
+                Text(stringResource(if (current.needsMoreMemory) R.string.backup_failed_memory_body else R.string.backup_failed_body))
+            },
             confirmButton = { TextButton(onClick = viewModel::dismiss) { Text(stringResource(R.string.common_done)) } },
         )
     }

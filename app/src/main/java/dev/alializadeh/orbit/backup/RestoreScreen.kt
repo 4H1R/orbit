@@ -96,9 +96,9 @@ fun RestoreScreen(
     modifier: Modifier = Modifier,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    val busy = uiState is RestoreUiState.Restoring || uiState is RestoreUiState.Done ||
-        (uiState is RestoreUiState.Passphrase && uiState.opening)
-    // Nothing may interrupt the swap.
+    // Nothing may interrupt the swap. Opening can be left (a provider may hang): staging then
+    // throws its result away.
+    val busy = uiState is RestoreUiState.Restoring || uiState is RestoreUiState.Done
     BackHandler(enabled = busy) {}
     Scaffold(
         modifier = modifier,

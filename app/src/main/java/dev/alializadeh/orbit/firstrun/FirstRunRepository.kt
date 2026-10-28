@@ -15,6 +15,7 @@ import dev.alializadeh.orbit.language.OrbitLanguage
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.SeedRing
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 /** What the user chose on Welcome. */
 data class WelcomeChoices(
@@ -54,6 +55,8 @@ class FirstRunRepository @Inject constructor(
 ) {
 
     suspend fun finish(choices: WelcomeChoices) {
+        // A Restore brought its own preferences and Rings: Welcome's choices never replace them.
+        if (restoredDuringFirstRun()) return finishAfterRestore()
         val ringDao = database.ringDao()
         val preferencesDao = database.backedUpPreferencesDao()
         database.withWriteTransaction {
@@ -85,6 +88,9 @@ class FirstRunRepository @Inject constructor(
     suspend fun finishAfterRestore() {
         preferencesRepository.updateDeviceState { it.copy(firstRunFinished = true) }
     }
+
+    /** Whether a Restore has replaced the data during this device's first run. */
+    suspend fun restoredDuringFirstRun(): Boolean = preferencesRepository.deviceState.first().restoredDuringFirstRun
 
     /** The App lock offer's "Turn on", after the unlock. Device-bound, like the flag. */
     suspend fun turnOnAppLock() {

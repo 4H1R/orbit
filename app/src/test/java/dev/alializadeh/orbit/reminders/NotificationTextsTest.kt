@@ -254,9 +254,27 @@ class NotificationTextsTest {
         }
         assertNull(NotificationEntry.of(android.content.Intent(context, dev.alializadeh.orbit.MainActivity::class.java)))
         for (key in listOf(NotificationKey.Digest, NotificationKey.DateReminder(7))) {
-            val target = NotificationActionTarget(NotificationActionType.SnoozeWeek, key, 42)
-            val intent = android.content.Intent(target.type.action, target.uri)
-            assertEquals(target, NotificationActionTarget.of(intent))
+            for (token in listOf(null, 5_381L, -7_046_029_254_386_353_131L)) {
+                val target = NotificationActionTarget(NotificationActionType.SnoozeWeek, key, 42, token)
+                val intent = android.content.Intent(target.type.action, target.uri)
+                assertEquals(target, NotificationActionTarget.of(intent))
+            }
         }
+        // Posted before restore tokens: no token, so it only acts while there's been no Restore.
+        val legacy = android.net.Uri.parse("orbit://action/orbit.digest/42")
+        assertEquals(
+            NotificationActionTarget(NotificationActionType.MarkAsContacted, NotificationKey.Digest, 42, null),
+            NotificationActionTarget.of(android.content.Intent(NotificationActionType.MarkAsContacted.action, legacy)),
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun backgroundActionsCarryTheRestoreTokenTheyWerePostedFor() {
+        val notification = NotificationFactory(RuntimeEnvironment.getApplication(), OrbitFormats(OrbitLanguage.English, false), FakePhotoStore(), restoreToken = 99L)
+            .build(reminder(0), NotificationRendering(), now)
+        val action = notification.actions.single()
+        val intent = org.robolectric.Shadows.shadowOf(action.actionIntent).savedIntent
+        assertEquals(99L, NotificationActionTarget.of(intent)!!.restoreToken)
     }
 }

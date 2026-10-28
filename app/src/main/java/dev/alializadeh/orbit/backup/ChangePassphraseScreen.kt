@@ -47,9 +47,10 @@ class ChangePassphraseViewModel @Inject constructor(
         if (!form.canSave || saving.value) return
         saving.value = true
         viewModelScope.launch {
-            if (passphrases.matches(form.current.text.toString())) {
-                passphrases.remember(form.newPassphrase)
-                saved.value = true
+            val current = passphrases.current()
+            // None that opens (the Keystore lost it): nothing to protect, so no dead end either.
+            if (current == null || current == PassphraseRules.normalise(form.current.text.toString())) {
+                saved.value = passphrases.remember(form.newPassphrase)
             } else {
                 form.currentWrong = true
             }

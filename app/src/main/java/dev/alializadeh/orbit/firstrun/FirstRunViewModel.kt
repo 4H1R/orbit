@@ -48,7 +48,10 @@ data class FirstRunUiState(
  * the seed Rings in the chosen language; the app then lands on Upcoming.
  *
  * Choosing a language applies it at once (the activity recreates, flipping to RTL for Persian);
- * this ViewModel outlives that, and the choices survive process death in [SavedStateHandle].
+ * this ViewModel outlives that, and the choices and the step survive process death in
+ * [SavedStateHandle]. A Restore is also remembered in device-bound state
+ * (`DeviceState.restoredDuringFirstRun`), so first run never comes back to Welcome after one, nor
+ * stores Welcome's choices over the restored preferences.
  */
 @HiltViewModel
 class FirstRunViewModel @Inject constructor(
@@ -58,7 +61,7 @@ class FirstRunViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
-    private val step = MutableStateFlow(FirstRunStep.entries.first())
+    private val step = savedState.getStateFlow(KEY_STEP, FirstRunStep.entries.first())
     private val language = MutableStateFlow(appLanguage.current())
     private val chosenCalendar = savedState.getStateFlow<CalendarSystem?>(KEY_CALENDAR, null)
     private val useLatinDigits = savedState.getStateFlow(KEY_LATIN_DIGITS, false)
@@ -66,7 +69,14 @@ class FirstRunViewModel @Inject constructor(
     private val restoreUri = savedState.getStateFlow<String?>(KEY_RESTORE_URI, null)
 
     /** A Restore replaced the Welcome choices: finishing only marks first run finished. */
-    private var restored = false
+    private val restored: Boolean get() = savedState[KEY_RESTORED] ?: false
+
+    init {
+        // The process died after a Restore (before its step was saved): carry on after Welcome.
+        viewModelScope.launch {
+            if (firstRunRepository.restoredDuringFirstRun()) onRestored()
+        }
+    }
 
     val uiState: StateFlow<FirstRunUiState> =
         combine(
@@ -115,9 +125,9 @@ class FirstRunViewModel @Inject constructor(
      */
     fun onRestored() {
         if (restored) return
-        restored = true
+        savedState[KEY_RESTORED] = true
         savedState[KEY_RESTORE_URI] = null
-        continueFromStep()
+        if (step.value == FirstRunStep.Welcome) continueFromStep()
     }
 
     /**
@@ -143,7 +153,7 @@ class FirstRunViewModel @Inject constructor(
             next = FirstRunStep.entries.getOrNull(next.ordinal + 1)
         }
         if (next != null) {
-            step.value = next
+            savedState[KEY_STEP] = next
             return
         }
         if (isFinishing.value) return
@@ -167,5 +177,7 @@ class FirstRunViewModel @Inject constructor(
         const val KEY_CALENDAR = "primaryCalendar"
         const val KEY_LATIN_DIGITS = "useLatinDigits"
         const val KEY_RESTORE_URI = "restoreUri"
+        const val KEY_STEP = "step"
+        const val KEY_RESTORED = "restored"
     }
 }

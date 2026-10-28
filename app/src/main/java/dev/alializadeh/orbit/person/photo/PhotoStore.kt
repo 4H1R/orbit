@@ -56,7 +56,9 @@ class FilesPhotoStore @Inject constructor(
 
     private val directory: File get() = File(context.filesDir, DIRECTORY)
 
-    override fun file(fileName: String): File = File(directory, fileName)
+    /** A name that isn't one of Orbit's (a path, "..") never leaves the folder: it names no file. */
+    override fun file(fileName: String): File =
+        File(directory, if (isValidFileName(fileName)) fileName else NOT_A_PHOTO)
 
     override suspend fun loadForCrop(uri: String): CropImage? = withContext(Dispatchers.IO) {
         try {
@@ -100,7 +102,7 @@ class FilesPhotoStore @Inject constructor(
     }
 
     override fun delete(fileName: String) {
-        file(fileName).delete()
+        if (isValidFileName(fileName)) file(fileName).delete()
     }
 
     private class BitmapCropImage(val bitmap: Bitmap) : CropImage {
@@ -117,6 +119,15 @@ class FilesPhotoStore @Inject constructor(
 
         /** The decoded photo's longest side stays under twice this. */
         private const val MAX_DECODED_SIZE = 2048
+
+        /** Every photo's name: a random UUID and ".jpg", never a path. */
+        private val FILE_NAME = Regex("""[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg""")
+
+        /** What [file] returns for a name that isn't a photo's: a file that never exists. */
+        private const val NOT_A_PHOTO = "not-a-photo"
+
+        /** Whether [fileName] is a name Orbit gives photos (Restore refuses a Backup with any other). */
+        fun isValidFileName(fileName: String): Boolean = FILE_NAME.matches(fileName)
     }
 }
 

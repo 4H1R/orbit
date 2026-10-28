@@ -124,12 +124,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
         app.notifier().cancel(target.key)
         runAsync(app.scope()) {
             try {
-                when (target.type) {
-                    NotificationActionType.MarkAsContacted -> app.interactions().markAsContacted(target.personId)
-                    NotificationActionType.SnoozeWeek -> app.people().setSnoozedUntil(
-                        target.personId,
-                        SnoozeDuration.OneWeek.endFrom(LocalDate.now(app.clock())),
-                    )
+                // Posted before a Restore: the id may be someone else's now, so it does nothing.
+                app.reconciler().runAction(target) {
+                    when (target.type) {
+                        NotificationActionType.MarkAsContacted -> app.interactions().markAsContacted(target.personId)
+                        NotificationActionType.SnoozeWeek -> app.people().setSnoozedUntil(
+                            target.personId,
+                            SnoozeDuration.OneWeek.endFrom(LocalDate.now(app.clock())),
+                        )
+                    }
                 }
             } catch (e: RuntimeException) {
                 // The Person was deleted since the notification was posted.

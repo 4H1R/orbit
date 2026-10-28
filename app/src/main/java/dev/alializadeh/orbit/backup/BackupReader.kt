@@ -1,6 +1,8 @@
 package dev.alializadeh.orbit.backup
 
 import java.io.File
+import java.io.FilterInputStream
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -31,11 +33,14 @@ class BackupReader(
      * (an empty staging folder), the entries are also written there under their ZIP paths.
      *
      * @throws BackupException if the Backup can't be opened or fails verification.
+     * @throws IOException when [input] itself fails (the provider can't read the file): not the
+     *   Backup's fault, so it isn't reported as damaged.
      */
     fun read(input: InputStream, passphrase: String, extractTo: File? = null): BackupManifest {
         val identity = identityFor(passphrase)
+        val source = SourceStream(input)
         try {
-            AgeDecryptingInputStream(listOf(identity), input).use { plaintext ->
+            AgeDecryptingInputStream(listOf(identity), source).use { plaintext ->
                 val manifest = readZip(ZipInputStream(plaintext), extractTo)
                 // Read to the end: only then has age authenticated the final chunk.
                 val buffer = ByteArray(BUFFER_SIZE)
@@ -45,11 +50,31 @@ class BackupReader(
                 return manifest
             }
         } catch (e: AgeDecryptionException) {
+            source.failure?.let { throw it }
             throw e.cause.toBackupException()
         } catch (e: ZipException) {
             throw BackupException.NotABackup("Not a ZIP inside the age file", e)
         } catch (e: OutOfMemoryError) {
             throw BackupException.NeedsMoreMemory(e)
+        }
+    }
+
+    /** The file being read, remembering whether reading it failed (as opposed to decrypting it). */
+    private class SourceStream(input: InputStream) : FilterInputStream(input) {
+        @Volatile var failure: IOException? = null
+            private set
+
+        override fun read(): Int = recording { super.read() }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int = recording { super.read(b, off, len) }
+
+        override fun skip(n: Long): Long = recording { super.skip(n) }
+
+        private inline fun <T> recording(block: () -> T): T = try {
+            block()
+        } catch (e: IOException) {
+            failure = e
+            throw e
         }
     }
 

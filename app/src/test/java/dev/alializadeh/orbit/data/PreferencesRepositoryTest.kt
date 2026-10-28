@@ -143,8 +143,9 @@ class PreferencesRepositoryTest {
             """{"firstRunFinished":true,"lastInteractionType":"Call","wrappedBackupPassphrase":null,"lastBackup":null,""" +
                 """"backupCount":0,"passphraseTypedAtBackupCount":0,"backupNudgeHiddenUntilEpochDay":null,""" +
                 """"notifications":{"postedReminders":[],"showingReminders":[],"lastDigestEpochDay":null,"digestPersonIds":[],""" +
-                """"renderedAs":null},"notificationPermissionAsked":false,"batteryExemptionAsked":false,""" +
-                """"appLock":{"enabled":false,"relockAfter":"OneMinute","showDetailsInNotifications":false}}""",
+                """"renderedAs":null,"restoreToken":null},"notificationPermissionAsked":false,"batteryExemptionAsked":false,""" +
+                """"appLock":{"enabled":false,"relockAfter":"OneMinute","showDetailsInNotifications":false},""" +
+                """"backupInProgressUri":null,"restoredDuringFirstRun":false}""",
             out.toString(Charsets.UTF_8),
         )
     }

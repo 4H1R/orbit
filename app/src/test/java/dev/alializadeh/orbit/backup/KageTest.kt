@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.backup
 
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.util.concurrent.CountDownLatch
 import kage.Age
 import kage.crypto.scrypt.ScryptIdentity
 import kage.crypto.scrypt.ScryptRecipient
@@ -60,6 +61,31 @@ class KageTest {
         val closed = Thread { stream.close() }.apply { start(); join(5_000) }
 
         assertEquals("close() returned", false, closed.isAlive)
+    }
+
+    /** Review finding 11: a provider stuck in read (deaf to interrupts) can't hang close(). */
+    @Test
+    fun closingNeverHangsOnAStuckProvider() {
+        val release = CountDownLatch(1)
+        val stuck = object : InputStream() {
+            override fun read(): Int {
+                while (true) {
+                    try {
+                        release.await()
+                        return -1
+                    } catch (_: InterruptedException) {
+                        // A blocked native read ignores interrupts too.
+                    }
+                }
+            }
+        }
+        val stream = AgeDecryptingInputStream(listOf(ScryptIdentity(PASSPHRASE.toByteArray())), stuck)
+        try {
+            val closed = Thread { stream.close() }.apply { start(); join(5_000) }
+            assertEquals("close() returned", false, closed.isAlive)
+        } finally {
+            release.countDown()
+        }
     }
 
     private fun encrypt(plaintext: ByteArray, workFactor: Int): ByteArray {

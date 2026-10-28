@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 
@@ -25,7 +26,10 @@ data class BackupOutcome(val people: Int, val photos: Int)
  * Backup" and the Backup count move on.
  *
  * On any failure, or a cancel, the partial document is deleted and "last Backup" stays as it was.
- * Orbit never deletes or rotates finished Backup files.
+ * Recording the Backup is the last step and can't be cancelled; once it's done the file is never
+ * deleted, so the file and "last Backup" always agree. The document is also noted in device-bound
+ * state while it's written: if the process dies first, [cleanUpInterrupted] deletes it at the next
+ * start. Orbit never deletes or rotates finished Backup files.
  */
 class BackupMaker @Inject constructor(
     private val writer: BackupWriter,
@@ -36,6 +40,9 @@ class BackupMaker @Inject constructor(
 
     enum class Stage { Writing, Verifying }
 
+    /**
+     * @throws BackupException.NeedsMoreMemory when scrypt or the encryption ran out of memory.
+     */
     suspend fun backUp(
         uri: String,
         passphrase: String,
@@ -43,7 +50,12 @@ class BackupMaker @Inject constructor(
         workFactor: Int = BACKUP_WRITE_WORK_FACTOR,
     ): BackupOutcome {
         val job = currentCoroutineContext().job
+        var recorded = false
         try {
+            withContext(NonCancellable + Dispatchers.IO) {
+                documents.holdAccess(uri)
+                preferences.updateDeviceState { it.copy(backupInProgressUri = uri) }
+            }
             onStage(Stage.Writing)
             val written = withContext(Dispatchers.IO) {
                 writer.write(CancellableOutputStream(documents.openOutput(uri), job), passphrase, workFactor)
@@ -53,17 +65,42 @@ class BackupMaker @Inject constructor(
                 CancellableInputStream(documents.openInput(uri), job).use { reader.read(it, passphrase) }
             }
             if (read != written.manifest) throw BackupException.Corrupt("The saved backup reads back differently")
-            preferences.updateDeviceState {
-                it.copy(
-                    lastBackup = LastBackup(written.manifest.createdAt.toEpochMilli(), written.dataVersion),
-                    backupCount = it.backupCount + 1,
-                )
+            // The commit point: from here on the file is a Backup and is never deleted.
+            withContext(NonCancellable) {
+                preferences.updateDeviceState {
+                    it.copy(
+                        lastBackup = LastBackup(written.manifest.createdAt.toEpochMilli(), written.dataVersion),
+                        backupCount = it.backupCount + 1,
+                        backupInProgressUri = null,
+                    )
+                }
+                recorded = true
+                withContext(Dispatchers.IO) { documents.releaseAccess(uri) }
             }
             return BackupOutcome(people = written.manifest.people, photos = written.manifest.photos)
         } catch (t: Throwable) {
-            withContext(NonCancellable + Dispatchers.IO) { documents.delete(uri) }
+            if (recorded) throw t
+            withContext(NonCancellable + Dispatchers.IO) {
+                documents.delete(uri)
+                documents.releaseAccess(uri)
+                runCatching { preferences.updateDeviceState { it.copy(backupInProgressUri = null) } }
+            }
+            // scrypt's memory is Java heap: a phone that can't give it fails here, not in a crash.
+            if (generateSequence(t) { it.cause }.any { it is OutOfMemoryError }) throw BackupException.NeedsMoreMemory(t)
             throw t
         }
+    }
+
+    /**
+     * At app start: deletes the document of a Backup whose process died before it was recorded, and
+     * any plaintext snapshot left behind (made before [startedAtMillis]).
+     */
+    suspend fun cleanUpInterrupted(startedAtMillis: Long) = withContext(Dispatchers.IO) {
+        writer.deleteStaleSnapshots(startedAtMillis)
+        val uri = preferences.deviceState.first().backupInProgressUri ?: return@withContext
+        documents.delete(uri)
+        documents.releaseAccess(uri)
+        preferences.updateDeviceState { if (it.backupInProgressUri == uri) it.copy(backupInProgressUri = null) else it }
     }
 
     /** Stops a blocking write as soon as the Backup is cancelled. */

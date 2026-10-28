@@ -505,6 +505,7 @@
     <string name="backup_result_body">آن را جایی جز این گوشی نگه دارید، مثلاً روی رایانه یا فضای ابری.</string>
     <string name="backup_failed_title">پشتیبان‌گیری ناموفق بود</string>
     <string name="backup_failed_body">Orbit نتوانست پشتیبان را آن‌جا ذخیره کند، برای همین فایل نیمه‌کاره حذف شد. دوباره امتحان کنید یا جای دیگری را انتخاب کنید.</string>
+    <string name="backup_failed_memory_body">این گوشی حافظهٔ کافی برای رمزگذاری پشتیبان به Orbit نداد، برای همین فایل نیمه‌کاره حذف شد. برنامه‌های دیگر را ببندید و دوباره امتحان کنید.</string>
 
     <string name="restore_title">بازیابی از پشتیبان</string>
     <string name="restore_passphrase_body">عبارت عبوری را وارد کنید که این پشتیبان با آن گرفته شده است.</string>

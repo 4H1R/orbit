@@ -77,20 +77,38 @@ enum class NotificationActionType(val action: String) {
     }
 }
 
-/** A background action on one notification ([key]) for one Person. */
-data class NotificationActionTarget(val type: NotificationActionType, val key: NotificationKey, val personId: Long) {
+/**
+ * A background action on one notification ([key]) for one Person, posted for the data whose restore
+ * token is [restoreToken] (`DataVersion.RESTORE_TOKEN_ROW_ID`; null before any Restore). After a
+ * Restore the same [personId] may be someone else, so an action whose token isn't the live one
+ * does nothing.
+ */
+data class NotificationActionTarget(
+    val type: NotificationActionType,
+    val key: NotificationKey,
+    val personId: Long,
+    val restoreToken: Long? = null,
+) {
 
     /** The intent's data tells actions apart, so each notification's PendingIntent is its own. */
-    val uri: Uri get() = Uri.Builder().scheme("orbit").authority("action").appendPath(key.tag).appendPath(personId.toString()).build()
+    val uri: Uri get() = Uri.Builder().scheme("orbit").authority("action")
+        .appendPath(key.tag)
+        .appendPath(personId.toString())
+        .appendPath(restoreToken?.toString() ?: NO_TOKEN)
+        .build()
 
     companion object {
+        private const val NO_TOKEN = "none"
+
         fun of(intent: Intent?): NotificationActionTarget? {
             val type = NotificationActionType.of(intent?.action) ?: return null
             val segments = intent?.data?.pathSegments ?: return null
-            if (segments.size != 2) return null
+            // Two segments: posted before restore tokens, so before any Restore since.
+            if (segments.size != 2 && segments.size != 3) return null
             val key = NotificationKey.fromTag(segments[0]) ?: return null
             val personId = segments[1].toLongOrNull() ?: return null
-            return NotificationActionTarget(type, key, personId)
+            val token = segments.getOrNull(2)?.takeIf { it != NO_TOKEN }?.let { it.toLongOrNull() ?: return null }
+            return NotificationActionTarget(type, key, personId, token)
         }
     }
 }

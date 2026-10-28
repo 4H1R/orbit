@@ -12,21 +12,36 @@ import java.util.Base64
 
 /**
  * Stands in for the Android Keystore: reversible, but never stores the plain text as it is.
- * [lose] simulates the key being gone (a sealed passphrase can't be opened any more).
+ * [lose] simulates the key being gone (what it sealed can't be opened any more); [failing] makes
+ * every call throw like a broken Keystore does (a runtime `ProviderException`).
  */
 class FakePassphraseCipher : PassphraseCipher {
-    private var keyLost = false
+    private var key = 0
+    var resets = 0
+        private set
+
+    /** Thrown by every call while set. */
+    var failing: RuntimeException? = null
 
     fun lose() {
-        keyLost = true
+        key++
     }
 
-    override fun seal(passphrase: String): String =
-        "sealed:" + Base64.getEncoder().encodeToString(passphrase.reversed().toByteArray())
+    override fun seal(passphrase: String): String {
+        failing?.let { throw it }
+        return "sealed:$key:" + Base64.getEncoder().encodeToString(passphrase.reversed().toByteArray())
+    }
 
     override fun open(sealed: String): String {
-        if (keyLost || !sealed.startsWith("sealed:")) throw GeneralSecurityException("Key gone")
-        return Base64.getDecoder().decode(sealed.removePrefix("sealed:")).decodeToString().reversed()
+        failing?.let { throw it }
+        val parts = sealed.split(":")
+        if (parts.size != 3 || parts[0] != "sealed" || parts[1] != key.toString()) throw GeneralSecurityException("Key gone")
+        return Base64.getDecoder().decode(parts[2]).decodeToString().reversed()
+    }
+
+    override fun reset() {
+        resets++
+        key++
     }
 }
 
