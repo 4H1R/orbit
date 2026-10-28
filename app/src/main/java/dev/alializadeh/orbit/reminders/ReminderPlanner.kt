@@ -23,6 +23,11 @@ data class PlannerInput(
     val state: NotificationState,
     /** The channels Orbit can post on now (notifications allowed and the channel not blocked). */
     val channelsOn: Set<ReminderChannel> = ReminderChannel.entries.toSet(),
+    /**
+     * How notifications are rendered now (App lock decides). When it differs from how the showing
+     * ones were posted ([NotificationState.renderedAs]), they're quietly re-posted.
+     */
+    val rendering: NotificationRendering = NotificationRendering(),
 )
 
 /** What `reconcile()` does: post, cancel, mark People as notified, store [state], set the alarm. */
@@ -56,9 +61,10 @@ data class PlannedReminder(
     val daysAway: Int,
     /** The end of the occurrence's day: the Reminder expires then. */
     val expiresAt: Instant,
+    /** Re-posted as it is (rendered another way), without alerting again. */
+    override val silent: Boolean = false,
 ) : PlannedNotification {
     override val key: NotificationKey get() = NotificationKey.DateReminder(date.id)
-    override val silent: Boolean get() = false
     val isOnTheDay: Boolean get() = daysAway == 0
 }
 
@@ -99,6 +105,10 @@ data class PlannedDigest(
  *
  * A channel that's off posts nothing and records nothing, so turning it back on catches up (the
  * same day for Reminders).
+ *
+ * **Rendering** (App lock): when [PlannerInput.rendering] differs from how the showing
+ * notifications were posted, each one still showing is quietly re-posted as it is, so turning App
+ * lock on takes names off the shade at once.
  */
 object ReminderPlanner {
 
@@ -125,6 +135,7 @@ object ReminderPlanner {
         val dueNow = mutableMapOf<Long, PlannedReminder>()
         val onTheDayToday = mutableSetOf<Long>()
         val datesById = mutableMapOf<Long, ImportantDate>()
+        val peopleById = active.associateBy(UpcomingPerson::id)
         for (person in active) {
             for (date in person.importantDates) {
                 datesById[date.id] = date
@@ -155,16 +166,35 @@ object ReminderPlanner {
             }
         }
 
+        val rerender = (input.state.renderedAs ?: NotificationRendering()) != input.rendering
         val post = mutableListOf<PlannedNotification>()
         val cancel = mutableListOf<NotificationKey>()
         val showing = mutableListOf<ShowingReminder>()
         for (shown in input.state.showingReminders) {
             if (shown.dateId in dueNow) continue // replaced below
             val date = datesById[shown.dateId]
-            val stale = date == null ||
-                fingerprint(date) != shown.fingerprint ||
-                today.toEpochDay() > shown.occurrenceEpochDay
-            if (stale) cancel += NotificationKey.DateReminder(shown.dateId) else showing += shown
+            if (date == null || fingerprint(date) != shown.fingerprint || today.toEpochDay() > shown.occurrenceEpochDay) {
+                cancel += NotificationKey.DateReminder(shown.dateId)
+                continue
+            }
+            showing += shown
+            val person = peopleById[shown.personId]
+            val occurrence = date.date.nextOccurrence(today)
+            if (rerender && person != null && occurrence.date.toEpochDay() == shown.occurrenceEpochDay) {
+                // The nearest lead time posted for this occurrence is the one showing.
+                val leadTime = posted
+                    .filter { it.dateId == date.id && it.occurrenceEpochDay == shown.occurrenceEpochDay }
+                    .minByOrNull { it.leadTime.ordinal }?.leadTime ?: LeadTime.OnTheDay
+                post += PlannedReminder(
+                    person = person,
+                    date = date,
+                    occurrence = occurrence,
+                    leadTime = leadTime,
+                    daysAway = ChronoUnit.DAYS.between(today, occurrence.date).toInt(),
+                    expiresAt = occurrence.date.plusDays(1).atStartOfDay(zone).toInstant(),
+                    silent = true,
+                )
+            }
         }
         for (reminder in dueNow.values) {
             post += reminder
@@ -203,7 +233,7 @@ object ReminderPlanner {
                     cancel += NotificationKey.Digest
                     digestIds = emptyList()
                 }
-                stillDue.size < digestIds.size -> {
+                stillDue.size < digestIds.size || rerender -> {
                     post += PlannedDigest(stillDue, today, silent = true)
                     digestIds = stillDue.map { it.person.id }
                 }
@@ -238,6 +268,7 @@ object ReminderPlanner {
                 showingReminders = showing,
                 lastDigestEpochDay = digestRanFor?.toEpochDay(),
                 digestPersonIds = digestIds,
+                renderedAs = input.rendering,
             ),
         )
     }

@@ -3,7 +3,6 @@ package dev.alializadeh.orbit.reminders
 import android.util.Log
 import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
@@ -18,20 +17,23 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
 /**
  * The in-process triggers of `reconcile()`: app start, every data edit and preference change (the
- * data version moves with each; the "last notified as Due" marker doesn't), and [request] (the
- * activity starting, a settings screen coming back). Bursts are debounced into one run. The
+ * data version moves with each; the "last notified as Due" marker doesn't), a change of how
+ * notifications render (App lock's settings), and [request] (the activity starting, a settings
+ * screen coming back). Bursts are debounced into one run. The
  * receivers and Restore call the reconciler themselves.
  */
 @Singleton
 class ReminderTriggers @Inject constructor(
     private val reconciler: ReminderReconciler,
     private val database: OrbitDatabase,
+    private val rendering: NotificationRenderingPolicy,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
     private val requests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -40,7 +42,9 @@ class ReminderTriggers @Inject constructor(
     fun start() {
         scope.launch {
             val edits = database.backupStatusDao().observeDataVersion().distinctUntilChanged().map { }
-            merge(edits, requests).debounce(DEBOUNCE_MILLIS).collect {
+            // App lock's settings changed how notifications render: re-render what's showing.
+            val renderings = rendering.changes().distinctUntilChanged().drop(1).map { }
+            merge(edits, renderings, requests).debounce(DEBOUNCE_MILLIS).collect {
                 try {
                     reconciler.reconcile()
                 } catch (e: Exception) {
@@ -87,11 +91,3 @@ interface ReminderBindings {
     fun bindPermissionAsks(asks: DefaultReminderPermissionAsks): ReminderPermissionAsks
 }
 
-@Module
-@InstallIn(SingletonComponent::class)
-object ReminderModule {
-
-    /** Always detailed until slice 7's App lock decides. */
-    @Provides
-    fun provideRenderingPolicy(): NotificationRenderingPolicy = NotificationRenderingPolicy { NotificationRendering() }
-}

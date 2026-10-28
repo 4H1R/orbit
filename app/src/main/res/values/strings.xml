@@ -610,4 +610,32 @@
     <!-- The Important date sheet's Reminders -->
     <string name="important_date_reminders_mode_default">Default</string>
     <string name="important_date_reminders_mode_custom">Custom</string>
+
+    <!-- App lock (slice 7) -->
+    <string name="app_lock_offer_title">Lock Orbit with your fingerprint or screen lock?</string>
+    <string name="app_lock_offer_body">Orbit will ask for it each time you open it. You can change this in Settings.</string>
+    <string name="app_lock_offer_turn_on">Turn on</string>
+    <string name="locked_title">Orbit is locked</string>
+    <string name="locked_unlock">Unlock</string>
+    <string name="locked_prompt_title">Unlock Orbit</string>
+    <string name="app_lock_needs_screen_lock">Set a screen lock on your phone first</string>
+    <string name="app_lock_paused">App lock is paused: this phone has no screen lock</string>
+    <string name="app_lock_set_screen_lock">Set screen lock</string>
+    <string name="settings_app_lock_title">App lock</string>
+    <string name="settings_app_lock_on">On</string>
+    <string name="settings_app_lock_off">Off</string>
+    <string name="settings_app_lock_paused">Paused</string>
+    <string name="app_lock_switch_summary">Ask for your fingerprint or screen lock to open Orbit</string>
+    <string name="app_lock_prompt_turn_on">Turn on app lock</string>
+    <string name="app_lock_prompt_turn_off">Turn off app lock</string>
+    <string name="app_lock_relock_title">Lock again</string>
+    <string name="app_lock_relock_immediately">Immediately</string>
+    <plurals name="app_lock_relock_after_minutes">
+        <item quantity="one">After %1$s minute</item>
+        <item quantity="other">After %1$s minutes</item>
+    </plurals>
+    <string name="app_lock_relock_footer">How long Orbit can be in the background before it locks again. It always locks when it starts.</string>
+    <string name="app_lock_show_details">Show details in notifications</string>
+    <string name="app_lock_show_details_summary">Actions ask for your screen lock first</string>
+    <string name="app_lock_show_details_footer">When this is off, notifications only say what\'s coming up, without names, photos or gift ideas.</string>
 </resources>

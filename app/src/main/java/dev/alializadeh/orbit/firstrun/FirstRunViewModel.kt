@@ -7,6 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.language.AppLanguage
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.lock.ScreenLockResult
+import dev.alializadeh.orbit.lock.ScreenLockStatus
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,12 +18,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * The first-run steps, in order. Finishing the last one finishes first run. Slice 7 adds the App
- * lock offer after Welcome. Restore is a branch from Welcome ([FirstRunUiState.restoreUri]); once
- * it succeeds, first run carries on from the step after Welcome.
+ * The first-run steps, in order. Finishing the last one finishes first run. Restore is a branch
+ * from Welcome ([FirstRunUiState.restoreUri]); once it succeeds, first run carries on from the
+ * step after Welcome (App lock is device-bound, so the offer still comes).
  */
 enum class FirstRunStep {
     Welcome,
+
+    /** "Lock Orbit with your fingerprint or screen lock?": skipped when the phone has no screen lock. */
+    AppLockOffer,
 }
 
 data class FirstRunUiState(
@@ -49,6 +54,7 @@ data class FirstRunUiState(
 class FirstRunViewModel @Inject constructor(
     private val appLanguage: AppLanguage,
     private val firstRunRepository: FirstRunRepository,
+    private val screenLock: ScreenLockStatus,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -114,9 +120,28 @@ class FirstRunViewModel @Inject constructor(
         continueFromStep()
     }
 
+    /**
+     * "Turn on" in the App lock offer: how the system prompt ended. Unlocked turns App lock on and
+     * finishes; without a screen lock (removed meanwhile) it just moves on; cancelled stays.
+     */
+    fun onTurnOnAppLock(result: ScreenLockResult) {
+        when (result) {
+            ScreenLockResult.Unlocked -> viewModelScope.launch {
+                firstRunRepository.turnOnAppLock()
+                continueFromStep()
+            }
+            ScreenLockResult.NoScreenLock -> continueFromStep()
+            ScreenLockResult.Cancelled, ScreenLockResult.Failed -> Unit
+        }
+    }
+
     /** Moves to the next step, or finishes first run after the last one. */
     fun continueFromStep() {
-        val next = FirstRunStep.entries.getOrNull(step.value.ordinal + 1)
+        var next = FirstRunStep.entries.getOrNull(step.value.ordinal + 1)
+        // Nothing to offer without a screen lock: skipped silently.
+        if (next == FirstRunStep.AppLockOffer && !screenLock.hasSecureScreenLock()) {
+            next = FirstRunStep.entries.getOrNull(next.ordinal + 1)
+        }
         if (next != null) {
             step.value = next
             return

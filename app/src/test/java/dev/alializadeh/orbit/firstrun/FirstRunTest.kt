@@ -6,6 +6,7 @@ import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.TestDatabases
 import dev.alializadeh.orbit.language.AppLanguage
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.lock.ScreenLockResult
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.SeedRing
@@ -103,8 +104,9 @@ class FirstRunTest {
         }
     }
 
-    private fun viewModel(language: OrbitLanguage = OrbitLanguage.English) =
-        FirstRunViewModel(FakeAppLanguage(language), repository, SavedStateHandle())
+    /** Without a screen lock unless asked, so the App lock offer is skipped. */
+    private fun viewModel(language: OrbitLanguage = OrbitLanguage.English, hasScreenLock: Boolean = false) =
+        FirstRunViewModel(FakeAppLanguage(language), repository, { hasScreenLock }, SavedStateHandle())
 
     @Test
     fun thePrimaryCalendarFollowsTheLanguageUntilTouched() = runTest {
@@ -124,7 +126,7 @@ class FirstRunTest {
     @Test
     fun choosingALanguageAppliesItAtOnce() {
         val appLanguage = FakeAppLanguage(OrbitLanguage.English)
-        FirstRunViewModel(appLanguage, repository, SavedStateHandle()).selectLanguage(OrbitLanguage.Persian)
+        FirstRunViewModel(appLanguage, repository, { false }, SavedStateHandle()).selectLanguage(OrbitLanguage.Persian)
         assertEquals(OrbitLanguage.Persian, appLanguage.language)
     }
 
@@ -156,5 +158,68 @@ class FirstRunTest {
         assertEquals(CalendarSystem.SolarHijri, stored.primaryCalendar)
         assertTrue(stored.useLatinDigits)
         assertEquals("fa:Inner", database.ringDao().observeAll().first().first().name)
+    }
+
+    // --- The App lock offer ------------------------------------------------------------------
+
+    @Test
+    fun withAScreenLockTheAppLockOfferFollowsWelcome() = runTest {
+        val viewModel = viewModel(hasScreenLock = true)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.continueFromStep()
+
+        assertEquals(FirstRunStep.AppLockOffer, viewModel.uiState.value.step)
+        assertFalse(preferences.device.value.firstRunFinished)
+    }
+
+    @Test
+    fun withoutAScreenLockTheOfferIsSkippedSilently() = runTest {
+        val viewModel = viewModel(hasScreenLock = false)
+
+        viewModel.continueFromStep()
+
+        preferences.device.first { it.firstRunFinished }
+        assertFalse(preferences.device.value.appLock.enabled)
+    }
+
+    @Test
+    fun notNowFinishesWithAppLockOff() = runTest {
+        val viewModel = viewModel(hasScreenLock = true)
+        viewModel.continueFromStep()
+
+        viewModel.continueFromStep()
+
+        preferences.device.first { it.firstRunFinished }
+        assertFalse(preferences.device.value.appLock.enabled)
+    }
+
+    @Test
+    fun turnOnNeedsTheUnlockThenTurnsAppLockOnAndFinishes() = runTest {
+        val viewModel = viewModel(hasScreenLock = true)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        viewModel.continueFromStep()
+
+        viewModel.onTurnOnAppLock(ScreenLockResult.Cancelled)
+        viewModel.onTurnOnAppLock(ScreenLockResult.Failed)
+        assertEquals(FirstRunStep.AppLockOffer, viewModel.uiState.value.step)
+        assertFalse(preferences.device.value.appLock.enabled)
+
+        viewModel.onTurnOnAppLock(ScreenLockResult.Unlocked)
+
+        preferences.device.first { it.firstRunFinished }
+        assertTrue(preferences.device.value.appLock.enabled)
+    }
+
+    @Test
+    fun afterARestoreOnWelcomeTheOfferStillComes() = runTest {
+        val viewModel = viewModel(hasScreenLock = true)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        viewModel.startRestore("content://backup")
+
+        viewModel.onRestored()
+
+        assertEquals(FirstRunStep.AppLockOffer, viewModel.uiState.value.step)
+        assertNull(viewModel.uiState.value.restoreUri)
     }
 }

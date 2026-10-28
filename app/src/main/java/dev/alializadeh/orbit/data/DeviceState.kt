@@ -3,6 +3,7 @@ package dev.alializadeh.orbit.data
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
 import dev.alializadeh.orbit.interaction.InteractionType
+import dev.alializadeh.orbit.lock.AppLockSettings
 import dev.alializadeh.orbit.reminders.NotificationState
 import java.io.InputStream
 import java.io.OutputStream
@@ -12,8 +13,7 @@ import kotlinx.serialization.json.Json
 
 /**
  * Device-bound state (ADR 0006): what belongs to this phone and never travels in a Backup. Kept in
- * a typed DataStore as JSON. Slice 7 adds App lock settings as fields
- * with defaults.
+ * a typed DataStore as JSON; new fields come with defaults.
  */
 @Serializable
 data class DeviceState(
@@ -43,6 +43,8 @@ data class DeviceState(
     val notificationPermissionAsked: Boolean = false,
     /** The one-time battery-exemption ask has been made. */
     val batteryExemptionAsked: Boolean = false,
+    /** App lock: never in a Backup, and a Restore leaves it as it was. */
+    val appLock: AppLockSettings = AppLockSettings(),
 )
 
 /**

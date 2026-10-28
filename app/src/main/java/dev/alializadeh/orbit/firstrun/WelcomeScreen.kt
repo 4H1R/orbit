@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -35,6 +37,7 @@ import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.backup.RestoreRoute
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.lock.rememberScreenLockPrompt
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.settings.languageName
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
@@ -73,6 +76,87 @@ fun FirstRunRoute(viewModel: FirstRunViewModel = hiltViewModel()) {
             onContinue = viewModel::continueFromStep,
             onRestore = { openBackup.launch(arrayOf("*/*")) },
         )
+
+        FirstRunStep.AppLockOffer -> {
+            val prompt = rememberScreenLockPrompt()
+            val title = stringResource(R.string.app_lock_prompt_turn_on)
+            AppLockOfferScreen(
+                isFinishing = uiState.isFinishing,
+                onTurnOn = { prompt?.authenticate(title, onResult = viewModel::onTurnOnAppLock) },
+                onNotNow = viewModel::continueFromStep,
+            )
+        }
+    }
+}
+
+/**
+ * The App lock offer, after Welcome (and after a Restore from it): Turn on (behind the system
+ * prompt) or Not now. Not shown on a phone without a screen lock.
+ */
+@Composable
+fun AppLockOfferScreen(
+    isFinishing: Boolean,
+    onTurnOn: () -> Unit,
+    onNotNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp),
+            ) {
+                Button(
+                    onClick = onTurnOn,
+                    enabled = !isFinishing,
+                    modifier = Modifier.widthIn(max = MaxContentWidth).fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.app_lock_offer_turn_on))
+                }
+                TextButton(
+                    onClick = onNotNow,
+                    enabled = !isFinishing,
+                    modifier = Modifier.widthIn(max = MaxContentWidth).fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.common_not_now))
+                }
+            }
+        },
+    ) { innerPadding ->
+        Box(
+            contentAlignment = Alignment.TopCenter,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = MaxContentWidth)
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(72.dp),
+                )
+                Text(
+                    text = stringResource(R.string.app_lock_offer_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(top = 24.dp).semantics { heading() },
+                )
+                Text(
+                    text = stringResource(R.string.app_lock_offer_body),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

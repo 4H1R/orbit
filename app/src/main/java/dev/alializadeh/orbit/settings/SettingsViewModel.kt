@@ -7,6 +7,8 @@ import dev.alializadeh.orbit.backup.BackupStatusRepository
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.data.BackedUpPreferences
 import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.lock.AppLockSettings
+import dev.alializadeh.orbit.lock.ScreenLockStatus
 import dev.alializadeh.orbit.person.TagRepository
 import dev.alializadeh.orbit.reminders.LeadTime
 import dev.alializadeh.orbit.ring.Ring
@@ -17,6 +19,7 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -35,6 +38,9 @@ data class SettingsUiState(
     val today: LocalDate = LocalDate.ofEpochDay(0),
     val reminderTime: LocalTime = BackedUpPreferences.DEFAULT_REMINDER_TIME,
     val defaultLeadTimes: Set<LeadTime> = LeadTime.DEFAULT,
+    val appLock: AppLockSettings = AppLockSettings(),
+    /** App lock is on but the phone has no screen lock. */
+    val appLockPaused: Boolean = false,
 )
 
 @HiltViewModel
@@ -43,8 +49,11 @@ class SettingsViewModel @Inject constructor(
     ringRepository: RingRepository,
     tagRepository: TagRepository,
     backupStatusRepository: BackupStatusRepository,
+    private val screenLock: ScreenLockStatus,
     clock: Clock,
 ) : ViewModel() {
+
+    private val hasScreenLock = MutableStateFlow(screenLock.hasSecureScreenLock())
 
     val uiState: StateFlow<SettingsUiState> =
         combine(
@@ -52,7 +61,8 @@ class SettingsViewModel @Inject constructor(
             ringRepository.observeRings(),
             tagRepository.observeTags(),
             backupStatusRepository.status,
-        ) { preferences, rings, tags, backup ->
+            combine(preferencesRepository.deviceState, hasScreenLock, ::Pair),
+        ) { preferences, rings, tags, backup, (device, screenLock) ->
             SettingsUiState(
                 theme = preferences.theme,
                 colourSource = preferences.colourSource,
@@ -63,6 +73,13 @@ class SettingsViewModel @Inject constructor(
                 today = LocalDate.now(clock),
                 reminderTime = preferences.reminderTime,
                 defaultLeadTimes = preferences.defaultLeadTimes,
+                appLock = device.appLock,
+                appLockPaused = device.appLock.enabled && !screenLock,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+
+    /** On every resume: the screen lock may have changed meanwhile. */
+    fun refreshScreenLock() {
+        hasScreenLock.value = screenLock.hasSecureScreenLock()
+    }
 }

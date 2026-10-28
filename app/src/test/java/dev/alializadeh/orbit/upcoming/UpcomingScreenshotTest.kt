@@ -94,11 +94,23 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
         Screen(loaded(people.filter { it.id == 5L }), warning = CriticalReminderProblem.ExactAlarmsOff)
     }
 
+    /** App lock paused (no screen lock) sits above the Reminder health warning. */
+    @Test
+    fun upcomingAppLockPaused() = captureScreen("upcoming_app_lock_paused", variant, tall = true) {
+        Screen(loaded(people), warning = CriticalReminderProblem.NotificationsOff, appLockPaused = true)
+    }
+
     @androidx.compose.runtime.Composable
-    private fun Screen(uiState: UpcomingUiState, nudge: BackupNudgeUi? = null, warning: CriticalReminderProblem? = null) {
+    private fun Screen(
+        uiState: UpcomingUiState,
+        nudge: BackupNudgeUi? = null,
+        warning: CriticalReminderProblem? = null,
+        appLockPaused: Boolean = false,
+    ) {
         UpcomingScreen(
             backupNudge = nudge,
             reminderWarning = warning,
+            appLockPaused = appLockPaused,
             uiState = uiState,
             onNewPerson = {},
             onPersonClick = {},

@@ -85,6 +85,11 @@ class FirstRunRepository @Inject constructor(
     suspend fun finishAfterRestore() {
         preferencesRepository.updateDeviceState { it.copy(firstRunFinished = true) }
     }
+
+    /** The App lock offer's "Turn on", after the unlock. Device-bound, like the flag. */
+    suspend fun turnOnAppLock() {
+        preferencesRepository.updateDeviceState { it.copy(appLock = it.appLock.copy(enabled = true)) }
+    }
 }
 
 @Module

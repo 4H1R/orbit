@@ -9,6 +9,8 @@ import dev.alializadeh.orbit.data.insertTestRing
 import dev.alializadeh.orbit.interaction.Interaction
 import dev.alializadeh.orbit.interaction.InteractionPerson
 import dev.alializadeh.orbit.interaction.InteractionType
+import dev.alializadeh.orbit.lock.AppLockSettings
+import dev.alializadeh.orbit.lock.RelockAfter
 import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.ImportantDate
@@ -308,6 +310,26 @@ class BackupRestoreTest {
         assertTrue(device.firstRunFinished)
         assertEquals(7, device.backupCount)
         assertNotNull(device.lastBackup)
+    }
+
+    @Test
+    fun aRestoreLeavesThisPhonesAppLockAsItWas() = runTest {
+        val old = Phone("old")
+        old.fillWithData()
+        old.preferences.updateDeviceState {
+            it.copy(appLock = AppLockSettings(enabled = true, relockAfter = RelockAfter.Immediately, showDetailsInNotifications = true))
+        }
+        val backup = old.backUp()
+        val off = Phone("off")
+        val on = Phone("on")
+        val onSettings = AppLockSettings(enabled = true, relockAfter = RelockAfter.FiveMinutes)
+        on.preferences.updateDeviceState { it.copy(appLock = onSettings) }
+
+        off.restore(backup)
+        on.restore(backup)
+
+        assertEquals(AppLockSettings(), off.preferences.device.value.appLock)
+        assertEquals(onSettings, on.preferences.device.value.appLock)
     }
 
     private companion object {

@@ -79,7 +79,8 @@ class ReminderPlannerTest {
         time: LocalTime = nine,
         zone: ZoneId = utc,
         channels: Set<ReminderChannel> = ReminderChannel.entries.toSet(),
-    ) = ReminderPlanner.plan(PlannerInput(people, time, defaults, now, zone, state, channels))
+        rendering: NotificationRendering = NotificationRendering(),
+    ) = ReminderPlanner.plan(PlannerInput(people, time, defaults, now, zone, state, channels, rendering))
 
     private val ReminderPlan.reminders get() = post.filterIsInstance<PlannedReminder>()
     private val ReminderPlan.digests get() = post.filterIsInstance<PlannedDigest>()
@@ -490,6 +491,53 @@ class ReminderPlannerTest {
         val plan = plan(listOf(contacted, people[1]), now = at(today, 10), state = dismissed)
         assertTrue(plan.post.isEmpty())
         assertTrue(plan.cancel.isEmpty())
+    }
+
+    // Rendering (App lock)
+
+    private val discreet = NotificationRendering(NotificationDetail.Discreet)
+
+    @Test
+    fun aNewRenderingQuietlyRepostsWhatsShowing() {
+        val sara = person(1, birthday(11, 4)) // 1 week before: today
+        val reza = person(2, keepInTouch = dueSince(today.minusDays(2)))
+        val posted = plan(listOf(sara, reza), now = at(today, 9))
+        assertEquals(NotificationRendering(), posted.state.renderedAs)
+        val people = posted.applyTo(listOf(sara, reza))
+
+        // App lock turned on an hour later.
+        val rerendered = plan(people, now = at(today, 10), state = posted.state, rendering = discreet)
+
+        val reminder = rerendered.reminders.single()
+        assertTrue(reminder.silent)
+        assertEquals(LeadTime.OneWeek, reminder.leadTime)
+        assertEquals(7, reminder.daysAway)
+        val digest = rerendered.digests.single()
+        assertTrue(digest.silent)
+        assertEquals(listOf(2L), digest.people.map { it.person.id })
+        assertTrue(rerendered.cancel.isEmpty())
+        assertTrue(rerendered.markNotified.isEmpty())
+        assertEquals(discreet, rerendered.state.renderedAs)
+        assertEquals(posted.state.showingReminders, rerendered.state.showingReminders)
+
+        // Once re-rendered, nothing more until it changes again.
+        assertTrue(plan(people, now = at(today, 11), state = rerendered.state, rendering = discreet).post.isEmpty())
+    }
+
+    @Test
+    fun aDismissedNotificationIsNotBroughtBackByANewRendering() {
+        val sara = person(1, birthday(10, 28))
+        val posted = plan(listOf(sara), now = at(today, 9))
+        val plan = plan(listOf(sara), now = at(today, 10), state = posted.state.retainShowing(emptySet()), rendering = discreet)
+        assertTrue(plan.post.isEmpty())
+    }
+
+    @Test
+    fun stateFromBeforeAppLockCountsAsTheDefaultRendering() {
+        val sara = person(1, birthday(10, 28))
+        val posted = plan(listOf(sara), now = at(today, 9))
+        val old = posted.state.copy(renderedAs = null)
+        assertTrue(plan(listOf(sara), now = at(today, 10), state = old).post.isEmpty())
     }
 
     // Time and zones

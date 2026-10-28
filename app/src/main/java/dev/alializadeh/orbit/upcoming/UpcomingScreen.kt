@@ -75,6 +75,9 @@ import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
 import dev.alializadeh.orbit.reminders.CriticalReminderProblem
+import dev.alializadeh.orbit.lock.AppLockPausedCard
+import dev.alializadeh.orbit.lock.AppLockWarningViewModel
+import dev.alializadeh.orbit.lock.openSecuritySettings
 import dev.alializadeh.orbit.reminders.ReminderWarningCard
 import dev.alializadeh.orbit.reminders.ReminderWarningViewModel
 import dev.alializadeh.orbit.settings.MaxContentWidth
@@ -98,7 +101,7 @@ data object UpcomingKey : NavKey
  * The screen draws them in this order, so a later slice only fills its own.
  */
 enum class UpcomingSection {
-    /** Slices 6 and 7: a critical Reminder health problem, App lock paused. */
+    /** App lock paused, then a critical Reminder health problem. */
     Warnings,
 
     /** The Backup nudge card. */
@@ -121,15 +124,18 @@ fun UpcomingRoute(
     keepInTouch: KeepInTouchViewModel = hiltViewModel(),
     backupNudge: BackupNudgeViewModel = hiltViewModel(),
     reminderWarning: ReminderWarningViewModel = hiltViewModel(),
+    appLockWarning: AppLockWarningViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val nudge by backupNudge.nudge.collectAsStateWithLifecycle()
     val warning by reminderWarning.warning.collectAsStateWithLifecycle()
+    val appLockPaused by appLockWarning.paused.collectAsStateWithLifecycle()
     // Back from the background: it may be another day.
     LifecycleResumeEffect(viewModel) {
         viewModel.checkDate()
         backupNudge.checkDate()
         reminderWarning.refresh()
+        appLockWarning.refresh()
         onPauseOrDispose {}
     }
     val context = LocalContext.current
@@ -155,6 +161,8 @@ fun UpcomingRoute(
         onNudgeNotNow = backupNudge::notNow,
         reminderWarning = warning,
         onFixReminders = onFixReminders,
+        appLockPaused = appLockPaused,
+        onSetScreenLock = { openSecuritySettings(context) },
         scrollToDue = scrollToDue,
         onScrolledToDue = onScrolledToDue,
     )
@@ -178,22 +186,31 @@ fun UpcomingScreen(
     /** Slice 6's critical Reminder health problem, or null. */
     reminderWarning: CriticalReminderProblem? = null,
     onFixReminders: () -> Unit = {},
+    /** App lock is on but the phone has no screen lock: its warning comes first. */
+    appLockPaused: Boolean = false,
+    onSetScreenLock: () -> Unit = {},
     scrollToDue: Boolean = false,
     onScrolledToDue: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    val pausedCard: (@Composable (Modifier) -> Unit)? = if (appLockPaused) {
+        { cardModifier -> AppLockPausedCard(onSetScreenLock = onSetScreenLock, modifier = cardModifier) }
+    } else {
+        null
+    }
     val warningCard: (@Composable (Modifier) -> Unit)? = reminderWarning?.let { problem ->
         { cardModifier -> ReminderWarningCard(problem, onFix = onFixReminders, modifier = cardModifier) }
     }
     val nudgeCard: (@Composable (Modifier) -> Unit)? = backupNudge?.let { nudge ->
         { cardModifier -> BackupNudgeCard(nudge, onBackUpNow = onBackUpNow, onNotNow = onNudgeNotNow, modifier = cardModifier) }
     }
-    // Above an empty state: the warning, then the nudge.
-    val topCards: (@Composable (Modifier) -> Unit)? = if (warningCard == null && nudgeCard == null) {
+    // Above an empty state: the warnings, then the nudge.
+    val topCards: (@Composable (Modifier) -> Unit)? = if (pausedCard == null && warningCard == null && nudgeCard == null) {
         null
     } else {
         { cardModifier ->
             Column(cardModifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                pausedCard?.invoke(Modifier)
                 warningCard?.invoke(Modifier)
                 nudgeCard?.invoke(Modifier)
             }
@@ -203,7 +220,7 @@ fun UpcomingScreen(
         val loaded = uiState as? UpcomingUiState.Loaded ?: return@LaunchedEffect
         if (!scrollToDue) return@LaunchedEffect
         if (loaded.feed.due.isNotEmpty()) {
-            listState.scrollToItem(dueTitleIndex(loaded, warningCard != null, nudgeCard != null))
+            listState.scrollToItem(dueTitleIndex(loaded, pausedCard != null, warningCard != null, nudgeCard != null))
         }
         onScrolledToDue()
     }
@@ -249,8 +266,13 @@ fun UpcomingScreen(
                 ) {
                     UpcomingSection.entries.forEach { section ->
                         when (section) {
-                            UpcomingSection.Warnings -> if (warningCard != null) {
-                                item(key = "reminder_warning") { warningCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
+                            UpcomingSection.Warnings -> {
+                                if (pausedCard != null) {
+                                    item(key = "app_lock_paused") { pausedCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
+                                }
+                                if (warningCard != null) {
+                                    item(key = "reminder_warning") { warningCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
+                                }
                             }
                             UpcomingSection.BackupNudge -> if (nudgeCard != null) {
                                 item(key = "backup_nudge") { nudgeCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
@@ -268,8 +290,8 @@ fun UpcomingScreen(
 }
 
 /** Where Due's title sits in the list: after the cards and Today (title, hero, other rows). */
-private fun dueTitleIndex(uiState: UpcomingUiState.Loaded, hasWarning: Boolean, hasNudge: Boolean): Int {
-    var index = listOf(hasWarning, hasNudge).count { it }
+private fun dueTitleIndex(uiState: UpcomingUiState.Loaded, vararg cards: Boolean): Int {
+    var index = cards.count { it }
     val today = uiState.feed.today.size
     if (today > 0) index += 1 + today
     return index

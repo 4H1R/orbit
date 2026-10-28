@@ -25,6 +25,8 @@ data class NotificationState(
     val lastDigestEpochDay: Long? = null,
     /** The People the digest that's showing names, in its order; empty when none shows. */
     val digestPersonIds: List<Long> = emptyList(),
+    /** How the showing notifications were rendered; null (before App lock) is the default. */
+    val renderedAs: NotificationRendering? = null,
 ) {
     /**
      * Only what [showing] says is still on screen: notifications the user dismissed are

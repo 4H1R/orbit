@@ -2,7 +2,6 @@ package dev.alializadeh.orbit.lock
 
 import android.app.KeyguardManager
 import android.content.Context
-import android.content.ContextWrapper
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
@@ -37,7 +36,8 @@ enum class ScreenLockResult {
  * `BIOMETRIC_STRONG | DEVICE_CREDENTIAL` (biometric 1.1.0), so the PIN, pattern or password always
  * works too. Orbit has no PIN of its own.
  *
- * Used to reveal or replace the Backup passphrase, and by App lock (slice 7).
+ * Used to reveal or replace the Backup passphrase, and by App lock (the locked screen, turning it
+ * on or off).
  */
 class ScreenLockPrompt(private val activity: FragmentActivity) {
 
@@ -69,6 +69,8 @@ class ScreenLockPrompt(private val activity: FragmentActivity) {
             // onAuthenticationFailed is one rejected attempt; the prompt stays up for another.
         }
         val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback)
+        // The prompt covers Orbit; App lock doesn't count that as leaving.
+        (activity as? OwnActivityHost)?.onOwnActivity()
         prompt.authenticate(
             BiometricPrompt.PromptInfo.Builder()
                 .setTitle(title)
@@ -104,8 +106,9 @@ fun rememberScreenLockGate(): ScreenLockGate {
     return remember(context) { ScreenLockGate(context.findFragmentActivity()?.let(::ScreenLockPrompt)) }
 }
 
-private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
-    is FragmentActivity -> this
-    is ContextWrapper -> baseContext.findFragmentActivity()
-    else -> null
+/** The system prompt for the hosting activity (none in previews and screenshot tests). */
+@Composable
+fun rememberScreenLockPrompt(): ScreenLockPrompt? {
+    val context = LocalContext.current
+    return remember(context) { context.findFragmentActivity()?.let(::ScreenLockPrompt) }
 }

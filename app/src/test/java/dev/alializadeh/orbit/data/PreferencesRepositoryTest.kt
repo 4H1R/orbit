@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStoreFactory
 import androidx.room3.useWriterConnection
 import dev.alializadeh.orbit.backup.BackupNudgeInterval
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.lock.AppLockSettings
 import dev.alializadeh.orbit.interaction.InteractionType
 import dev.alializadeh.orbit.person.PeopleSort
 import dev.alializadeh.orbit.reminders.LeadTime
@@ -141,10 +142,20 @@ class PreferencesRepositoryTest {
         assertEquals(
             """{"firstRunFinished":true,"lastInteractionType":"Call","wrappedBackupPassphrase":null,"lastBackup":null,""" +
                 """"backupCount":0,"passphraseTypedAtBackupCount":0,"backupNudgeHiddenUntilEpochDay":null,""" +
-                """"notifications":{"postedReminders":[],"showingReminders":[],"lastDigestEpochDay":null,"digestPersonIds":[]},""" +
-                """"notificationPermissionAsked":false,"batteryExemptionAsked":false}""",
+                """"notifications":{"postedReminders":[],"showingReminders":[],"lastDigestEpochDay":null,"digestPersonIds":[],""" +
+                """"renderedAs":null},"notificationPermissionAsked":false,"batteryExemptionAsked":false,""" +
+                """"appLock":{"enabled":false,"relockAfter":"OneMinute","showDetailsInNotifications":false}}""",
             out.toString(Charsets.UTF_8),
         )
+    }
+
+    /** A re-lock timing this version doesn't know falls back to the default, App lock stays on. */
+    @Test
+    fun anUnknownRelockTimingFallsBack() = runBlocking {
+        val json = """{"firstRunFinished":true,"appLock":{"enabled":true,"relockAfter":"AfterAnHour"}}"""
+        val read = DeviceStateSerializer.readFrom(ByteArrayInputStream(json.toByteArray()))
+        assertTrue(read.firstRunFinished)
+        assertEquals(AppLockSettings(enabled = true), read.appLock)
     }
 
     /** Slice 6's notification state survives a write and a read. */

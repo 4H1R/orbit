@@ -576,4 +576,32 @@
     <!-- The Important date sheet's Reminders -->
     <string name="important_date_reminders_mode_default">پیش‌فرض</string>
     <string name="important_date_reminders_mode_custom">دلخواه</string>
+
+    <!-- App lock (slice 7) -->
+    <string name="app_lock_offer_title">Orbit با اثر انگشت یا قفل صفحهٔ گوشی قفل شود؟</string>
+    <string name="app_lock_offer_body">هر بار که Orbit را باز کنید از شما خواسته می‌شود. بعداً در تنظیمات می‌توانید تغییرش دهید.</string>
+    <string name="app_lock_offer_turn_on">روشن کردن</string>
+    <string name="locked_title">Orbit قفل است</string>
+    <string name="locked_unlock">باز کردن قفل</string>
+    <string name="locked_prompt_title">باز کردن قفل Orbit</string>
+    <string name="app_lock_needs_screen_lock">اول برای گوشی قفل صفحه تنظیم کنید</string>
+    <string name="app_lock_paused">قفل برنامه متوقف است: این گوشی قفل صفحه ندارد</string>
+    <string name="app_lock_set_screen_lock">تنظیم قفل صفحه</string>
+    <string name="settings_app_lock_title">قفل برنامه</string>
+    <string name="settings_app_lock_on">روشن</string>
+    <string name="settings_app_lock_off">خاموش</string>
+    <string name="settings_app_lock_paused">متوقف</string>
+    <string name="app_lock_switch_summary">برای باز کردن Orbit، اثر انگشت یا قفل صفحهٔ گوشی خواسته شود</string>
+    <string name="app_lock_prompt_turn_on">روشن کردن قفل برنامه</string>
+    <string name="app_lock_prompt_turn_off">خاموش کردن قفل برنامه</string>
+    <string name="app_lock_relock_title">قفل دوباره</string>
+    <string name="app_lock_relock_immediately">بلافاصله</string>
+    <plurals name="app_lock_relock_after_minutes">
+        <item quantity="one">پس از %1$s دقیقه</item>
+        <item quantity="other">پس از %1$s دقیقه</item>
+    </plurals>
+    <string name="app_lock_relock_footer">Orbit پس از این مدت در پس‌زمینه دوباره قفل می‌شود. هر بار هم که از نو اجرا شود قفل است.</string>
+    <string name="app_lock_show_details">نمایش جزئیات در اعلان‌ها</string>
+    <string name="app_lock_show_details_summary">دکمه‌های اعلان اول قفل صفحه را می‌خواهند</string>
+    <string name="app_lock_show_details_footer">وقتی این خاموش است، اعلان‌ها فقط می‌گویند چه چیزی در پیش است، بدون نام، عکس یا ایده‌های هدیه.</string>
 </resources>

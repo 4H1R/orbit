@@ -180,6 +180,7 @@ fun OrbitListGroupScope.SwitchRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.segmentedColors(),
+    enabled: Boolean = true,
 ) {
     SegmentedListItem(
         checked = checked,
@@ -187,8 +188,9 @@ fun OrbitListGroupScope.SwitchRow(
         onCheckedChange = onCheckedChange,
         shapes = ListItemDefaults.segmentedShapes(index, count),
         modifier = modifier,
+        enabled = enabled,
         supportingContent = summary?.let { { Text(it) } },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
     ) {
         Text(title)
     }

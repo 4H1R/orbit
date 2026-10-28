@@ -49,6 +49,8 @@ import dev.alializadeh.orbit.orbitview.OrbitViewScreen
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.interaction.AllInteractionsKey
+import dev.alializadeh.orbit.lock.AppLockSettingsKey
+import dev.alializadeh.orbit.lock.AppLockSettingsRoute
 import dev.alializadeh.orbit.interaction.AllInteractionsRoute
 import dev.alializadeh.orbit.person.AddPersonKey
 import dev.alializadeh.orbit.person.EditPersonKey
@@ -95,7 +97,7 @@ fun OrbitApp(
     val numbers = LocalOrbitFormats.current.numbers
     val restoredPeople by backup.restoredPeople.collectAsStateWithLifecycle()
     // A notification tap: Upcoming, then Person detail over it, or Upcoming scrolled to Due.
-    // Slice 7: App lock's gate sits in front of OrbitApp, so this waits until it's passed.
+    // App lock's gate sits in front of OrbitApp (MainActivity), so this waits until it's passed.
     val entry by entries.pending.collectAsStateWithLifecycle()
     var scrollToDue by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(entry) {
@@ -183,6 +185,7 @@ fun OrbitApp(
                 RemindersSettingsRoute(onBack = navigator::goBack, onOpenHealth = { navigator.navigate(ReminderHealthKey) })
             }
             entry<ReminderHealthKey> { ReminderHealthRoute(onBack = navigator::goBack) }
+            entry<AppLockSettingsKey> { AppLockSettingsRoute(onBack = navigator::goBack) }
             entry<BackupSettingsKey> {
                 BackupSettingsRoute(
                     onBack = navigator::goBack,

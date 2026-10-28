@@ -7,9 +7,12 @@ import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.Serializable
 
 /** Posts and cancels Orbit's notifications (Android's NotificationManager; a fake in tests). */
 interface ReminderNotifier {
@@ -31,7 +34,8 @@ interface ReminderAlarm {
     fun set(at: Instant?)
 }
 
-/** How much notifications show: slice 7's App lock decides; until then always [Detailed]. */
+/** How much notifications show: App lock decides (`AppLockRenderingPolicy`). */
+@Serializable
 enum class NotificationDetail {
     /** Names, photo, Gift ideas and actions. */
     Detailed,
@@ -41,15 +45,19 @@ enum class NotificationDetail {
 }
 
 /** How notifications are rendered at post time. */
+@Serializable
 data class NotificationRendering(
     val detail: NotificationDetail = NotificationDetail.Detailed,
     /** Background actions (Mark as contacted, Snooze) ask for the device unlock first. */
     val actionsNeedUnlock: Boolean = false,
 )
 
-/** Where [NotificationRendering] comes from; slice 7 binds App lock's. */
+/** Where [NotificationRendering] comes from: App lock's settings (`AppLockRenderingPolicy`). */
 fun interface NotificationRenderingPolicy {
     suspend fun current(): NotificationRendering
+
+    /** The rendering as it changes; `ReminderTriggers` reconciles on each change. */
+    fun changes(): Flow<NotificationRendering> = emptyFlow()
 }
 
 /**
@@ -79,6 +87,7 @@ class ReminderReconciler @Inject constructor(
         val people = upcoming.observePeople().first()
         val showing = notifier.showing()
         val state = showing?.let(device.notifications::retainShowing) ?: device.notifications
+        val how = rendering.current()
         val plan = ReminderPlanner.plan(
             PlannerInput(
                 people = people,
@@ -88,13 +97,11 @@ class ReminderReconciler @Inject constructor(
                 zone = zone,
                 state = state,
                 channelsOn = notifier.channelsOn(),
+                rendering = how,
             ),
         )
         plan.cancel.forEach(notifier::cancel)
-        if (plan.post.isNotEmpty()) {
-            val how = rendering.current()
-            plan.post.forEach { notifier.post(it, how, now) }
-        }
+        plan.post.forEach { notifier.post(it, how, now) }
         if (plan.markNotified.isNotEmpty()) personDao.setLastNotifiedDueOn(plan.markNotified.toList(), plan.today)
         preferences.updateDeviceState { it.copy(notifications = plan.state) }
         alarm.set(plan.nextAlarm)

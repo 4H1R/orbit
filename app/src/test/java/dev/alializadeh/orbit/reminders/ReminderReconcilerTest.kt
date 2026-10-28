@@ -191,6 +191,22 @@ class ReminderReconcilerTest {
     }
 
     @Test
+    fun aRenderingChangeQuietlyReRendersWhatsShowing() = runTest {
+        seed()
+        reconciler.reconcile()
+        assertEquals(2, notifier.posted.size)
+
+        rendering = NotificationRendering(NotificationDetail.Discreet)
+        reconciler.reconcile()
+
+        val again = notifier.posted.drop(2)
+        assertEquals(2, again.size)
+        assertTrue(again.all { (notification, how) -> notification.silent && how == rendering })
+        reconciler.reconcile()
+        assertEquals(4, notifier.posted.size)
+    }
+
+    @Test
     fun concurrentRunsPostOnce() = runTest {
         seed()
         (1..4).map { async { reconciler.reconcile() } }.awaitAll()

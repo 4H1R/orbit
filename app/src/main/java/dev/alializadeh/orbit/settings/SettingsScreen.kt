@@ -9,6 +9,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
@@ -16,6 +17,8 @@ import dev.alializadeh.orbit.backup.BackupSettingsKey
 import dev.alializadeh.orbit.backup.lastBackupLine
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.lock.AppLockSettingsKey
+import dev.alializadeh.orbit.lock.relockAfterName
 import dev.alializadeh.orbit.person.dates.leadTimesText
 import dev.alializadeh.orbit.reminders.RemindersSettingsKey
 import dev.alializadeh.orbit.ui.components.NavigationRow
@@ -33,12 +36,16 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refreshScreenLock()
+        onPauseOrDispose {}
+    }
     SettingsScreen(uiState = uiState, onOpen = onOpen)
 }
 
 /**
  * Settings: a grouped list where each row shows a one-line summary and opens a sub-screen pushed
- * on the Settings tab. Later slices add App lock and About.
+ * on the Settings tab. A later slice adds About.
  */
 @Composable
 fun SettingsScreen(
@@ -102,8 +109,22 @@ fun SettingsScreen(
                     leadTimesText(uiState.defaultLeadTimes),
                 ).joinToString(separator),
                 index = 0,
-                count = 1,
+                count = 2,
                 onClick = { onOpen(RemindersSettingsKey) },
+            )
+            NavigationRow(
+                title = stringResource(R.string.settings_app_lock_title),
+                summary = when {
+                    !uiState.appLock.enabled -> stringResource(R.string.settings_app_lock_off)
+                    uiState.appLockPaused -> stringResource(R.string.settings_app_lock_paused)
+                    else -> listOf(
+                        stringResource(R.string.settings_app_lock_on),
+                        relockAfterName(uiState.appLock.relockAfter),
+                    ).joinToString(separator)
+                },
+                index = 1,
+                count = 2,
+                onClick = { onOpen(AppLockSettingsKey) },
             )
         }
         Spacer(Modifier.height(16.dp))
