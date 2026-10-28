@@ -69,17 +69,27 @@ _Avoid_: Dismiss, postpone
 **Important date**:
 A recurring date tied to one Person: their **Birthday** (at most one), an **Anniversary**, or a custom date the user names. The year is optional. It is kept in the Calendar it was entered in and recurs in that Calendar.
 _Persian_: تاریخ مهم (Birthday تولد, Anniversary سالگرد)
-_Avoid_: Event, occasion
+_Avoid_: Event, Occasion (an Occasion isn't tied to one Person)
 
 **Calendar**:
-The calendar system a date is expressed in: **Gregorian** (میلادی) or **Solar Hijri** (شمسی).
-_Persian_: تقویم (Gregorian میلادی, Solar Hijri شمسی)
-_Avoid_: Shamsi, Jalali, Persian calendar (in English)
+The calendar system a date is expressed in: **Gregorian** (میلادی), **Solar Hijri** (شمسی), or, for Important dates and Occasions only, **Lunar Hijri** (قمری). Orbit computes Lunar Hijri as Umm al-Qura plus the user's **Lunar date adjustment** of up to two days either way.
+_Persian_: تقویم (Gregorian میلادی, Solar Hijri شمسی, Lunar Hijri قمری; Lunar date adjustment تنظیم تاریخ قمری)
+_Avoid_: Shamsi, Jalali, Persian calendar, Qamari, Islamic calendar (in English)
 
 **Primary calendar**:
-The Calendar the user prefers to see dates in, chosen independently of the UI language.
+The Calendar the user prefers to see dates in, chosen independently of the UI language: Gregorian or Solar Hijri, never Lunar Hijri.
 _Persian_: تقویم اصلی
 _Avoid_: Display calendar, default calendar
+
+**Occasion**:
+A yearly day that isn't one Person's, such as Nowruz, Eid al-Fitr, Teacher's Day or one the user names, on which the user wants to reach out to a group: everyone, or the People in chosen Rings, Tags or by name. Built-in Occasions come from a fixed list, and none is added until the user adds it.
+_Persian_: مناسبت
+_Avoid_: Holiday, event, Important date (an Important date belongs to one Person)
+
+**Wishes**:
+The message the user sends someone on their Important date or an Occasion. Orbit drafts it, the user edits it, and **Send wishes** hands it to the Person's messaging app.
+_Persian_: تبریک (Send wishes فرستادن تبریک)
+_Avoid_: Greeting card, congratulations, share
 
 **Reminder**:
 A notification ahead of, or on, an Important date. When it comes is set by the date's **lead times** (e.g. 7 days before and on the day), which are the user's defaults unless the date overrides them, and every Reminder arrives at the one **Reminder time** of day.

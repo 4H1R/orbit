@@ -260,3 +260,69 @@ The nudge card's dismiss button is `common_not_now`.
 
 - Each legend row has a small drawn example. The text never names a colour.
 - The TalkBack Person label joins its parts with commas (", " in English, «، » in Persian), because TalkBack pauses on commas: "Sara Ahmadi, due, last talked 34 days ago, birthday in 5 days" / «سارا احمدی، در موعد ارتباط، آخرین ارتباط ۳۴ روز پیش، تولد ۵ روز دیگر».
+
+## v1.1 strings
+
+Added with [v1.1](prd-v1.1.md). The same rules apply.
+
+### Send wishes
+
+The default Wishes are sent to the Person, in the user's voice, so the Persian ones address the Person as «تو» (warm and personal) rather than the UI's «شما». A Custom date's text stays neutral, because its label can be anything, a memorial included. The name is the Nickname or the first word of the name (`%1$s`).
+
+| key | English | Persian |
+|---|---|---|
+| `wishes_send` | Send wishes | فرستادن تبریک |
+| `wishes_sheet_title` | Wishes for %1$s | تبریک برای %1$s |
+| `wishes_send_with` | Send with | فرستادن با |
+| `wishes_other_app` | Other app | برنامهٔ دیگر |
+| `wishes_copy_hint` | This app can't take a message, so Orbit copies it for you to paste in the chat | این برنامه پیام را نمی‌پذیرد؛ Orbit آن را کپی می‌کند تا در گفت‌وگو بچسبانید |
+| `wishes_copied_snackbar` | Message copied. Paste it in the chat. | پیام کپی شد. آن را در گفت‌وگو بچسبانید. |
+| `wishes_log_as_message` | Log as a message | ثبت به‌عنوان ارتباط پیامی |
+| `wishes_default_birthday` | Happy birthday, %1$s. Wishing you a wonderful year ahead. | %1$s عزیز، تولدت مبارک. سالی پر از شادی و سلامتی برایت آرزو می‌کنم. |
+| `wishes_default_anniversary` | Happy anniversary, %1$s. Wishing you many more happy years. | %1$s عزیز، سالگردت مبارک. سال‌های شاد بسیاری برایت آرزو می‌کنم. |
+| `wishes_default_custom` | Thinking of you today, %1$s. | %1$s عزیز، امروز به یادت هستم. |
+
+### Lunar Hijri
+
+| key | English | Persian |
+|---|---|---|
+| `calendar_lunar_hijri` | Lunar Hijri | قمری |
+| `language_dates_lunar_title` | Lunar Hijri dates | تاریخ‌های قمری |
+| `lunar_adjustment_none` | As calculated | طبق محاسبه |
+| `lunar_adjustment_earlier` | %1$s day(s) earlier | %1$s روز زودتر |
+| `lunar_adjustment_later` | %1$s day(s) later | %1$s روز دیرتر |
+| `lunar_adjustment_footer` | Orbit calculates Lunar Hijri dates with the Umm al-Qura calendar. When Iran's official calendar starts a month on another day, move every Lunar Hijri date by a day or two to match. | Orbit تاریخ‌های قمری را با تقویم ام‌القری محاسبه می‌کند. اگر تقویم رسمی ایران ماه را در روز دیگری آغاز کند، همهٔ تاریخ‌های قمری را یک یا دو روز جابه‌جا کنید تا یکی شوند. |
+
+Month names are data in `format/CalendarNames`: Muharram … Dhu al-Hijjah / محرم … ذی‌الحجه. Each adjustment row previews today's Lunar Hijri date with it, so the user picks the one that matches Iran's calendar.
+
+### Occasions
+
+Built-in names follow the UI language; the user's own are user text (bidi-isolated in sentences). The Wishes texts follow the Send wishes rules above.
+
+| key | English | Persian |
+|---|---|---|
+| `occasion_name_*` | Nowruz, Yalda night, Sepandarmazgan, Teacher's Day, Mother's Day, Father's Day, Eid al-Fitr, Eid al-Adha, Eid al-Ghadir, New Year's Day, Christmas, Valentine's Day | نوروز، شب یلدا، سپندارمذگان، روز معلم، روز مادر، روز پدر، عید فطر، عید قربان، عید غدیر، سال نو میلادی، کریسمس، ولنتاین |
+| `wishes_occasion_nowruz` | Happy Nowruz, %1$s. Wishing you a wonderful new year. | %1$s عزیز، نوروزت پیروز. سال نو مبارک. |
+| `wishes_occasion_eid_al_fitr` | Eid Mubarak, %1$s. | %1$s عزیز، عید فطر مبارک. |
+| `settings_occasions_title` | Occasions | مناسبت‌ها |
+| `occasions_empty` | Add Nowruz, Eid or a day of your own, and Orbit reminds you whom to send wishes to. | نوروز، عیدها یا روزی دلخواه را اضافه کنید تا Orbit یادآوری کند به چه کسانی تبریک بگویید. |
+| `occasion_who` | Who it's for | برای چه کسانی |
+| `occasion_reaches` | Reaches %1$s people | برای %1$s نفر |
+| `occasion_reached` | Reached %1$s of %2$s | با %1$s نفر از %2$s نفر ارتباط گرفتید |
+| `occasion_delete_body` | Its reminders stop. Your people aren't changed. | یادآوری‌هایش متوقف می‌شود. افرادتان تغییری نمی‌کنند. |
+| `reminder_title_occasion` | %1$s · %2$s | %1$s، %2$s |
+| `reminder_title_occasion_today` | Today is %1$s | امروز %1$s است |
+| `reminder_occasion_people` | %1$s people to send wishes to | تبریک به %1$s نفر |
+| `reminder_occasion_people_today` | Send wishes to %1$s people | به %1$s نفر تبریک بگویید |
+| `discreet_occasion_soon` | An occasion is coming up · %1$s | مناسبتی در پیش است، %1$s |
+| `discreet_occasion_today` | There's an occasion today | امروز یک مناسبت دارید |
+| `channel_occasions_name` | Occasions | مناسبت‌ها |
+
+### Widget
+
+| key | English | Persian |
+|---|---|---|
+| `widget_upcoming_description` | Today's dates and occasions, what's coming up, and who's due | تاریخ‌ها و مناسبت‌های امروز، آنچه در پیش است و کسانی که موعد ارتباطشان رسیده |
+| `widget_discreet_today` / `_coming_up` / `_due` | %1$s today · %1$s coming up · %1$s due | %1$s مورد امروز، %1$s مورد در پیش، %1$s نفر در موعد ارتباط |
+
+The widget's name in the launcher's list is `nav_tab_upcoming`. Discreet counts join with `separator`.
