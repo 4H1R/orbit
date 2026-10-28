@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Persian strings. Rules: docs/copy-deck-v1.md. Written register (نوشتاری), the user is شما,
+    Persian strings. Rules: CLAUDE.md (Strings). Written register (نوشتاری), the user is شما,
     never attach a suffix to a placeholder, and "Orbit" stays in Latin script.
 -->
 <resources>

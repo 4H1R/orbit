@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    English strings. Rules: docs/copy-deck-v1.md. Keys are screen_element_purpose, sentence case,
+    English strings. Rules: CLAUDE.md (Strings). Keys are screen_element_purpose, sentence case,
     British spelling, no %d (numbers go through OrbitNumberFormatter and are passed as %s), and every
     key has its Persian twin in values-fa/strings.xml in the same change.
 -->

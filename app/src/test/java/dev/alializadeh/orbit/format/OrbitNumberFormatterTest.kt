@@ -71,7 +71,7 @@ class OrbitNumberFormatterTest {
 
     @Test
     fun theCopyDecksOrdinalsMatchByteForByte() {
-        // Copied from docs/copy-deck-v1.md, including its ZWNJs.
+        // Written with their ZWNJs, as the strings use them.
         assertEquals("بیست‌ویکمین", persian.ordinal(21))
         assertEquals("سی‌امین", persian.ordinal(30))
         assertEquals("سومین", persian.ordinal(3))

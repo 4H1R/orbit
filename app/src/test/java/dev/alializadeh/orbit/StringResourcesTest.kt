@@ -8,7 +8,7 @@ import org.junit.Test
 import org.w3c.dom.Element
 
 /**
- * English and Persian stay in step (docs/copy-deck-v1.md): the same keys, the same placeholders
+ * English and Persian stay in step (CLAUDE.md, Strings): the same keys, the same placeholders
  * (positional, so a language may put them in its own word order, as Persian's «%2$s %1$s» does),
  * the plural quantities each language needs, and no `%d` (numbers are formatted by
  * OrbitNumberFormatter and passed as `%s`).

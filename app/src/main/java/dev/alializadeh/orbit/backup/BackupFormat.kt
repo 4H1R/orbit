@@ -15,7 +15,7 @@ import java.time.LocalDate
 /** Orbit's own version of the ZIP's content. Bump it whenever what a Backup holds changes. */
 const val BACKUP_FORMAT = 1
 
-/** scrypt cost (log2 N) for new Backups: 128 MiB of memory. See docs/notes/scrypt-measurement.md. */
+/** scrypt cost (log2 N) for new Backups: 128 MiB of memory, measured on devices by the androidTest ScryptMeasurement. */
 const val BACKUP_WRITE_WORK_FACTOR = 17
 
 /** The highest scrypt cost a Restore accepts: 256 MiB, as age's own default. */

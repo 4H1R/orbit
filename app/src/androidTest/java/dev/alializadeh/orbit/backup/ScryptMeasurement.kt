@@ -22,7 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Measures the Backup's scrypt cost on a real device (docs/notes/scrypt-measurement.md): key
+ * Measures the Backup's scrypt cost on a real device: key
  * derivation at logN 16, 17 and 18, and a ~50 MB encrypt + decrypt round trip at Orbit's logN 17,
  * with the peak Java heap during each. Results go to logcat under the tag `OrbitScrypt`.
  *
