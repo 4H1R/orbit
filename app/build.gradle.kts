@@ -26,8 +26,9 @@ android {
         applicationId = "dev.alializadeh.orbit"
         minSdk = 31
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // Tagged builds (.github/workflows/release.yml) pass the version from the tag.
+        versionCode = providers.gradleProperty("orbit.versionCode").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("orbit.versionName").getOrElse("0.1.0")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -57,6 +58,17 @@ android {
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.findByName("release")
+        }
+    }
+
+    // One APK per chipset plus a universal one, for the GitHub Release; local builds stay a single APK.
+    splits {
+        abi {
+            isEnable = providers.gradleProperty("orbit.abiSplits").map(String::toBoolean).getOrElse(false)
+            reset()
+            // 32-bit x86 Android 12 devices barely exist; the universal APK still covers them.
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
         }
     }
 

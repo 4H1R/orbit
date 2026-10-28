@@ -27,7 +27,16 @@ Orbit remembers the people in your life: their birthdays and other important dat
 
 ## Getting Orbit
 
-Orbit isn't on any app store. You build it from source and install the APK yourself. It needs Android 12 (API 31) or later.
+Orbit isn't on any app store. Download an APK from the [latest release](https://github.com/4H1R/orbit/releases/latest) and open it on your phone (Android asks you to allow installs from your browser or file manager once). It needs Android 12 or later.
+
+| Your phone | File |
+| --- | --- |
+| Almost every phone from the last several years (64-bit ARM) | `orbit-<version>-arm64-v8a.apk` |
+| Older or low-end phones with a 32-bit ARM chip | `orbit-<version>-armeabi-v7a.apk` |
+| Emulators, Chromebooks and other Intel/AMD devices | `orbit-<version>-x86_64.apk` |
+| Not sure | `orbit-<version>-universal.apk` (works everywhere, a bit larger) |
+
+Installing a newer release over an older one keeps your data. You can also build Orbit yourself (below).
 
 ## Building
 
@@ -62,20 +71,36 @@ scripts/generate-release-keystore.sh   # creates ~/.orbit/orbit-release.jks and 
 
 Before doing anything else, put the keystore file and the printed password in a password manager, and keep a second offline copy of both. `keystore.properties` and `*.jks` are gitignored. Never commit them.
 
+Then give GitHub the key so it can sign releases, as two repository secrets:
+
+```bash
+base64 -w0 ~/.orbit/orbit-release.jks | gh secret set ORBIT_KEYSTORE_BASE64
+gh secret set ORBIT_KEYSTORE_PASSWORD   # paste the printed password
+```
+
 On a new computer, don't run the script again. Restore the keystore from the password manager and recreate `keystore.properties` instead (the script shows its four lines).
 
 ### Each release
 
-1. Raise `versionCode` (and `versionName`) in `app/build.gradle.kts`.
-2. Build and install:
+Tag the commit and push the tag:
 
-   ```bash
-   ./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk, signed
-   adb install -r app/build/outputs/apk/release/app-release.apk
-   ```
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
 
-   `install -r` keeps the app's data. Without `keystore.properties` the release APK is unsigned and won't install.
-3. Keep `app/build/outputs/mapping/release/mapping.txt` with the release. It turns the shrunk class names in a shared crash log (Settings → About) back into readable ones, using `retrace` from the Android SDK's command-line tools.
+The [Release workflow](.github/workflows/release.yml) runs the unit tests and lint, then builds signed APKs for each chipset plus a universal one. It publishes them as a GitHub Release, with checksums and the `mapping.txt` that turns the shrunk class names in a shared crash log (Settings → About) back into readable ones (`retrace` in the Android SDK's command-line tools). The tag sets the version: `v1.2.0` is versionName `1.2.0` and versionCode `10200` (`MAJOR*10000 + MINOR*100 + PATCH`), so every tag must be higher than the last.
+
+To try the workflow without publishing anything, run it from the Actions tab (Release → Run workflow). The APKs are then a downloadable artifact of that run.
+
+### A local release build
+
+```bash
+./gradlew assembleRelease -Porbit.versionName=1.2.0 -Porbit.versionCode=10200
+adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+`install -r` keeps the app's data. Without `-Porbit.versionCode` the build has versionCode 1, which Android won't install over a newer release. Without `keystore.properties` the APK is unsigned and won't install at all. Add `-Porbit.abiSplits=true` for the per-chipset APKs.
 
 ## Tech stack
 

@@ -1,0 +1,148 @@
+# Builds Orbit's release APKs, one per chipset plus a universal one.
+#
+# - Pushing a tag vMAJOR.MINOR.PATCH (e.g. v1.2.0) builds signed APKs and publishes them as a GitHub
+#   Release. The version comes from the tag: versionName 1.2.0, versionCode 10200.
+# - Running it by hand (Actions → Release → Run workflow) builds the same APKs as a workflow
+#   artifact and publishes nothing; they're unsigned if the signing secrets aren't set.
+#
+# Signing uses Orbit's permanent release key (ADR 0005) from two repository secrets:
+#   ORBIT_KEYSTORE_BASE64    the keystore file, base64-encoded
+#   ORBIT_KEYSTORE_PASSWORD  its password (the store and the key share it)
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PUBLISH: ${{ github.ref_type == 'tag' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v4
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Work out the version
+        run: |
+          if [[ "$PUBLISH" == "true" ]]; then
+            if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              echo "::error::Release tags look like v1.2.0, not $GITHUB_REF_NAME."
+              exit 1
+            fi
+            major=${BASH_REMATCH[1]} minor=${BASH_REMATCH[2]} patch=${BASH_REMATCH[3]}
+            if (( 10#$minor > 99 || 10#$patch > 99 )); then
+              echo "::error::Minor and patch must be below 100 (versionCode is MAJOR*10000 + MINOR*100 + PATCH)."
+              exit 1
+            fi
+            version="$((10#$major)).$((10#$minor)).$((10#$patch))"
+            code=$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))
+          else
+            version="0.0.0-ci.${GITHUB_RUN_NUMBER}"
+            code=1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+          echo "Building $version ($code)"
+
+      - name: Set up the release key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ORBIT_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ORBIT_KEYSTORE_PASSWORD }}
+        run: |
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" ]]; then
+            if [[ "$PUBLISH" == "true" ]]; then
+              echo "::error::Set the ORBIT_KEYSTORE_BASE64 and ORBIT_KEYSTORE_PASSWORD secrets (see README → Release builds)."
+              exit 1
+            fi
+            echo "::warning::No signing secrets: building unsigned APKs."
+            exit 0
+          fi
+          keystore="$RUNNER_TEMP/orbit-release.jks"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          umask 077
+          cat > keystore.properties <<EOF
+          storeFile=$keystore
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=orbit
+          keyPassword=$KEYSTORE_PASSWORD
+          EOF
+
+      - name: Test
+        run: ./gradlew testDebugUnitTest lintDebug
+
+      - name: Build
+        run: >
+          ./gradlew assembleRelease
+          -Porbit.abiSplits=true
+          -Porbit.versionName="$VERSION"
+          -Porbit.versionCode="$VERSION_CODE"
+
+      - name: Collect the APKs
+        run: |
+          mkdir dist
+          out=app/build/outputs/apk/release
+          suffix=$([[ -f keystore.properties ]] && echo "" || echo "-unsigned")
+          for abi in arm64-v8a armeabi-v7a x86_64 universal; do
+            cp "$out/app-$abi-release$suffix.apk" "dist/orbit-$VERSION-$abi$suffix.apk"
+          done
+          cp app/build/outputs/mapping/release/mapping.txt "dist/orbit-$VERSION-mapping.txt"
+          if [[ -z "$suffix" ]]; then
+            apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+            for apk in dist/*.apk; do "$apksigner" verify "$apk"; done
+            "$apksigner" verify --print-certs "dist/orbit-$VERSION-universal.apk" | grep SHA-256
+          fi
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+          ls -l dist
+
+      - name: Remove the release key
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/orbit-release.jks"
+
+      - name: Upload the build
+        if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: orbit-${{ env.VERSION }}
+          path: dist/
+
+      - name: Publish the release
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<EOF
+          ## Which file do I install?
+
+          | Your phone | File |
+          | --- | --- |
+          | Almost every phone from the last several years (64-bit ARM) | \`orbit-$VERSION-arm64-v8a.apk\` |
+          | Older or low-end phones with a 32-bit ARM chip | \`orbit-$VERSION-armeabi-v7a.apk\` |
+          | Emulators, Chromebooks and other Intel/AMD devices | \`orbit-$VERSION-x86_64.apk\` |
+          | Not sure | \`orbit-$VERSION-universal.apk\` (works everywhere, a bit larger) |
+
+          Orbit needs Android 12 or later. Installing over an earlier version keeps your data.
+          \`SHA256SUMS.txt\` has the files' checksums; \`orbit-$VERSION-mapping.txt\` is for reading crash logs.
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Orbit $VERSION" \
+            --notes-file notes.md \
+            --generate-notes \
+            --verify-tag
