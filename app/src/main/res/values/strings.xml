@@ -240,12 +240,10 @@
     <string name="important_date_sheet_edit">Edit important date</string>
     <string name="person_form_birthday_add">Add birthday</string>
     <string name="person_form_important_date_add">Add important date</string>
-    <!-- The date sheet's Reminders line; %1$s lists lead times, e.g. "1 week before · on the day". -->
+    <!-- The date sheet's Reminders: Default or Custom lead times, or No reminders -->
     <string name="important_date_reminders">Reminders</string>
-    <string name="important_date_reminders_default">Default (%1$s)</string>
-    <string name="important_date_reminders_custom">Custom (%1$s)</string>
     <string name="important_date_reminders_none">No reminders</string>
-    <!-- The same, inside a form row: "Birthday · 14 Farvardin 1370 · default reminders" -->
+    <!-- Inside a form row: "Birthday · 14 Farvardin 1370 · default reminders" -->
     <string name="important_date_reminders_default_short">default reminders</string>
     <string name="important_date_reminders_custom_short">custom reminders</string>
     <string name="important_date_reminders_none_short">no reminders</string>
@@ -506,4 +504,110 @@
     <string name="restore_progress">Restoring…</string>
     <string name="restore_failed">Orbit couldn\'t restore this backup. Nothing on this phone has changed.</string>
     <string name="restored_snackbar">Restored %1$s people</string>
+
+    <!-- Reminders and notifications (slice 6). Notification texts are from the copy deck. -->
+    <!-- %2$s (%3$s for custom) is when: "in 7 days" or "tomorrow" -->
+    <string name="reminder_title_birthday">%1$s\'s birthday · %2$s</string>
+    <string name="reminder_title_anniversary">%1$s\'s anniversary · %2$s</string>
+    <string name="reminder_title_custom">%1$s\'s %2$s · %3$s</string>
+    <!-- Inside a sentence: "Sara's birthday · tomorrow", "… · in 7 days" -->
+    <string name="time_tomorrow_inline">tomorrow</string>
+    <plurals name="time_in_days_inline">
+        <item quantity="one">in %1$s day</item>
+        <item quantity="other">in %1$s days</item>
+    </plurals>
+    <string name="action_mark_as_contacted">Mark as contacted</string>
+    <string name="action_snooze_week">Snooze 1 week</string>
+    <string name="channel_important_dates_name">Important dates</string>
+    <string name="channel_important_dates_description">Reminders before birthdays, anniversaries and other important dates</string>
+    <string name="channel_keep_in_touch_name">Keep in touch</string>
+    <string name="channel_keep_in_touch_description">A daily note of who it\'s time to catch up with</string>
+    <string name="digest_title">Time to catch up with %1$s</string>
+    <string name="digest_body_one">Last talked %1$s</string>
+    <!-- %1$s is when they were added: "34 days ago" -->
+    <string name="digest_body_one_never">Added %1$s, no interactions yet</string>
+    <string name="names_two">%1$s and %2$s</string>
+    <string name="names_three">%1$s, %2$s and %3$s</string>
+    <!-- Two names, then how many others (always 2 or more) -->
+    <string name="names_more">%1$s, %2$s and %3$s others</string>
+    <string name="digest_body_several">%1$s people are due</string>
+    <!-- Discreet: no names, photos, gift ideas or custom labels. Also every notification's lock-screen version. -->
+    <string name="discreet_birthday_soon">A birthday is coming up · %1$s</string>
+    <string name="discreet_anniversary_soon">An anniversary is coming up · %1$s</string>
+    <string name="discreet_date_soon">An important date is coming up · %1$s</string>
+    <string name="discreet_birthday_today">There\'s a birthday today</string>
+    <string name="discreet_anniversary_today">There\'s an anniversary today</string>
+    <string name="discreet_date_today">There\'s an important date today</string>
+    <string name="discreet_digest_one">Time to catch up with someone</string>
+    <string name="discreet_digest_several">Time to catch up with %1$s people</string>
+
+    <!-- Settings → Reminders -->
+    <string name="settings_reminders_title">Reminders</string>
+    <string name="reminders_time">Reminder time</string>
+    <string name="reminders_time_footer">Every reminder, and the daily note of who to catch up with, comes at this time.</string>
+    <string name="reminders_lead_times">Default reminders</string>
+    <string name="reminders_lead_times_footer">For important dates that don\'t have their own.</string>
+    <string name="lead_time_chip_on_the_day">On the day</string>
+    <plurals name="lead_time_chip_days">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
+    </plurals>
+    <plurals name="lead_time_chip_weeks">
+        <item quantity="one">%1$s week</item>
+        <item quantity="other">%1$s weeks</item>
+    </plurals>
+    <plurals name="lead_time_chip_months">
+        <item quantity="one">%1$s month</item>
+        <item quantity="other">%1$s months</item>
+    </plurals>
+    <string name="reminders_health">Reminder health</string>
+    <string name="reminders_health_all_good">Everything is set</string>
+    <plurals name="reminders_health_to_check">
+        <item quantity="one">%1$s thing to check</item>
+        <item quantity="other">%1$s things to check</item>
+    </plurals>
+    <string name="reminders_notifications">Notifications</string>
+    <string name="reminders_channel_on">On</string>
+    <string name="reminders_channel_off">Off</string>
+    <string name="time_picker_hour">Hour</string>
+    <string name="time_picker_minute">Minute</string>
+
+    <!-- Reminder health -->
+    <string name="reminder_health_intro">Android can delay or stop reminders. These settings keep them on time.</string>
+    <string name="reminder_health_notifications">Notifications</string>
+    <string name="reminder_health_notifications_on">On</string>
+    <string name="reminder_health_notifications_off">Off: reminders can\'t reach you</string>
+    <!-- %1$s lists the channels that are off: "Important dates" -->
+    <string name="reminder_health_notifications_channels_off">Off for %1$s</string>
+    <string name="reminder_health_turn_on">Turn on</string>
+    <string name="reminder_health_exact_alarms">Alarms &amp; reminders</string>
+    <string name="reminder_health_exact_alarms_on">Allowed</string>
+    <string name="reminder_health_exact_alarms_off">Not allowed: reminders may be late</string>
+    <string name="reminder_health_allow">Allow</string>
+    <string name="reminder_health_battery">Battery</string>
+    <string name="reminder_health_battery_on">Unrestricted</string>
+    <string name="reminder_health_battery_off">Optimised: reminders may be late</string>
+    <string name="reminder_health_unused">Pause app activity if unused</string>
+    <string name="reminder_health_unused_off">Off</string>
+    <string name="reminder_health_unused_on">On: after a few months without opening Orbit, reminders stop</string>
+    <string name="reminder_health_turn_off">Turn off</string>
+    <string name="reminder_health_maker">Your phone</string>
+    <!-- %1$s is the phone maker: "Samsung" -->
+    <string name="reminder_health_maker_summary">Some phones stop apps in the background. See the steps for %1$s phones.</string>
+    <string name="reminder_health_see_steps">See steps</string>
+    <string name="reminder_health_ok">All set</string>
+    <string name="reminder_health_problem">Needs attention</string>
+
+    <!-- Upcoming's warning card for a critical Reminder health problem -->
+    <string name="reminder_warning_notifications_off">Notifications are off, so reminders can\'t reach you</string>
+    <string name="reminder_warning_exact_alarms_off">Reminders may be late: alarms aren\'t allowed</string>
+    <string name="reminder_warning_fix">Fix</string>
+
+    <!-- Asked once, right after notifications are allowed; then the system prompt -->
+    <string name="battery_ask_body">So reminders arrive on time, let Orbit run in the background.</string>
+    <string name="common_continue">Continue</string>
+
+    <!-- The Important date sheet's Reminders -->
+    <string name="important_date_reminders_mode_default">Default</string>
+    <string name="important_date_reminders_mode_custom">Custom</string>
 </resources>

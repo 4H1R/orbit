@@ -32,6 +32,7 @@ import dev.alializadeh.orbit.person.photo.CropImage
 import dev.alializadeh.orbit.person.photo.CropRect
 import dev.alializadeh.orbit.person.photo.PhotoStore
 import dev.alializadeh.orbit.reminders.LeadTime
+import dev.alializadeh.orbit.reminders.ReminderPermissionAsks
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingRepository
 import dev.alializadeh.orbit.ring.outermost
@@ -183,6 +184,7 @@ class PersonFormViewModel @AssistedInject constructor(
     private val photoStore: PhotoStore,
     preferencesRepository: PreferencesRepository,
     clock: Clock,
+    private val reminderAsks: ReminderPermissionAsks,
 ) : ViewModel(), PersonFormActions {
 
     private val today: LocalDate = LocalDate.now(clock)
@@ -641,6 +643,13 @@ class PersonFormViewModel @AssistedInject constructor(
 
     private suspend fun store(draft: PersonDraft) {
         val id = personRepository.save(draft)
+        // The first save that reminders are for asks for notifications (ticket 07).
+        val ringCadence = uiState.value.rings.firstOrNull { it.id == draft.ringId }?.cadence
+        val cadence = when (val setting = draft.cadence) {
+            CadenceSetting.FromRing -> ringCadence
+            is CadenceSetting.Own -> setting.cadence
+        }
+        if (draft.importantDates.isNotEmpty() || cadence != null) reminderAsks.remindersNeeded()
         pendingPhotos.clear()
         progress = Progress.Saved(id)
     }

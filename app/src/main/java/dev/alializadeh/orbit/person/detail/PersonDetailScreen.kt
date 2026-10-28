@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
@@ -81,6 +82,11 @@ fun PersonDetailRoute(
     keepInTouchViewModel: KeepInTouchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Back from the background: it may be another day (Due, years counts).
+    LifecycleResumeEffect(viewModel) {
+        viewModel.checkDate()
+        onPauseOrDispose {}
+    }
     val context = LocalContext.current
     val snackbars = LocalOrbitSnackbars.current
     val clipboard = LocalClipboard.current

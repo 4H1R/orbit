@@ -50,6 +50,7 @@ import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.person.ImportantDateDraft
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.reminders.LeadTime
+import dev.alializadeh.orbit.reminders.LeadTimeChips
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePicker
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePickerState
@@ -64,8 +65,8 @@ import java.time.LocalDate
  * its Calendar toggle, the Reminders line, Done, and Delete when editing ([onDelete]).
  *
  * The picker starts on the Primary calendar for a new date and on the date's own Calendar when
- * editing; whatever Calendar it shows on Done is the date's Calendar. The date's lead times are
- * kept as they are (their Custom chips arrive with Reminders, slice 6).
+ * editing; whatever Calendar it shows on Done is the date's Calendar. Reminders are Default (the
+ * default lead times, shown as disabled chips) or Custom: the lead-time chips plus No reminders.
  */
 @Composable
 fun ImportantDateSheet(
@@ -110,6 +111,8 @@ internal fun ImportantDateSheetContent(
             },
         )
     }
+    // Null: the default lead times; empty: No reminders.
+    var leadTimes by rememberSaveable(stateSaver = LeadTimesSaver) { mutableStateOf(initial?.leadTimes) }
     val canSave = type != ImportantDateType.Custom || label.text.isNotBlank()
 
     Column(
@@ -143,7 +146,7 @@ internal fun ImportantDateSheetContent(
             )
         }
         WheelDatePicker(state = picker, onStateChange = { picker = it })
-        RemindersLine(remindersSummary(initial?.leadTimes, defaultLeadTimes))
+        RemindersChoice(leadTimes = leadTimes, defaultLeadTimes = defaultLeadTimes, onChange = { leadTimes = it })
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             if (onDelete != null) {
                 TextButton(
@@ -163,7 +166,7 @@ internal fun ImportantDateSheetContent(
                         type = type,
                         label = label.text.toString(),
                         date = picker.date,
-                        leadTimes = initial?.leadTimes,
+                        leadTimes = leadTimes,
                     ).normalised()
                     sheet.close { onDone(draft) }
                 },
@@ -175,17 +178,56 @@ internal fun ImportantDateSheetContent(
     }
 }
 
+/**
+ * Reminders: Default or Custom. Default shows the default lead times as disabled chips; Custom
+ * starts from them and makes the chips, with No reminders, editable. The chips are always there,
+ * so the sheet never changes height (a sheet that resizes after a wheel drag gets stuck).
+ */
 @Composable
-private fun RemindersLine(summary: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Icon(Icons.Filled.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Column {
-            Text(stringResource(R.string.important_date_reminders), style = MaterialTheme.typography.bodyLarge)
-            Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun RemindersChoice(leadTimes: Set<LeadTime>?, defaultLeadTimes: Set<LeadTime>, onChange: (Set<LeadTime>?) -> Unit) {
+    val label = stringResource(R.string.important_date_reminders)
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Icon(
+            Icons.Filled.Notifications,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            OrbitConnectedChoice(
+                options = listOf(false, true),
+                selected = leadTimes != null,
+                onSelect = { custom -> onChange(if (custom) leadTimes ?: defaultLeadTimes else null) },
+                label = { custom ->
+                    stringResource(
+                        if (custom) R.string.important_date_reminders_mode_custom else R.string.important_date_reminders_mode_default,
+                    )
+                },
+                modifier = Modifier.semantics { contentDescription = label },
+            )
+            LeadTimeChips(
+                selected = leadTimes ?: defaultLeadTimes,
+                enabled = leadTimes != null,
+                onToggle = { lead ->
+                    val current = leadTimes.orEmpty()
+                    onChange(if (lead in current) current - lead else current + lead)
+                },
+                onNoReminders = { onChange(emptySet()) },
+            )
         }
     }
 }
 
+/** A date's lead times across configuration changes: "default" for null, else the names. */
+private val LeadTimesSaver: Saver<Set<LeadTime>?, String> = Saver(
+    save = { leadTimes -> leadTimes?.joinToString(",") { it.name } ?: DEFAULT_LEAD_TIMES },
+    restore = { saved ->
+        if (saved == DEFAULT_LEAD_TIMES) null else saved.split(',').filter(String::isNotEmpty).map(LeadTime::valueOf).toSet()
+    },
+)
+
+private const val DEFAULT_LEAD_TIMES = "default"
 /** Keeps a picker's selection across configuration changes and process death. */
 val WheelDatePickerStateSaver: Saver<WheelDatePickerState, Any> = listSaver(
     save = {

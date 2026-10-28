@@ -22,6 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
@@ -54,6 +57,13 @@ import dev.alializadeh.orbit.person.PersonDetailKey
 import dev.alializadeh.orbit.person.edit.PersonFormRoute
 import dev.alializadeh.orbit.person.detail.PersonDetailRoute
 import dev.alializadeh.orbit.person.list.PeopleRoute
+import dev.alializadeh.orbit.reminders.NotificationEntry
+import dev.alializadeh.orbit.reminders.NotificationEntryViewModel
+import dev.alializadeh.orbit.reminders.ReminderHealthKey
+import dev.alializadeh.orbit.reminders.ReminderHealthRoute
+import dev.alializadeh.orbit.reminders.ReminderPermissionHost
+import dev.alializadeh.orbit.reminders.RemindersSettingsKey
+import dev.alializadeh.orbit.reminders.RemindersSettingsRoute
 import dev.alializadeh.orbit.settings.AppearanceRoute
 import dev.alializadeh.orbit.settings.AppearanceSettingsKey
 import dev.alializadeh.orbit.settings.LanguageDatesRoute
@@ -78,11 +88,27 @@ import dev.alializadeh.orbit.upcoming.UpcomingRoute
 fun OrbitApp(
     navigator: OrbitNavigator = rememberOrbitNavigator(),
     backup: BackupViewModel = hiltViewModel(),
+    entries: NotificationEntryViewModel = hiltViewModel(),
 ) {
     val snackbars = rememberOrbitSnackbars()
     val resources = LocalResources.current
     val numbers = LocalOrbitFormats.current.numbers
     val restoredPeople by backup.restoredPeople.collectAsStateWithLifecycle()
+    // A notification tap: Upcoming, then Person detail over it, or Upcoming scrolled to Due.
+    // Slice 7: App lock's gate sits in front of OrbitApp, so this waits until it's passed.
+    val entry by entries.pending.collectAsStateWithLifecycle()
+    var scrollToDue by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(entry) {
+        val target = entry ?: return@LaunchedEffect
+        when (target) {
+            is NotificationEntry.PersonDetail -> navigator.openOnUpcoming(PersonDetailKey(target.personId))
+            NotificationEntry.UpcomingDue -> {
+                navigator.openOnUpcoming(null)
+                scrollToDue = true
+            }
+        }
+        entries.consume(target)
+    }
     // After a Restore: every tab back to its root (the old screens' data is gone), Upcoming, and
     // "Restored 84 people". Consumed only once shown, so an activity recreation (the Backup's
     // language) shows it again rather than losing it.
@@ -102,6 +128,9 @@ fun OrbitApp(
                     onNewPerson = { navigator.navigate(AddPersonKey) },
                     onPersonClick = { id -> navigator.navigate(PersonDetailKey(id)) },
                     onBackUpNow = backup::start,
+                    onFixReminders = { navigator.navigate(ReminderHealthKey) },
+                    scrollToDue = scrollToDue,
+                    onScrolledToDue = { scrollToDue = false },
                 )
             }
             entry<PeopleKey> {
@@ -150,6 +179,10 @@ fun OrbitApp(
             entry<LanguageDatesSettingsKey> { LanguageDatesRoute(onBack = navigator::goBack) }
             entry<RingsSettingsKey> { RingsRoute(onBack = navigator::goBack) }
             entry<TagsSettingsKey> { TagsRoute(onBack = navigator::goBack) }
+            entry<RemindersSettingsKey> {
+                RemindersSettingsRoute(onBack = navigator::goBack, onOpenHealth = { navigator.navigate(ReminderHealthKey) })
+            }
+            entry<ReminderHealthKey> { ReminderHealthRoute(onBack = navigator::goBack) }
             entry<BackupSettingsKey> {
                 BackupSettingsRoute(
                     onBack = navigator::goBack,
@@ -175,6 +208,7 @@ fun OrbitApp(
         Box(Modifier.fillMaxSize()) {
             OrbitShell(navigator, entries)
             BackupHost(backup)
+            ReminderPermissionHost()
         }
     }
 }

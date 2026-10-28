@@ -16,6 +16,8 @@ import dev.alializadeh.orbit.backup.BackupSettingsKey
 import dev.alializadeh.orbit.backup.lastBackupLine
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.person.dates.leadTimesText
+import dev.alializadeh.orbit.reminders.RemindersSettingsKey
 import dev.alializadeh.orbit.ui.components.NavigationRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
 import dev.alializadeh.orbit.ui.datepicker.calendarName
@@ -36,7 +38,7 @@ fun SettingsRoute(
 
 /**
  * Settings: a grouped list where each row shows a one-line summary and opens a sub-screen pushed
- * on the Settings tab. Later slices add Reminders, App lock and About.
+ * on the Settings tab. Later slices add App lock and About.
  */
 @Composable
 fun SettingsScreen(
@@ -89,6 +91,19 @@ fun SettingsScreen(
                 index = 1,
                 count = 2,
                 onClick = { onOpen(TagsSettingsKey) },
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        OrbitListGroup(title = null) {
+            NavigationRow(
+                title = stringResource(R.string.settings_reminders_title),
+                summary = listOf(
+                    LocalOrbitFormats.current.numbers.time(uiState.reminderTime),
+                    leadTimesText(uiState.defaultLeadTimes),
+                ).joinToString(separator),
+                index = 0,
+                count = 1,
+                onClick = { onOpen(RemindersSettingsKey) },
             )
         }
         Spacer(Modifier.height(16.dp))

@@ -5,14 +5,17 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.backup.BackupStatusRepository
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.data.BackedUpPreferences
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.person.TagRepository
+import dev.alializadeh.orbit.reminders.LeadTime
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingRepository
 import dev.alializadeh.orbit.ui.theme.ColourSource
 import dev.alializadeh.orbit.ui.theme.ThemeMode
 import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +33,8 @@ data class SettingsUiState(
     /** The day of the last Backup, or null if there's never been one: the Backup row's summary. */
     val lastBackup: LocalDate? = null,
     val today: LocalDate = LocalDate.ofEpochDay(0),
+    val reminderTime: LocalTime = BackedUpPreferences.DEFAULT_REMINDER_TIME,
+    val defaultLeadTimes: Set<LeadTime> = LeadTime.DEFAULT,
 )
 
 @HiltViewModel
@@ -56,6 +61,8 @@ class SettingsViewModel @Inject constructor(
                 tagCount = tags.size,
                 lastBackup = backup.lastBackupAt?.atZone(clock.zone)?.toLocalDate(),
                 today = LocalDate.now(clock),
+                reminderTime = preferences.reminderTime,
+                defaultLeadTimes = preferences.defaultLeadTimes,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 }

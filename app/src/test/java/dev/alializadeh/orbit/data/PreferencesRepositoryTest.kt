@@ -7,6 +7,9 @@ import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.interaction.InteractionType
 import dev.alializadeh.orbit.person.PeopleSort
 import dev.alializadeh.orbit.reminders.LeadTime
+import dev.alializadeh.orbit.reminders.NotificationState
+import dev.alializadeh.orbit.reminders.PostedReminder
+import dev.alializadeh.orbit.reminders.ShowingReminder
 import dev.alializadeh.orbit.ui.theme.ColourSource
 import dev.alializadeh.orbit.ui.theme.ThemeMode
 import java.io.ByteArrayInputStream
@@ -137,9 +140,28 @@ class PreferencesRepositoryTest {
         DeviceStateSerializer.writeTo(DeviceState(firstRunFinished = true), out)
         assertEquals(
             """{"firstRunFinished":true,"lastInteractionType":"Call","wrappedBackupPassphrase":null,"lastBackup":null,""" +
-                """"backupCount":0,"passphraseTypedAtBackupCount":0,"backupNudgeHiddenUntilEpochDay":null}""",
+                """"backupCount":0,"passphraseTypedAtBackupCount":0,"backupNudgeHiddenUntilEpochDay":null,""" +
+                """"notifications":{"postedReminders":[],"showingReminders":[],"lastDigestEpochDay":null,"digestPersonIds":[]},""" +
+                """"notificationPermissionAsked":false,"batteryExemptionAsked":false}""",
             out.toString(Charsets.UTF_8),
         )
+    }
+
+    /** Slice 6's notification state survives a write and a read. */
+    @Test
+    fun notificationStateRoundTrips() = runBlocking {
+        val state = DeviceState(
+            notifications = NotificationState(
+                postedReminders = listOf(PostedReminder(dateId = 3, occurrenceEpochDay = 20_000, leadTime = LeadTime.OneWeek)),
+                showingReminders = listOf(ShowingReminder(dateId = 3, personId = 1, occurrenceEpochDay = 20_000, fingerprint = "Birthday|")),
+                lastDigestEpochDay = 19_990,
+                digestPersonIds = listOf(1, 2),
+            ),
+            notificationPermissionAsked = true,
+        )
+        val out = ByteArrayOutputStream()
+        DeviceStateSerializer.writeTo(state, out)
+        assertEquals(state, DeviceStateSerializer.readFrom(ByteArrayInputStream(out.toByteArray())))
     }
 
     @Test

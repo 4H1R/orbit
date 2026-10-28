@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.interaction
 
 import app.cash.turbine.test
+import dev.alializadeh.orbit.reminders.ReminderPermissionAsks
 import dev.alializadeh.orbit.data.DeviceState
 import dev.alializadeh.orbit.due.SnoozeDuration
 import dev.alializadeh.orbit.person.detail.PersonDetailUiState
@@ -165,7 +166,7 @@ class KeepInTouchViewModelTest {
         // Sara is in Close (every 30 days); her latest Interaction was 31 days ago.
         interactions.save(InteractionDraft(type = InteractionType.Call, date = today.minusDays(40), personIds = listOf(1)))
         interactions.save(InteractionDraft(type = InteractionType.Other, date = today.minusDays(31), personIds = listOf(1, 2)))
-        val detail = PersonDetailViewModel(1, people, interactions, FakePhotoStore(), preferences, clock)
+        val detail = PersonDetailViewModel(1, people, interactions, FakePhotoStore(), preferences, clock, ReminderPermissionAsks.None)
 
         detail.uiState.test {
             var state = awaitItem()

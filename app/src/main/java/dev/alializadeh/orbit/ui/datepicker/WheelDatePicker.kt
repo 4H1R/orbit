@@ -121,8 +121,8 @@ fun calendarName(calendar: CalendarSystem): String = stringResource(
     },
 )
 
-private val ItemHeight = 48.dp
-private const val VISIBLE_ITEMS = 5
+internal val WheelItemHeight = 48.dp
+internal const val VISIBLE_ITEMS = 5
 
 /**
  * One wheel: [count] rows, the centre one selected. Flinging snaps to a row and selects it once
@@ -130,7 +130,7 @@ private const val VISIBLE_ITEMS = 5
  * wheel shortening the month, a Calendar flip) scrolls the wheel to it.
  */
 @Composable
-private fun Wheel(
+internal fun Wheel(
     count: Int,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
@@ -159,7 +159,7 @@ private fun Wheel(
 
     Box(
         modifier = modifier
-            .height(ItemHeight * VISIBLE_ITEMS)
+            .height(WheelItemHeight * VISIBLE_ITEMS)
             // Scrolling past a wheel's end mustn't drag the bottom sheet it sits in.
             .nestedScroll(KeepLeftoverScroll)
             .semantics { contentDescription = description },
@@ -167,12 +167,12 @@ private fun Wheel(
         Surface(
             color = MaterialTheme.colorScheme.secondaryContainer,
             shape = MaterialTheme.shapes.large,
-            modifier = Modifier.align(Alignment.Center).fillMaxWidth().height(ItemHeight),
+            modifier = Modifier.align(Alignment.Center).fillMaxWidth().height(WheelItemHeight),
         ) {}
         LazyColumn(
             state = listState,
             flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
-            contentPadding = PaddingValues(vertical = ItemHeight * (VISIBLE_ITEMS / 2)),
+            contentPadding = PaddingValues(vertical = WheelItemHeight * (VISIBLE_ITEMS / 2)),
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
@@ -187,7 +187,7 @@ private fun Wheel(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(ItemHeight)
+                        .height(WheelItemHeight)
                         .semantics { this.selected = selected }
                         .clickable {
                             onSelect(index)

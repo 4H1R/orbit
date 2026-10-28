@@ -229,8 +229,6 @@
     <string name="person_form_birthday_add">افزودن تولد</string>
     <string name="person_form_important_date_add">افزودن تاریخ مهم</string>
     <string name="important_date_reminders">یادآوری‌ها</string>
-    <string name="important_date_reminders_default">پیش‌فرض (%1$s)</string>
-    <string name="important_date_reminders_custom">دلخواه (%1$s)</string>
     <string name="important_date_reminders_none">بدون یادآوری</string>
     <string name="important_date_reminders_default_short">یادآوری‌های پیش‌فرض</string>
     <string name="important_date_reminders_custom_short">یادآوری‌های دلخواه</string>
@@ -480,4 +478,102 @@
     <string name="restore_progress">در حال بازیابی…</string>
     <string name="restore_failed">Orbit نتوانست این پشتیبان را بازیابی کند. چیزی روی این گوشی تغییر نکرده است.</string>
     <string name="restored_snackbar">%1$s نفر بازیابی شدند</string>
+
+    <!-- Reminders and notifications (slice 6) -->
+    <string name="reminder_title_birthday">تولد %1$s، %2$s</string>
+    <string name="reminder_title_anniversary">سالگرد %1$s، %2$s</string>
+    <string name="reminder_title_custom">%2$s %1$s، %3$s</string>
+    <string name="time_tomorrow_inline">فردا</string>
+    <plurals name="time_in_days_inline">
+        <item quantity="one">%1$s روز دیگر</item>
+        <item quantity="other">%1$s روز دیگر</item>
+    </plurals>
+    <string name="action_mark_as_contacted">ارتباط گرفتم</string>
+    <string name="action_snooze_week">یک هفته بعد</string>
+    <string name="channel_important_dates_name">تاریخ‌های مهم</string>
+    <string name="channel_important_dates_description">یادآوری پیش از تولدها، سالگردها و دیگر تاریخ‌های مهم</string>
+    <string name="channel_keep_in_touch_name">در ارتباط ماندن</string>
+    <string name="channel_keep_in_touch_description">یادداشتی روزانه از کسانی که وقت احوال‌پرسی از آن‌هاست</string>
+    <string name="digest_title">وقت احوال‌پرسی از %1$s است</string>
+    <string name="digest_body_one">آخرین ارتباط: %1$s</string>
+    <string name="digest_body_one_never">%1$s اضافه شد، هنوز ارتباطی ثبت نشده</string>
+    <string name="names_two">%1$s و %2$s</string>
+    <string name="names_three">%1$s، %2$s و %3$s</string>
+    <string name="names_more">%1$s، %2$s و %3$s نفر دیگر</string>
+    <string name="digest_body_several">موعد ارتباط با %1$s نفر رسیده است</string>
+    <string name="discreet_birthday_soon">تولدی در پیش است، %1$s</string>
+    <string name="discreet_anniversary_soon">سالگردی در پیش است، %1$s</string>
+    <string name="discreet_date_soon">تاریخ مهمی در پیش است، %1$s</string>
+    <string name="discreet_birthday_today">امروز تولد یک نفر است</string>
+    <string name="discreet_anniversary_today">امروز سالگرد یک نفر است</string>
+    <string name="discreet_date_today">امروز یک تاریخ مهم دارید</string>
+    <string name="discreet_digest_one">وقت احوال‌پرسی از یک نفر است</string>
+    <string name="discreet_digest_several">وقت احوال‌پرسی از %1$s نفر است</string>
+
+    <!-- Settings → Reminders -->
+    <string name="settings_reminders_title">یادآوری‌ها</string>
+    <string name="reminders_time">زمان یادآوری</string>
+    <string name="reminders_time_footer">همهٔ یادآوری‌ها، و یادداشت روزانهٔ کسانی که وقت احوال‌پرسی از آن‌هاست، در این ساعت می‌آیند.</string>
+    <string name="reminders_lead_times">یادآوری‌های پیش‌فرض</string>
+    <string name="reminders_lead_times_footer">برای تاریخ‌های مهمی که یادآوری‌های خودشان را ندارند.</string>
+    <string name="lead_time_chip_on_the_day">همان روز</string>
+    <plurals name="lead_time_chip_days">
+        <item quantity="one">%1$s روز</item>
+        <item quantity="other">%1$s روز</item>
+    </plurals>
+    <plurals name="lead_time_chip_weeks">
+        <item quantity="one">%1$s هفته</item>
+        <item quantity="other">%1$s هفته</item>
+    </plurals>
+    <plurals name="lead_time_chip_months">
+        <item quantity="one">%1$s ماه</item>
+        <item quantity="other">%1$s ماه</item>
+    </plurals>
+    <string name="reminders_health">سلامت یادآوری‌ها</string>
+    <string name="reminders_health_all_good">همه‌چیز درست است</string>
+    <plurals name="reminders_health_to_check">
+        <item quantity="one">%1$s مورد برای بررسی</item>
+        <item quantity="other">%1$s مورد برای بررسی</item>
+    </plurals>
+    <string name="reminders_notifications">اعلان‌ها</string>
+    <string name="reminders_channel_on">روشن</string>
+    <string name="reminders_channel_off">خاموش</string>
+    <string name="time_picker_hour">ساعت</string>
+    <string name="time_picker_minute">دقیقه</string>
+
+    <!-- Reminder health -->
+    <string name="reminder_health_intro">اندروید ممکن است یادآوری‌ها را با تأخیر بفرستد یا متوقف کند. این تنظیم‌ها آن‌ها را به‌موقع نگه می‌دارند.</string>
+    <string name="reminder_health_notifications">اعلان‌ها</string>
+    <string name="reminder_health_notifications_on">روشن</string>
+    <string name="reminder_health_notifications_off">خاموش: یادآوری‌ها به شما نمی‌رسند</string>
+    <string name="reminder_health_notifications_channels_off">برای %1$s خاموش است</string>
+    <string name="reminder_health_turn_on">روشن کردن</string>
+    <string name="reminder_health_exact_alarms">هشدارها و یادآوری‌ها</string>
+    <string name="reminder_health_exact_alarms_on">مجاز</string>
+    <string name="reminder_health_exact_alarms_off">مجاز نیست: یادآوری‌ها ممکن است دیر برسند</string>
+    <string name="reminder_health_allow">اجازه دادن</string>
+    <string name="reminder_health_battery">باتری</string>
+    <string name="reminder_health_battery_on">بدون محدودیت</string>
+    <string name="reminder_health_battery_off">بهینه‌شده: یادآوری‌ها ممکن است دیر برسند</string>
+    <string name="reminder_health_unused">توقف فعالیت برنامه در صورت عدم استفاده</string>
+    <string name="reminder_health_unused_off">خاموش</string>
+    <string name="reminder_health_unused_on">روشن: اگر چند ماه Orbit را باز نکنید، یادآوری‌ها متوقف می‌شوند</string>
+    <string name="reminder_health_turn_off">خاموش کردن</string>
+    <string name="reminder_health_maker">گوشی شما</string>
+    <string name="reminder_health_maker_summary">برخی گوشی‌ها برنامه‌ها را در پس‌زمینه متوقف می‌کنند. مراحل گوشی‌های %1$s را ببینید.</string>
+    <string name="reminder_health_see_steps">دیدن مراحل</string>
+    <string name="reminder_health_ok">درست است</string>
+    <string name="reminder_health_problem">نیاز به بررسی</string>
+
+    <!-- Upcoming's warning card -->
+    <string name="reminder_warning_notifications_off">اعلان‌ها خاموش است و یادآوری‌ها به شما نمی‌رسند</string>
+    <string name="reminder_warning_exact_alarms_off">یادآوری‌ها ممکن است دیر برسند: هشدارها مجاز نیستند</string>
+    <string name="reminder_warning_fix">رفع مشکل</string>
+
+    <string name="battery_ask_body">برای این‌که یادآوری‌ها به‌موقع برسند، اجازه دهید Orbit در پس‌زمینه کار کند.</string>
+    <string name="common_continue">ادامه</string>
+
+    <!-- The Important date sheet's Reminders -->
+    <string name="important_date_reminders_mode_default">پیش‌فرض</string>
+    <string name="important_date_reminders_mode_custom">دلخواه</string>
 </resources>

@@ -19,9 +19,13 @@ import dev.alializadeh.orbit.person.PersonProfile
 import dev.alializadeh.orbit.person.PersonRepository
 import dev.alializadeh.orbit.person.photo.PhotoStore
 import dev.alializadeh.orbit.reminders.LeadTime
+import dev.alializadeh.orbit.reminders.ReminderPermissionAsks
+import dev.alializadeh.orbit.upcoming.todayFlow
 import java.io.File
 import java.time.Clock
 import java.time.LocalDate
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -97,9 +101,11 @@ class PersonDetailViewModel @AssistedInject constructor(
     private val photoStore: PhotoStore,
     preferencesRepository: PreferencesRepository,
     private val clock: Clock,
+    private val reminderAsks: ReminderPermissionAsks,
 ) : ViewModel(), PersonDetailEdits {
 
     private val phase = MutableStateFlow(Phase.Showing)
+    private val dateChecks = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var lastLoaded: PersonDetailUiState.Loaded? = null
 
     val uiState: StateFlow<PersonDetailUiState> =
@@ -108,13 +114,13 @@ class PersonDetailViewModel @AssistedInject constructor(
             interactionRepository.observeForPerson(personId),
             phase,
             preferencesRepository.preferences.map { it.defaultLeadTimes },
-        ) { profile, interactions, phase, defaultLeadTimes ->
+            todayFlow(clock, dateChecks),
+        ) { profile, interactions, phase, defaultLeadTimes, today ->
             val exit = when (phase) {
                 Phase.Archived -> DetailExit.Archived
                 Phase.Deleted -> DetailExit.Deleted
                 else -> null
             }
-            val today = LocalDate.now(clock)
             when {
                 profile != null -> PersonDetailUiState.Loaded(
                     profile = profile,
@@ -166,7 +172,10 @@ class PersonDetailViewModel @AssistedInject constructor(
     }
 
     override fun saveImportantDate(draft: ImportantDateDraft) {
-        viewModelScope.launch { personRepository.saveImportantDate(personId, draft) }
+        viewModelScope.launch {
+            personRepository.saveImportantDate(personId, draft)
+            reminderAsks.remindersNeeded()
+        }
     }
 
     override fun deleteImportantDate(id: Long) {
@@ -180,6 +189,11 @@ class PersonDetailViewModel @AssistedInject constructor(
 
     override fun deleteGiftIdea(id: Long) {
         viewModelScope.launch { personRepository.deleteGiftIdea(id) }
+    }
+
+    /** The screen resumed: the day may have changed (Due, years counts, "today"). */
+    fun checkDate() {
+        dateChecks.tryEmit(Unit)
     }
 
     fun markGiven(id: Long, date: LocalDate) {

@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshots.Snapshot
 import app.cash.turbine.test
+import dev.alializadeh.orbit.reminders.ReminderPermissionAsks
 import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
 import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
 import dev.alializadeh.orbit.calendar.RecurringDate
@@ -79,7 +80,7 @@ class PersonViewModelsTest {
     @Test
     fun personDetailShowsThePersonThenNotFoundOnceTheyAreGone() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock, ReminderPermissionAsks.None)
 
         viewModel.uiState.test {
             assertEquals(sara, (awaitItem() as PersonDetailUiState.Loaded).profile)
@@ -91,7 +92,7 @@ class PersonViewModelsTest {
     @Test
     fun archiveLeavesAndUndoBringsThemBack() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock, ReminderPermissionAsks.None)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.archive()
@@ -105,7 +106,7 @@ class PersonViewModelsTest {
     @Test
     fun deleteAsksFirstThenLeavesWithoutFlashingNotFound() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock, ReminderPermissionAsks.None)
         val states = mutableListOf<PersonDetailUiState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect { states += it } }
 
@@ -121,7 +122,7 @@ class PersonViewModelsTest {
     @Test
     fun addDetailsOffersTheEmptyFields() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara.copy(likes = listOf("Jazz"))))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock, ReminderPermissionAsks.None)
 
         viewModel.uiState.test {
             val missing = (awaitItem() as PersonDetailUiState.Loaded).missingFields
@@ -138,7 +139,7 @@ class PersonViewModelsTest {
         personId: Long? = null,
         focus: PersonField? = null,
     ): PersonFormViewModel {
-        val viewModel = PersonFormViewModel(personId, focus, repository, FakeRingRepository(), photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonFormViewModel(personId, focus, repository, FakeRingRepository(), photos, FakePreferencesRepository(), clock, ReminderPermissionAsks.None)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         settle()
         return viewModel
@@ -577,7 +578,7 @@ class PersonViewModelsTest {
     // Important dates and Gift ideas on Person detail
 
     private fun TestScope.detail(repository: FakePersonRepository): PersonDetailViewModel {
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock, ReminderPermissionAsks.None)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         return viewModel
     }

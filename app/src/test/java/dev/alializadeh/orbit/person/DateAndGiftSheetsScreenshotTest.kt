@@ -64,6 +64,50 @@ class DateAndGiftSheetsScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
+    /** Custom reminders: the chips editable, with No reminders last. */
+    @Test
+    fun dateSheetCustomReminders() = captureScreen("date_sheet_custom_reminders", variant, tall = true) {
+        SheetFrame {
+            ImportantDateSheetContent(
+                initial = ImportantDateDraft(
+                    id = 4,
+                    type = ImportantDateType.Anniversary,
+                    date = RecurringDate(if (variant.persian) CalendarSystem.SolarHijri else CalendarSystem.Gregorian, 5, 12, 1399),
+                    leadTimes = setOf(LeadTime.OnTheDay, LeadTime.OneDay, LeadTime.TwoWeeks),
+                ),
+                newType = ImportantDateType.Anniversary,
+                birthdayTaken = true,
+                defaultLeadTimes = LeadTime.DEFAULT,
+                today = ScreenshotToday,
+                onDone = {},
+                onDelete = {},
+                sheet = NoCloser,
+            )
+        }
+    }
+
+    /** No reminders: the date still shows on Upcoming. */
+    @Test
+    fun dateSheetNoReminders() = captureScreen("date_sheet_no_reminders", variant, tall = true) {
+        SheetFrame {
+            ImportantDateSheetContent(
+                initial = ImportantDateDraft(
+                    id = 5,
+                    type = ImportantDateType.Birthday,
+                    date = RecurringDate(CalendarSystem.Gregorian, 2, 29),
+                    leadTimes = emptySet(),
+                ),
+                newType = ImportantDateType.Birthday,
+                birthdayTaken = false,
+                defaultLeadTimes = LeadTime.DEFAULT,
+                today = ScreenshotToday,
+                onDone = {},
+                onDelete = {},
+                sheet = NoCloser,
+            )
+        }
+    }
+
     @Test
     fun giftIdeaSheet() = captureScreen("gift_idea_sheet", variant) {
         SheetFrame {

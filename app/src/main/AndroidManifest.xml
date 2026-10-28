@@ -3,6 +3,17 @@
 
     <!-- Orbit is offline by design (ADR 0001): no INTERNET permission, ever. -->
 
+    <!-- Reminders (ticket 02): one exact alarm. USE_EXACT_ALARM can't be revoked and keeps Orbit out
+         of the Restricted standby bucket (13+); 12/12L use the revocable SCHEDULE_EXACT_ALARM. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The direct battery-exemption prompt: allowed because Orbit is sideloaded. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:name=".OrbitApplication"
         android:allowBackup="false"
@@ -24,6 +35,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Reminders: the alarm, the system events that lose or move it, and notification actions.
+             None is exported: the alarm and actions are Orbit's own PendingIntents, and the system
+             broadcasts come from the system. -->
+        <receiver
+            android:name=".reminders.ReminderAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminders.ReminderSystemReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_OFFSET_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".reminders.NotificationActionReceiver"
+            android:exported="false" />
 
         <!-- Per-app language on API 31–32: AppCompat stores the choice itself (API 33+ uses the
              framework's LocaleManager). -->

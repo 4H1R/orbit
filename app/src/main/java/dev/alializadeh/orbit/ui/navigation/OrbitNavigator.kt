@@ -73,6 +73,17 @@ class OrbitNavigator(
         }
     }
 
+    /**
+     * A notification tap: Upcoming at its root, with [key] (Person detail) pushed over it, so Back
+     * lands on Upcoming. Other tabs keep their stacks.
+     */
+    fun openOnUpcoming(key: NavKey?) {
+        val stack = backStack(TopLevelTab.Upcoming)
+        stack.popToRoot()
+        if (key != null) stack.add(key)
+        currentTab = TopLevelTab.Upcoming
+    }
+
     /** Every tab back at its root, on Upcoming: after a Restore replaced the data under them. */
     fun resetToRoots() {
         TopLevelTab.entries.forEach { backStack(it).popToRoot() }

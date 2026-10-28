@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.format
 
 import dev.alializadeh.orbit.language.OrbitLanguage
+import java.time.LocalTime
 
 /**
  * Every number Orbit shows goes through here (never `"$n"`, `%d` or a `DateTimeFormatter`'s
@@ -17,6 +18,15 @@ class OrbitNumberFormatter(
     fun format(n: Long): String = if (usesPersianDigits) Digits.toPersian(n.toString()) else n.toString()
 
     fun format(n: Int): String = format(n.toLong())
+
+    /** [n] with at least two digits ("09"), for times. */
+    fun twoDigits(n: Int): String = format(n.toLong()).let { if (n in 0..9) format(0) + it else it }
+
+    /**
+     * A time of day on the 24-hour clock in Orbit's digits: "09:00" / «۰۹:۰۰». Digits and the colon
+     * keep their order inside Persian text by themselves (no isolate: an LTR isolate before «، » breaks it).
+     */
+    fun time(time: LocalTime): String = twoDigits(time.hour) + ":" + twoDigits(time.minute)
 
     /**
      * The ordinal of [n] (1 or more): "1st", "2nd", "11th", "21st" in English; spelled out in

@@ -3,6 +3,7 @@ package dev.alializadeh.orbit.data
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
 import dev.alializadeh.orbit.interaction.InteractionType
+import dev.alializadeh.orbit.reminders.NotificationState
 import java.io.InputStream
 import java.io.OutputStream
 import kotlinx.serialization.Serializable
@@ -11,7 +12,7 @@ import kotlinx.serialization.json.Json
 
 /**
  * Device-bound state (ADR 0006): what belongs to this phone and never travels in a Backup. Kept in
- * a typed DataStore as JSON. Later slices add App lock settings and notification state as fields
+ * a typed DataStore as JSON. Slice 7 adds App lock settings as fields
  * with defaults.
  */
 @Serializable
@@ -33,6 +34,15 @@ data class DeviceState(
     val passphraseTypedAtBackupCount: Int = 0,
     /** "Not now" on the Backup nudge hides it until this day (epoch day). */
     val backupNudgeHiddenUntilEpochDay: Long? = null,
+    /** What Orbit has notified on this phone; rewritten by every reminder `reconcile()`. */
+    val notifications: NotificationState = NotificationState(),
+    /**
+     * Orbit has asked for notifications (or found them already on) at the first save that needs
+     * them; from then on Reminder health and the Upcoming warning look after them.
+     */
+    val notificationPermissionAsked: Boolean = false,
+    /** The one-time battery-exemption ask has been made. */
+    val batteryExemptionAsked: Boolean = false,
 )
 
 /**

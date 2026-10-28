@@ -1,8 +1,10 @@
 package dev.alializadeh.orbit
 
 import android.app.Application
+import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
 import dev.alializadeh.orbit.backup.Restorer
+import dev.alializadeh.orbit.reminders.ReminderTriggers
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +17,8 @@ class OrbitApplication : Application() {
 
     @Inject lateinit var restorer: Provider<Restorer>
 
+    @Inject lateinit var reminderTriggers: Provider<ReminderTriggers>
+
     override fun onCreate() {
         super.onCreate()
         val startedAt = System.currentTimeMillis()
@@ -22,5 +26,12 @@ class OrbitApplication : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             restorer.get().recoverInterrupted(startedAt)
         }
+        // Reminders reconcile at app start and after every data edit. Robolectric tests start this
+        // Application too; they test the reconciler directly instead.
+        if (Build.FINGERPRINT != ROBOLECTRIC) reminderTriggers.get().start()
+    }
+
+    private companion object {
+        const val ROBOLECTRIC = "robolectric"
     }
 }

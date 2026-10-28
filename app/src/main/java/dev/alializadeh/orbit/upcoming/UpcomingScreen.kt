@@ -34,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,9 @@ import dev.alializadeh.orbit.person.list.NewPersonFab
 import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
+import dev.alializadeh.orbit.reminders.CriticalReminderProblem
+import dev.alializadeh.orbit.reminders.ReminderWarningCard
+import dev.alializadeh.orbit.reminders.ReminderWarningViewModel
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitSectionTitle
@@ -109,16 +113,23 @@ fun UpcomingRoute(
     onNewPerson: () -> Unit,
     onPersonClick: (personId: Long) -> Unit,
     onBackUpNow: () -> Unit,
+    onFixReminders: () -> Unit = {},
+    /** A notification asked for Upcoming at Due: scroll there once loaded, then [onScrolledToDue]. */
+    scrollToDue: Boolean = false,
+    onScrolledToDue: () -> Unit = {},
     viewModel: UpcomingViewModel = hiltViewModel(),
     keepInTouch: KeepInTouchViewModel = hiltViewModel(),
     backupNudge: BackupNudgeViewModel = hiltViewModel(),
+    reminderWarning: ReminderWarningViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val nudge by backupNudge.nudge.collectAsStateWithLifecycle()
+    val warning by reminderWarning.warning.collectAsStateWithLifecycle()
     // Back from the background: it may be another day.
     LifecycleResumeEffect(viewModel) {
         viewModel.checkDate()
         backupNudge.checkDate()
+        reminderWarning.refresh()
         onPauseOrDispose {}
     }
     val context = LocalContext.current
@@ -142,6 +153,10 @@ fun UpcomingRoute(
         backupNudge = nudge,
         onBackUpNow = onBackUpNow,
         onNudgeNotNow = backupNudge::notNow,
+        reminderWarning = warning,
+        onFixReminders = onFixReminders,
+        scrollToDue = scrollToDue,
+        onScrolledToDue = onScrolledToDue,
     )
 }
 
@@ -160,10 +175,37 @@ fun UpcomingScreen(
     backupNudge: BackupNudgeUi? = null,
     onBackUpNow: () -> Unit = {},
     onNudgeNotNow: () -> Unit = {},
+    /** Slice 6's critical Reminder health problem, or null. */
+    reminderWarning: CriticalReminderProblem? = null,
+    onFixReminders: () -> Unit = {},
+    scrollToDue: Boolean = false,
+    onScrolledToDue: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    val warningCard: (@Composable (Modifier) -> Unit)? = reminderWarning?.let { problem ->
+        { cardModifier -> ReminderWarningCard(problem, onFix = onFixReminders, modifier = cardModifier) }
+    }
     val nudgeCard: (@Composable (Modifier) -> Unit)? = backupNudge?.let { nudge ->
         { cardModifier -> BackupNudgeCard(nudge, onBackUpNow = onBackUpNow, onNotNow = onNudgeNotNow, modifier = cardModifier) }
+    }
+    // Above an empty state: the warning, then the nudge.
+    val topCards: (@Composable (Modifier) -> Unit)? = if (warningCard == null && nudgeCard == null) {
+        null
+    } else {
+        { cardModifier ->
+            Column(cardModifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                warningCard?.invoke(Modifier)
+                nudgeCard?.invoke(Modifier)
+            }
+        }
+    }
+    LaunchedEffect(scrollToDue, uiState is UpcomingUiState.Loaded) {
+        val loaded = uiState as? UpcomingUiState.Loaded ?: return@LaunchedEffect
+        if (!scrollToDue) return@LaunchedEffect
+        if (loaded.feed.due.isNotEmpty()) {
+            listState.scrollToItem(dueTitleIndex(loaded, warningCard != null, nudgeCard != null))
+        }
+        onScrolledToDue()
     }
     Scaffold(
         modifier = modifier,
@@ -183,14 +225,14 @@ fun UpcomingScreen(
                 title = stringResource(R.string.empty_no_people_title),
                 body = stringResource(R.string.empty_no_people_body),
                 modifier = Modifier.padding(innerPadding),
-                card = nudgeCard,
+                card = topCards,
             )
 
             uiState.isEmpty -> EmptyState(
                 title = stringResource(R.string.upcoming_all_caught_up),
                 body = uiState.feed.next?.let { nextLine(it, uiState.today) },
                 modifier = Modifier.padding(innerPadding),
-                card = nudgeCard,
+                card = topCards,
             )
 
             else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -207,7 +249,9 @@ fun UpcomingScreen(
                 ) {
                     UpcomingSection.entries.forEach { section ->
                         when (section) {
-                            UpcomingSection.Warnings -> Unit
+                            UpcomingSection.Warnings -> if (warningCard != null) {
+                                item(key = "reminder_warning") { warningCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
+                            }
                             UpcomingSection.BackupNudge -> if (nudgeCard != null) {
                                 item(key = "backup_nudge") { nudgeCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
                             }
@@ -221,6 +265,14 @@ fun UpcomingScreen(
             }
         }
     }
+}
+
+/** Where Due's title sits in the list: after the cards and Today (title, hero, other rows). */
+private fun dueTitleIndex(uiState: UpcomingUiState.Loaded, hasWarning: Boolean, hasNudge: Boolean): Int {
+    var index = listOf(hasWarning, hasNudge).count { it }
+    val today = uiState.feed.today.size
+    if (today > 0) index += 1 + today
+    return index
 }
 
 /** The nearest date today as the hero card, then any others today as rows. */

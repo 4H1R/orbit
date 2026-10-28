@@ -24,8 +24,10 @@ internal class OrbitFonts private constructor(resources: Resources) {
 
     val regular: ComposeFontFamily =
         family(resources, R.font.outfit_regular, R.font.vazirmatn_nl_regular, FontWeight.Normal)
-    val medium: ComposeFontFamily =
-        family(resources, R.font.outfit_medium, R.font.vazirmatn_nl_medium, FontWeight.Medium)
+    /** The Medium weight as a plain [Typeface], for what's drawn outside Compose (avatar bitmaps). */
+    val mediumTypeface: Typeface =
+        typeface(resources, R.font.outfit_medium, R.font.vazirmatn_nl_medium, FontWeight.Medium)
+    val medium: ComposeFontFamily = ComposeFontFamily(composeTypeface(mediumTypeface))
     val semiBold: ComposeFontFamily =
         family(resources, R.font.outfit_semibold, R.font.vazirmatn_nl_semibold, FontWeight.SemiBold)
 
@@ -43,14 +45,18 @@ internal class OrbitFonts private constructor(resources: Resources) {
             @FontRes latin: Int,
             @FontRes persian: Int,
             weight: FontWeight,
-        ): ComposeFontFamily {
-            val typeface = Typeface.CustomFallbackBuilder(singleFontFamily(resources, latin))
-                .addCustomFallback(singleFontFamily(resources, persian))
-                .setStyle(FontStyle(weight.weight, FontStyle.FONT_SLANT_UPRIGHT))
-                .setSystemFallback("sans-serif")
-                .build()
-            return ComposeFontFamily(composeTypeface(typeface))
-        }
+        ): ComposeFontFamily = ComposeFontFamily(composeTypeface(typeface(resources, latin, persian, weight)))
+
+        private fun typeface(
+            resources: Resources,
+            @FontRes latin: Int,
+            @FontRes persian: Int,
+            weight: FontWeight,
+        ): Typeface = Typeface.CustomFallbackBuilder(singleFontFamily(resources, latin))
+            .addCustomFallback(singleFontFamily(resources, persian))
+            .setStyle(FontStyle(weight.weight, FontStyle.FONT_SLANT_UPRIGHT))
+            .setSystemFallback("sans-serif")
+            .build()
 
         private fun singleFontFamily(resources: Resources, @FontRes font: Int): FontFamily =
             FontFamily.Builder(Font.Builder(resources, font).build()).build()

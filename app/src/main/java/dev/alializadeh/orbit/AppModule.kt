@@ -7,6 +7,13 @@ import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.language.AppCompatAppLanguage
 import dev.alializadeh.orbit.language.AppLanguage
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
+import javax.inject.Qualifier
+import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -14,7 +21,7 @@ object AppModule {
 
     /** All time comes from here, so tests can pin it with a fixed clock. */
     @Provides
-    fun provideClock(): Clock = Clock.systemDefaultZone()
+    fun provideClock(): Clock = SystemZoneClock
 
     @Provides
     fun provideAppVersion(): AppVersion =
@@ -25,4 +32,30 @@ object AppModule {
 
     @Provides
     fun provideAppLanguage(): AppLanguage = AppCompatAppLanguage()
+
+    /** Work that outlives any screen (a reconcile, a notification action), for the whole process. */
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+}
+
+/** The process-wide [CoroutineScope]. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
+
+/**
+ * The system clock in the phone's zone **as it is now**: `Clock.systemDefaultZone()` keeps the zone
+ * it was created with, so a singleton holding it would miss a time-zone change (reminders are local
+ * times, ticket 02).
+ */
+object SystemZoneClock : Clock() {
+    override fun getZone(): ZoneId = ZoneId.systemDefault()
+
+    override fun withZone(zone: ZoneId): Clock = system(zone)
+
+    override fun instant(): Instant = Instant.now()
+
+    override fun millis(): Long = System.currentTimeMillis()
 }

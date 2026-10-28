@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.upcoming
 
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import dev.alializadeh.orbit.backup.BackupNudgeUi
+import dev.alializadeh.orbit.reminders.CriticalReminderProblem
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
 import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
@@ -81,10 +82,23 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
         Screen(loaded(people.filter { it.id == 5L }), BackupNudgeUi(lastBackup = null, today = today))
     }
 
+    /** Notifications off (a critical Reminder health problem): the warning card first, then the nudge. */
+    @Test
+    fun upcomingReminderWarning() = captureScreen("upcoming_reminder_warning", variant) {
+        Screen(loaded(people), BackupNudgeUi(lastBackup = today.minusDays(40), today = today), CriticalReminderProblem.NotificationsOff)
+    }
+
+    /** Exact alarms off (Android 12/12L), above "All caught up". */
+    @Test
+    fun upcomingReminderWarningEmpty() = captureScreen("upcoming_reminder_warning_empty", variant) {
+        Screen(loaded(people.filter { it.id == 5L }), warning = CriticalReminderProblem.ExactAlarmsOff)
+    }
+
     @androidx.compose.runtime.Composable
-    private fun Screen(uiState: UpcomingUiState, nudge: BackupNudgeUi? = null) {
+    private fun Screen(uiState: UpcomingUiState, nudge: BackupNudgeUi? = null, warning: CriticalReminderProblem? = null) {
         UpcomingScreen(
             backupNudge = nudge,
+            reminderWarning = warning,
             uiState = uiState,
             onNewPerson = {},
             onPersonClick = {},

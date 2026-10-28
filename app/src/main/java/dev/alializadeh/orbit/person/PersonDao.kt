@@ -73,9 +73,16 @@ interface PersonDao {
     @Query("UPDATE person SET snoozedUntil = :until WHERE id = :id")
     suspend fun setSnoozedUntil(id: Long, until: LocalDate?)
 
-    /** Slice 6: the Cadence digest named them as Due on [day]. */
+    /**
+     * The Cadence digest named them as Due on [day] (or left them out for an on-the-day Reminder).
+     * Only this column: it's excluded from the data-version triggers, so it's not a data change.
+     */
     @Query("UPDATE person SET lastNotifiedDueOn = :day WHERE id = :id")
     suspend fun setLastNotifiedDueOn(id: Long, day: LocalDate?)
+
+    /** [setLastNotifiedDueOn] for several People at once. */
+    @Query("UPDATE person SET lastNotifiedDueOn = :day WHERE id IN (:ids)")
+    suspend fun setLastNotifiedDueOn(ids: List<Long>, day: LocalDate)
 
     /** Every Person, Archived ones included. */
     @Query("SELECT * FROM person")
