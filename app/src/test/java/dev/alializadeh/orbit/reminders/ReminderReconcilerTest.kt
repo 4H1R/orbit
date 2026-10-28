@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.reminders
 
+import dev.alializadeh.orbit.occasion.RoomOccasionRepository
 import androidx.room3.useWriterConnection
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.RecurringDate
@@ -69,6 +70,7 @@ class ReminderReconcilerTest {
         val upcoming = RoomUpcomingRepository(database.personDao(), database.ringDao(), database.interactionDao(), clock)
         reconciler = ReminderReconciler(
             upcoming,
+            RoomOccasionRepository(database, database.occasionDao()),
             preferences,
             database.personDao(),
             notifier,

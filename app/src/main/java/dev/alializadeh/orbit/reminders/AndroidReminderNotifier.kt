@@ -93,6 +93,10 @@ class AndroidReminderNotifier @Inject constructor(
                         .setName(resources.getString(R.string.channel_keep_in_touch_name))
                         .setDescription(resources.getString(R.string.channel_keep_in_touch_description))
                         .build(),
+                    NotificationChannelCompat.Builder(ReminderChannel.Occasions.id, NotificationManagerCompat.IMPORTANCE_DEFAULT)
+                        .setName(resources.getString(R.string.channel_occasions_name))
+                        .setDescription(resources.getString(R.string.channel_occasions_description))
+                        .build(),
                 ),
             )
         }

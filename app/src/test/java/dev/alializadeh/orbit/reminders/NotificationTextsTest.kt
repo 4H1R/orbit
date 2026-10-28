@@ -302,4 +302,57 @@ class NotificationTextsTest {
         val intent = org.robolectric.Shadows.shadowOf(action.actionIntent).savedIntent
         assertEquals(99L, NotificationActionTarget.of(intent)!!.restoreToken)
     }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun anOccasionReminderNamesItAndCountsItsPeople() {
+        val people = listOf(person(), person())
+        val occasion = dev.alializadeh.orbit.occasion.occasionOf(
+            1,
+            RecurringDate(CalendarSystem.SolarHijri, 1, 1),
+            forEveryone = true,
+            builtIn = dev.alializadeh.orbit.occasion.BuiltInOccasion.Nowruz,
+        )
+        fun occasionReminder(daysAway: Int) = PlannedOccasionReminder(
+            occasion = occasion,
+            people = people,
+            occurrence = RecurringDate.Occurrence(today.plusDays(daysAway.toLong()), 1406, null),
+            leadTime = LeadTime.OneWeek,
+            daysAway = daysAway,
+            expiresAt = now.plusSeconds(86_400L * (daysAway + 1)),
+        )
+        val soon = build(occasionReminder(7))
+        assertEquals(ReminderChannel.Occasions.id, soon.channelId)
+        assertEquals("Nowruz · in 7 days", soon.title)
+        assertEquals("2 people to send wishes to", soon.extras.getCharSequence(Notification.EXTRA_TEXT).toString().plain())
+        assertEquals("An occasion is coming up · in 7 days", soon.publicVersion.title)
+        assertNull(soon.actions)
+        val onTheDay = build(occasionReminder(0))
+        assertEquals("Today is Nowruz", onTheDay.title)
+        assertEquals("There's an occasion today", onTheDay.publicVersion.title)
+        // Discreet (App lock): no name.
+        assertEquals("An occasion is coming up · in 7 days", build(occasionReminder(7), NotificationRendering(NotificationDetail.Discreet)).title)
+    }
+
+    @Test
+    @Config(qualifiers = "fa")
+    fun anOccasionReminderInPersian() {
+        val occasion = dev.alializadeh.orbit.occasion.occasionOf(
+            1,
+            RecurringDate(CalendarSystem.SolarHijri, 1, 1),
+            forEveryone = true,
+            builtIn = dev.alializadeh.orbit.occasion.BuiltInOccasion.Nowruz,
+        )
+        val reminder = PlannedOccasionReminder(
+            occasion = occasion,
+            people = listOf(person()),
+            occurrence = RecurringDate.Occurrence(today, 1406, null),
+            leadTime = LeadTime.OnTheDay,
+            daysAway = 0,
+            expiresAt = now.plusSeconds(86_400L),
+        )
+        val text = texts(OrbitLanguage.Persian).occasion(reminder)
+        assertEquals("امروز نوروز است", text.title.plain())
+        assertEquals(listOf("به ۱ نفر تبریک بگویید"), text.lines.map { it.plain() })
+    }
 }

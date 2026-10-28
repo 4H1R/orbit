@@ -59,6 +59,26 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
+    /** Occasions: one today (above the hero card) and one coming up, among the dates. */
+    @Test
+    fun upcomingOccasions() = captureScreen("upcoming_occasions", variant, tall = true) {
+        val occasions = listOf(
+            dev.alializadeh.orbit.occasion.occasionOf(
+                1,
+                RecurringDate(Gregorian, 10, 28),
+                forEveryone = true,
+                label = if (variant.persian) "سالگرد شرکت" else "Company anniversary",
+            ),
+            dev.alializadeh.orbit.occasion.occasionOf(
+                2,
+                RecurringDate(CalendarSystem.LunarHijri, 5, 21),
+                personIds = setOf(1, 2, 3),
+                label = if (variant.persian) "دورهمی خانوادگی" else "Family gathering",
+            ),
+        )
+        Screen(UpcomingUiState.Loaded(today = today, feed = UpcomingFeed.of(people, today, occasions)))
+    }
+
     @Test
     fun upcomingNoPeople() = captureScreen("upcoming_no_people", variant) {
         Screen(loaded(emptyList()))

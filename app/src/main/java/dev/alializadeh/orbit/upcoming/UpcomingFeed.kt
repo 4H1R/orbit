@@ -5,6 +5,8 @@ import dev.alializadeh.orbit.due.DueState
 import dev.alializadeh.orbit.due.KeepInTouch
 import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.ImportantDate
+import dev.alializadeh.orbit.occasion.OccasionWithAudience
+import dev.alializadeh.orbit.occasion.audience
 import dev.alializadeh.orbit.person.PersonNames
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -24,20 +26,39 @@ data class UpcomingPerson(
     val ringName: String? = null,
     /** Their Ring's place, innermost 0: the Due section's first sort key. */
     val ringPosition: Int = 0,
+    /** Their Ring and Tags: who an Occasion reaches. */
+    val ringId: Long? = null,
+    val tagIds: Set<Long> = emptySet(),
 )
 
 /** A Person who is Due today, with where they stand. */
 data class DuePerson(val person: UpcomingPerson, val state: DueState)
 
+/** Something on a day ahead: an Important date or an Occasion. */
+sealed interface UpcomingEntry {
+    val occurrence: RecurringDate.Occurrence
+
+    /** Days from today (0 is today). */
+    val daysAway: Int
+
+    val date: LocalDate get() = occurrence.date
+}
+
 /** One occurrence of an Important date, [daysAway] days from today (0 is today). */
 data class UpcomingDate(
     val person: UpcomingPerson,
     val importantDate: ImportantDate,
-    val occurrence: RecurringDate.Occurrence,
-    val daysAway: Int,
-) {
-    val date: LocalDate get() = occurrence.date
-}
+    override val occurrence: RecurringDate.Occurrence,
+    override val daysAway: Int,
+) : UpcomingEntry
+
+/** One occurrence of an Occasion, with the [people] it reaches (never none). */
+data class UpcomingOccasion(
+    val occasion: OccasionWithAudience,
+    val people: List<UpcomingPerson>,
+    override val occurrence: RecurringDate.Occurrence,
+    override val daysAway: Int,
+) : UpcomingEntry
 
 /**
  * What Upcoming shows from People's data: Today, Due, Coming up and the empty states. (Warnings
@@ -55,9 +76,21 @@ data class UpcomingFeed(
     val due: List<DuePerson>,
     /** Dates in the next [UpcomingFeed.COMING_UP_DAYS] days (1 to 30 days away), soonest first. */
     val comingUp: List<UpcomingDate>,
-    /** The first date beyond the Coming up window, for "Next: …" in the all-caught-up state. */
-    val next: UpcomingDate?,
+    /** The first date or Occasion beyond the Coming up window, for "Next: …" in the all-caught-up state. */
+    val next: UpcomingEntry?,
+    /** Occasions today that reach anyone. */
+    val todayOccasions: List<UpcomingOccasion> = emptyList(),
+    /** Occasions 1 to 30 days away that reach anyone, soonest first. */
+    val comingUpOccasions: List<UpcomingOccasion> = emptyList(),
 ) {
+    /** Coming up as shown: dates and Occasions by day, a day's dates before its Occasions. */
+    val comingUpEntries: List<UpcomingEntry>
+        get() = (comingUp + comingUpOccasions).sortedWith(compareBy<UpcomingEntry> { it.daysAway }.thenBy { it is UpcomingOccasion })
+
+    /** Nothing today, nobody Due, nothing coming up. */
+    val isEmpty: Boolean
+        get() = today.isEmpty() && todayOccasions.isEmpty() && due.isEmpty() && comingUp.isEmpty() && comingUpOccasions.isEmpty()
+
     companion object {
         /** Coming up covers the days 1 to 30 from today. */
         const val COMING_UP_DAYS = 30
@@ -70,7 +103,7 @@ data class UpcomingFeed(
          * last day), ordered by day, then Birthday before Anniversary before Custom, then Person and
          * the order the dates were added; and everyone Due on [today].
          */
-        fun of(people: List<UpcomingPerson>, today: LocalDate): UpcomingFeed {
+        fun of(people: List<UpcomingPerson>, today: LocalDate, occasions: List<OccasionWithAudience> = emptyList()): UpcomingFeed {
             val active = people.filterNot(UpcomingPerson::isArchived)
             val dates = active
                 .flatMap { person ->
@@ -90,12 +123,24 @@ data class UpcomingFeed(
                 .map { DuePerson(it, it.keepInTouch.on(today)) }
                 .filter { it.state.isDue }
                 .sortedWith(DueOrder)
+            val occasionDays = occasions
+                .mapNotNull { occasion ->
+                    val reached = occasion.audience(people)
+                    if (reached.isEmpty()) return@mapNotNull null
+                    val occurrence = occasion.occasion.date.nextOccurrence(today)
+                    UpcomingOccasion(occasion, reached, occurrence, ChronoUnit.DAYS.between(today, occurrence.date).toInt())
+                }
+                .sortedWith(compareBy<UpcomingOccasion> { it.daysAway }.thenBy { it.occasion.id })
+            val nextDate = dates.firstOrNull { it.daysAway > COMING_UP_DAYS }
+            val nextOccasion = occasionDays.firstOrNull { it.daysAway > COMING_UP_DAYS }
             return UpcomingFeed(
                 hasPeople = active.isNotEmpty(),
                 today = dates.filter { it.daysAway == 0 },
                 due = due,
                 comingUp = dates.filter { it.daysAway in 1..COMING_UP_DAYS },
-                next = dates.firstOrNull { it.daysAway > COMING_UP_DAYS },
+                next = listOfNotNull(nextDate, nextOccasion).minByOrNull(UpcomingEntry::daysAway),
+                todayOccasions = occasionDays.filter { it.daysAway == 0 },
+                comingUpOccasions = occasionDays.filter { it.daysAway in 1..COMING_UP_DAYS },
             )
         }
     }

@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.occasion.wishesRes
 import dev.alializadeh.orbit.person.ImportantDateType
 import java.util.Locale
 import javax.inject.Inject
@@ -38,6 +39,7 @@ private val WishKind.textRes: Int
             ImportantDateType.Anniversary -> R.string.wishes_default_anniversary
             ImportantDateType.Custom -> R.string.wishes_default_custom
         }
+        is WishKind.Occasion -> builtIn?.wishesRes ?: R.string.wishes_default_custom
     }
 
 @Module

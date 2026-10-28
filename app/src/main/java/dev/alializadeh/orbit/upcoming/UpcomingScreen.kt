@@ -65,6 +65,8 @@ import dev.alializadeh.orbit.format.text
 import dev.alializadeh.orbit.interaction.KeepInTouchSheets
 import dev.alializadeh.orbit.interaction.KeepInTouchViewModel
 import dev.alializadeh.orbit.interaction.lastTalkedText
+import dev.alializadeh.orbit.occasion.occasionName
+import dev.alializadeh.orbit.occasion.occasionNameInSentence
 import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.dates.DateBadge
@@ -121,6 +123,8 @@ fun UpcomingRoute(
     onFixReminders: () -> Unit = {},
     /** Opens the Wishes sheet for a date today. */
     onSendWishes: (personId: Long, dateId: Long) -> Unit = { _, _ -> },
+    /** Opens an Occasion with its People. */
+    onOccasionClick: (occasionId: Long) -> Unit = {},
     /** A notification asked for Upcoming at Due: scroll there once loaded, then [onScrolledToDue]. */
     scrollToDue: Boolean = false,
     onScrolledToDue: () -> Unit = {},
@@ -161,6 +165,7 @@ fun UpcomingRoute(
         onSnooze = keepInTouch::openSnooze,
         onShowAllDue = viewModel::showAllDue,
         onSendWishes = onSendWishes,
+        onOccasionClick = onOccasionClick,
         backupNudge = nudge,
         onBackUpNow = onBackUpNow,
         onNudgeNotNow = backupNudge::notNow,
@@ -185,6 +190,7 @@ fun UpcomingScreen(
     onShowAllDue: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     onSendWishes: (personId: Long, dateId: Long) -> Unit = { _, _ -> },
+    onOccasionClick: (occasionId: Long) -> Unit = {},
     /** Slice 5's Backup nudge, or null when it isn't shown. */
     backupNudge: BackupNudgeUi? = null,
     onBackUpNow: () -> Unit = {},
@@ -284,10 +290,10 @@ fun UpcomingScreen(
                                 item(key = "backup_nudge") { nudgeCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
                             }
                             UpcomingSection.Today ->
-                                todaySection(uiState, onPersonClick, onContactAction, onLogInteraction, onSendWishes)
+                                todaySection(uiState, onPersonClick, onContactAction, onLogInteraction, onSendWishes, onOccasionClick)
                             UpcomingSection.Due ->
                                 dueSection(uiState, onPersonClick, onContactAction, onLogInteraction, onSnooze, onShowAllDue)
-                            UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick)
+                            UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick, onOccasionClick)
                         }
                     }
                 }
@@ -299,7 +305,7 @@ fun UpcomingScreen(
 /** Where Due's title sits in the list: after the cards and Today (title, hero, other rows). */
 private fun dueTitleIndex(uiState: UpcomingUiState.Loaded, vararg cards: Boolean): Int {
     var index = cards.count { it }
-    val today = uiState.feed.today.size
+    val today = uiState.feed.today.size + uiState.feed.todayOccasions.size
     if (today > 0) index += 1 + today
     return index
 }
@@ -311,10 +317,23 @@ private fun LazyListScope.todaySection(
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: (Long) -> Unit,
     onSendWishes: (personId: Long, dateId: Long) -> Unit,
+    onOccasionClick: (occasionId: Long) -> Unit,
 ) {
     val dates = uiState.feed.today
-    if (dates.isEmpty()) return
+    val occasions = uiState.feed.todayOccasions
+    if (dates.isEmpty() && occasions.isEmpty()) return
     item(key = "today_title") { SectionTitle(stringResource(R.string.upcoming_section_today)) }
+    itemsIndexed(occasions, key = { _, it -> "today_occasion_${it.occasion.id}" }) { index, occasion ->
+        OccasionRow(
+            occasion = occasion,
+            whenLine = null,
+            index = index,
+            count = occasions.size,
+            onClick = { onOccasionClick(occasion.occasion.id) },
+            modifier = if (index == occasions.lastIndex && dates.isNotEmpty()) Modifier.padding(bottom = 8.dp) else Modifier,
+        )
+    }
+    if (dates.isEmpty()) return
     val hero = dates.first()
     item(key = "today_hero") {
         HeroCard(
@@ -388,20 +407,104 @@ private fun LazyListScope.dueSection(
     }
 }
 
-/** Important dates in the next 30 days. Rows open Person detail; no inline actions. */
-private fun LazyListScope.comingUpSection(uiState: UpcomingUiState.Loaded, onPersonClick: (Long) -> Unit) {
-    val dates = uiState.feed.comingUp
-    if (dates.isEmpty()) return
+/** Important dates and Occasions in the next 30 days. Rows open Person detail or the Occasion; no inline actions. */
+private fun LazyListScope.comingUpSection(
+    uiState: UpcomingUiState.Loaded,
+    onPersonClick: (Long) -> Unit,
+    onOccasionClick: (Long) -> Unit,
+) {
+    val entries = uiState.feed.comingUpEntries
+    if (entries.isEmpty()) return
     item(key = "coming_up_title") { SectionTitle(stringResource(R.string.upcoming_section_coming_up)) }
-    itemsIndexed(dates, key = { _, it -> "coming_up_${it.importantDate.id}" }) { index, date ->
-        ComingUpRow(
-            date = date,
-            today = uiState.today,
-            index = index,
-            count = dates.size,
-            onClick = { onPersonClick(date.person.id) },
-        )
+    itemsIndexed(
+        entries,
+        key = { _, it ->
+            when (it) {
+                is UpcomingDate -> "coming_up_${it.importantDate.id}"
+                is UpcomingOccasion -> "coming_up_occasion_${it.occasion.id}"
+            }
+        },
+    ) { index, entry ->
+        when (entry) {
+            is UpcomingDate -> ComingUpRow(
+                date = entry,
+                today = uiState.today,
+                index = index,
+                count = entries.size,
+                onClick = { onPersonClick(entry.person.id) },
+            )
+            is UpcomingOccasion -> OccasionRow(
+                occasion = entry,
+                whenLine = whenLine(entry, uiState.today),
+                index = index,
+                count = entries.size,
+                onClick = { onOccasionClick(entry.occasion.id) },
+            )
+        }
     }
+}
+
+/**
+ * An Occasion: its day badge (or the Occasion badge today), its name, when ([whenLine], null
+ * today) and how many People it reaches.
+ */
+@Composable
+private fun OccasionRow(
+    occasion: UpcomingOccasion,
+    whenLine: String?,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val formats = LocalOrbitFormats.current
+    val people = occasion.people.size
+    val reach = pluralStringResource(R.plurals.occasion_people, people, formats.numbers.format(people))
+    val inPrimary = occasion.date.inCalendar(formats.primaryCalendar)
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = {
+            if (whenLine == null) {
+                Box(
+                    Modifier.size(40.dp).clip(OrbitShapes.cookie()).background(MaterialTheme.colorScheme.tertiaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(OrbitIcons.Sparkle, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                }
+            } else {
+                DateBadge(
+                    day = formats.numbers.format(inPrimary.day),
+                    month = formats.dates.monthName(formats.primaryCalendar, inPrimary.month),
+                )
+            }
+        },
+        supportingContent = {
+            Column {
+                if (whenLine != null) Text(whenLine)
+                Text(reach)
+            }
+        },
+        modifier = modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+    ) {
+        Text(occasionName(occasion.occasion.occasion), maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** "In 3 days · 5 Aban": when, with the entry's own Calendar when it differs from the Primary one. */
+@Composable
+private fun whenLine(entry: UpcomingEntry, today: LocalDate): String {
+    val formats = LocalOrbitFormats.current
+    val ownCalendar = when (entry) {
+        is UpcomingDate -> entry.importantDate.date.calendar
+        is UpcomingOccasion -> entry.occasion.occasion.date.calendar
+    }
+    val whenText = RelativeDays.ahead(entry.date, today)?.text()
+        ?: formats.dates.formatWithWeekday(entry.date, formats.primaryCalendar, today)
+    val second = OrbitDateFormatter.secondCalendar(ownCalendar, formats.primaryCalendar)
+        ?.let { formats.dates.format(entry.date, it, today) }
+    return listOfNotNull(whenText, second).joinToString(stringResource(R.string.separator))
 }
 
 @Composable
@@ -614,15 +717,9 @@ private fun DueRow(
 @Composable
 private fun ComingUpRow(date: UpcomingDate, today: LocalDate, index: Int, count: Int, onClick: () -> Unit) {
     val formats = LocalOrbitFormats.current
-    val separator = stringResource(R.string.separator)
     val name = date.person.names.displayName(formats.language)
-    val ownCalendar = date.importantDate.date.calendar
     val inPrimary = date.date.inCalendar(formats.primaryCalendar)
-    val whenText = RelativeDays.ahead(date.date, today)?.text()
-        ?: formats.dates.formatWithWeekday(date.date, formats.primaryCalendar, today)
-    val second = OrbitDateFormatter.secondCalendar(ownCalendar, formats.primaryCalendar)
-        ?.let { formats.dates.format(date.date, it, today) }
-    val whenLine = listOfNotNull(whenText, second).joinToString(separator)
+    val whenLine = whenLine(date, today)
     val details = detailsLine(date)
     SegmentedListItem(
         onClick = onClick,
@@ -661,13 +758,15 @@ private fun detailsLine(date: UpcomingDate): String? {
     return parts.takeIf { it.isNotEmpty() }?.joinToString(stringResource(R.string.separator))
 }
 
-/** "Next: Sara's birthday · 12 Jan". */
+/** "Next: Sara's birthday · 12 Jan", "Next: Nowruz · 21 Mar". */
 @Composable
-private fun nextLine(date: UpcomingDate, today: LocalDate): String {
+private fun nextLine(entry: UpcomingEntry, today: LocalDate): String {
     val formats = LocalOrbitFormats.current
-    val name = date.person.names.displayName(formats.language)
-    val what = dateTitle(name, date.importantDate.type, date.importantDate.label)
-    val whenText = formats.dates.format(date.date, formats.primaryCalendar, today)
+    val what = when (entry) {
+        is UpcomingDate -> dateTitle(entry.person.names.displayName(formats.language), entry.importantDate.type, entry.importantDate.label)
+        is UpcomingOccasion -> occasionNameInSentence(entry.occasion.occasion)
+    }
+    val whenText = formats.dates.format(entry.date, formats.primaryCalendar, today)
     return stringResource(R.string.upcoming_next, what + stringResource(R.string.separator) + whenText)
 }
 

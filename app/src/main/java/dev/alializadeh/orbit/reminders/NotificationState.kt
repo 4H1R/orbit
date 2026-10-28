@@ -36,6 +36,10 @@ data class NotificationState(
      * name someone else, so `reconcile()` starts again from nothing.
      */
     val restoreToken: Long? = null,
+    /** Like [postedReminders], for Occasions (v1.1). */
+    val postedOccasionReminders: List<PostedOccasionReminder> = emptyList(),
+    /** Like [showingReminders], for Occasions: at most one per Occasion. */
+    val showingOccasionReminders: List<ShowingOccasionReminder> = emptyList(),
 ) {
     /**
      * Only what [showing] says is still on screen: notifications the user dismissed are
@@ -44,14 +48,33 @@ data class NotificationState(
     fun retainShowing(showing: Set<NotificationKey>): NotificationState = copy(
         showingReminders = showingReminders.filter { NotificationKey.DateReminder(it.dateId) in showing },
         digestPersonIds = if (NotificationKey.Digest in showing) digestPersonIds else emptyList(),
+        showingOccasionReminders = showingOccasionReminders.filter { NotificationKey.OccasionReminder(it.occasionId) in showing },
     )
 
     /** The notifications this state says are showing. */
     fun showingKeys(): Set<NotificationKey> = buildSet {
         showingReminders.forEach { add(NotificationKey.DateReminder(it.dateId)) }
         if (digestPersonIds.isNotEmpty()) add(NotificationKey.Digest)
+        showingOccasionReminders.forEach { add(NotificationKey.OccasionReminder(it.occasionId)) }
     }
 }
+
+/** One Occasion Reminder: an Occasion's occurrence and one of its lead times. */
+@Serializable
+data class PostedOccasionReminder(
+    val occasionId: Long,
+    val occurrenceEpochDay: Long,
+    val leadTime: LeadTime,
+)
+
+/** An Occasion Reminder on screen, like [ShowingReminder]. */
+@Serializable
+data class ShowingOccasionReminder(
+    val occasionId: Long,
+    val occurrenceEpochDay: Long,
+    val fingerprint: String,
+    val content: String = "",
+)
 
 /** One Reminder: an Important date's occurrence and one of its lead times. */
 @Serializable
@@ -90,26 +113,36 @@ sealed interface NotificationKey {
         override val tag: String = "orbit.digest"
     }
 
+    /** Each Occasion has one slot, like an Important date. */
+    data class OccasionReminder(val occasionId: Long) : NotificationKey {
+        override val tag: String get() = OCCASION_PREFIX + occasionId
+    }
+
     companion object {
         /** Orbit tells its notifications apart by tag; the id is always this. */
         const val ID = 1
 
         private const val DATE_PREFIX = "orbit.date."
+        private const val OCCASION_PREFIX = "orbit.occasion."
 
         fun fromTag(tag: String?): NotificationKey? = when {
             tag == null -> null
             tag == Digest.tag -> Digest
             tag.startsWith(DATE_PREFIX) -> tag.removePrefix(DATE_PREFIX).toLongOrNull()?.let(::DateReminder)
+            tag.startsWith(OCCASION_PREFIX) -> tag.removePrefix(OCCASION_PREFIX).toLongOrNull()?.let(::OccasionReminder)
             else -> null
         }
     }
 }
 
-/** Orbit's two notification channels (ticket 07). Muting one doesn't change Upcoming. */
+/** Orbit's notification channels (ticket 07, v1.1). Muting one doesn't change Upcoming. */
 enum class ReminderChannel(val id: String) {
     /** Reminders. */
     ImportantDates("important_dates"),
 
     /** The Cadence digest. */
     KeepInTouch("keep_in_touch"),
+
+    /** Occasion Reminders (v1.1). */
+    Occasions("occasions"),
 }

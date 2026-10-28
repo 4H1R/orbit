@@ -186,7 +186,7 @@ internal fun ImportantDateSheetContent(
  * so the sheet never changes height (a sheet that resizes after a wheel drag gets stuck).
  */
 @Composable
-private fun RemindersChoice(leadTimes: Set<LeadTime>?, defaultLeadTimes: Set<LeadTime>, onChange: (Set<LeadTime>?) -> Unit) {
+internal fun RemindersChoice(leadTimes: Set<LeadTime>?, defaultLeadTimes: Set<LeadTime>, onChange: (Set<LeadTime>?) -> Unit) {
     val label = stringResource(R.string.important_date_reminders)
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Icon(

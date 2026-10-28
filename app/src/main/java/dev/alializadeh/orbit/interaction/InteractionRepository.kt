@@ -10,6 +10,7 @@ import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * An Interaction as the Log interaction sheet holds it: a new one when [id] is null. [personIds]
@@ -38,6 +39,9 @@ interface InteractionRepository {
     /** One Interaction, or null once it's gone. */
     fun observeInteraction(id: Long): Flow<InteractionWithPeople?>
 
+    /** The ids of everyone with an Interaction on [date]. */
+    fun observePeopleOn(date: LocalDate): Flow<Set<Long>>
+
     /**
      * Logs the [draft] (no id) or edits that Interaction for everyone in it, and returns its id.
      * Needs at least one Person and a date that isn't after today.
@@ -63,6 +67,8 @@ class RoomInteractionRepository @Inject constructor(
         interactionDao.observeForPerson(personId)
 
     override fun observeInteraction(id: Long): Flow<InteractionWithPeople?> = interactionDao.observeWithPeople(id)
+
+    override fun observePeopleOn(date: LocalDate): Flow<Set<Long>> = interactionDao.observePeopleOn(date).map { it.toSet() }
 
     override suspend fun save(draft: InteractionDraft): Long {
         val d = draft.normalised()

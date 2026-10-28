@@ -9,6 +9,7 @@ import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.contact.ContactType
 import dev.alializadeh.orbit.testing.FakeInteractionRepository
+import dev.alializadeh.orbit.testing.FakeOccasionRepository
 import dev.alializadeh.orbit.testing.FakePersonRepository
 import dev.alializadeh.orbit.testing.MainDispatcherRule
 import dev.alializadeh.orbit.testing.profileOf
@@ -42,7 +43,7 @@ class WishesViewModelTest {
     /** "kind|language|name", so the tests see what was asked for. */
     private val texts = WishTexts { kind, language, name -> "$kind|$language|$name" }
 
-    private fun viewModel() = WishesViewModel(people, interactions, texts, clock)
+    private fun viewModel() = WishesViewModel(people, interactions, FakeOccasionRepository(), texts, clock)
 
     @Test
     fun opensInTheNamesLanguageOnThePrimaryWithTheDefaultText() = runTest {

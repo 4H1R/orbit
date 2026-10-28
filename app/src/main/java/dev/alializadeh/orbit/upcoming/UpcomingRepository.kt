@@ -52,6 +52,8 @@ class RoomUpcomingRepository @Inject constructor(
                     keepInTouch = row.person.keepInTouch(ring, lastDates[row.person.id], clock.zone),
                     ringName = ring?.name,
                     ringPosition = ring?.position ?: Int.MAX_VALUE,
+                    ringId = row.person.ringId,
+                    tagIds = row.tags.map { it.tagId }.toSet(),
                 )
             }
         }

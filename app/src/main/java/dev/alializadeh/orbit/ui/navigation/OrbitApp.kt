@@ -44,6 +44,12 @@ import dev.alializadeh.orbit.interaction.AllInteractionsKey
 import dev.alializadeh.orbit.interaction.AllInteractionsRoute
 import dev.alializadeh.orbit.lock.AppLockSettingsKey
 import dev.alializadeh.orbit.lock.AppLockSettingsRoute
+import dev.alializadeh.orbit.occasion.OccasionEditKey
+import dev.alializadeh.orbit.occasion.OccasionEditRoute
+import dev.alializadeh.orbit.occasion.OccasionKey
+import dev.alializadeh.orbit.occasion.OccasionRoute
+import dev.alializadeh.orbit.occasion.OccasionsSettingsKey
+import dev.alializadeh.orbit.occasion.OccasionsSettingsRoute
 import dev.alializadeh.orbit.orbitview.OrbitViewKey
 import dev.alializadeh.orbit.orbitview.OrbitViewRoute
 import dev.alializadeh.orbit.person.AddPersonKey
@@ -99,6 +105,7 @@ fun OrbitApp(
     val numbers = LocalOrbitFormats.current.numbers
     val language = LocalOrbitFormats.current.language
     val sendWishes = { personId: Long, dateId: Long -> wishes.openForDate(personId, dateId, language) }
+    val sendOccasionWishes = { personId: Long, occasionId: Long -> wishes.openForOccasion(personId, occasionId, language) }
     val restoredPeople by backup.restoredPeople.collectAsStateWithLifecycle()
     // A notification tap: Upcoming, then Person detail over it, or Upcoming scrolled to Due.
     // App lock's gate sits in front of OrbitApp (MainActivity), so this waits until it's passed.
@@ -108,6 +115,7 @@ fun OrbitApp(
         val target = entry ?: return@LaunchedEffect
         when (target) {
             is NotificationEntry.PersonDetail -> navigator.openOnUpcoming(PersonDetailKey(target.personId))
+            is NotificationEntry.Occasion -> navigator.openOnUpcoming(OccasionKey(target.occasionId))
             is NotificationEntry.Wishes -> {
                 navigator.openOnUpcoming(PersonDetailKey(target.personId))
                 sendWishes(target.personId, target.dateId)
@@ -152,6 +160,7 @@ fun OrbitApp(
                     onBackUpNow = backup::start,
                     onFixReminders = { navigator.navigate(ReminderHealthKey) },
                     onSendWishes = sendWishes,
+                    onOccasionClick = { id -> navigator.navigate(OccasionKey(id)) },
                     scrollToDue = scrollToDue,
                     onScrolledToDue = { scrollToDue = false },
                 )
@@ -201,6 +210,23 @@ fun OrbitApp(
                 )
             }
             entry<AllInteractionsKey> { key -> AllInteractionsRoute(key = key, onBack = navigator::goBack) }
+            entry<OccasionKey> { key ->
+                OccasionRoute(
+                    key = key,
+                    onBack = navigator::goBack,
+                    onEdit = { navigator.navigate(OccasionEditKey(occasionId = key.occasionId)) },
+                    onPersonClick = { id -> navigator.navigate(PersonDetailKey(id)) },
+                    onSendWishes = { personId -> sendOccasionWishes(personId, key.occasionId) },
+                )
+            }
+            entry<OccasionsSettingsKey> {
+                OccasionsSettingsRoute(
+                    onBack = navigator::goBack,
+                    onOpen = { id -> navigator.navigate(OccasionEditKey(occasionId = id)) },
+                    onAdd = { builtIn -> navigator.navigate(OccasionEditKey(builtIn = builtIn?.name)) },
+                )
+            }
+            entry<OccasionEditKey> { key -> OccasionEditRoute(key = key, onClose = navigator::goBack) }
             entry<OrbitViewKey> {
                 OrbitViewRoute(
                     opening = navigator.selections(TopLevelTab.Orbit),

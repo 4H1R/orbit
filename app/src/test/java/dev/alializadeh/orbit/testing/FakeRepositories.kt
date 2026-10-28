@@ -29,6 +29,11 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import dev.alializadeh.orbit.occasion.Occasion
+import dev.alializadeh.orbit.occasion.OccasionDraft
+import dev.alializadeh.orbit.occasion.OccasionRepository
+import dev.alializadeh.orbit.occasion.OccasionWithAudience
 
 class FakeRingRepository(rings: List<Ring> = TestRings.all) : RingRepository {
     val rings = MutableStateFlow(rings)
@@ -108,6 +113,36 @@ class FakeInteractionRepository(
 
     override suspend fun markAsContacted(personId: Long): Long =
         save(InteractionDraft(type = InteractionType.Other, date = LocalDate.now(clock), personIds = listOf(personId)))
+
+    override fun observePeopleOn(date: LocalDate): Flow<Set<Long>> =
+        interactions.map { all -> all.values.filter { it.first.date == date }.flatMap { it.second }.toSet() }
+}
+
+/** An in-memory [OccasionRepository] with the Room one's rules (a draft is stored normalised). */
+class FakeOccasionRepository(initial: List<OccasionWithAudience> = emptyList()) : OccasionRepository {
+    val occasions = MutableStateFlow(initial.associateBy(OccasionWithAudience::id))
+    private var nextId = (initial.maxOfOrNull(OccasionWithAudience::id) ?: 0) + 1
+
+    override fun observeOccasions(): Flow<List<OccasionWithAudience>> = occasions.map { it.values.toList() }
+
+    override suspend fun get(id: Long): OccasionWithAudience? = occasions.value[id]
+
+    override suspend fun save(draft: OccasionDraft): Long {
+        val d = draft.normalised()
+        require(d.canSave)
+        val id = d.id?.takeIf { it in occasions.value } ?: nextId++
+        occasions.value += id to OccasionWithAudience(
+            occasion = Occasion(id = id, builtIn = d.builtIn, label = d.label, date = d.date, forEveryone = d.forEveryone, leadTimes = d.leadTimes),
+            ringIds = d.ringIds,
+            tagIds = d.tagIds,
+            personIds = d.personIds,
+        )
+        return id
+    }
+
+    override suspend fun delete(id: Long) {
+        occasions.value -= id
+    }
 }
 
 /** An in-memory [TagRepository] with the Room one's rules (names unique ignoring case). */

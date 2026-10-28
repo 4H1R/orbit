@@ -182,6 +182,7 @@ fun channelName(channel: ReminderChannel): String = stringResource(
     when (channel) {
         ReminderChannel.ImportantDates -> R.string.channel_important_dates_name
         ReminderChannel.KeepInTouch -> R.string.channel_keep_in_touch_name
+        ReminderChannel.Occasions -> R.string.channel_occasions_name
     },
 )
 

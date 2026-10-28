@@ -4,6 +4,7 @@ import android.os.SystemClock
 import dev.alializadeh.orbit.backup.BackupStatusDao
 import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.occasion.OccasionRepository
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.upcoming.UpcomingRepository
 import java.time.Clock
@@ -135,6 +136,7 @@ class NotificationPacer internal constructor(
 @Singleton
 class ReminderReconciler @Inject constructor(
     private val upcoming: UpcomingRepository,
+    private val occasions: OccasionRepository,
     private val preferences: PreferencesRepository,
     private val personDao: PersonDao,
     private val notifier: ReminderNotifier,
@@ -165,6 +167,7 @@ class ReminderReconciler @Inject constructor(
         val device = preferences.deviceState.first()
         val token = statusDao.restoreToken()
         val people = upcoming.observePeople().first()
+        val occasionList = occasions.observeOccasions().first()
         var showing = notifier.showing()
         val stored = if (device.notifications.restoreToken == token) {
             device.notifications
@@ -187,6 +190,7 @@ class ReminderReconciler @Inject constructor(
                 state = state,
                 channelsOn = notifier.channelsOn(),
                 rendering = how,
+                occasions = occasionList,
             ),
         )
         setNextAlarm(earliest(plan.nextAlarm, now.plus(RETRY_AFTER_FAILURE)))

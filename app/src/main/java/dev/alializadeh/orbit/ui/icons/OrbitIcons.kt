@@ -122,6 +122,15 @@ object OrbitIcons {
         )
     }
 
+    /** An Occasion (v1.1): a four-pointed sparkle with a small one beside it. */
+    val Sparkle: ImageVector by lazy {
+        filled(
+            "Sparkle",
+            "M11,3l2.35,7.65L21,13l-7.65,2.35L11,23l-2.35,-7.65L1,13l7.65,-2.35z" +
+                "M19,1l0.9,2.1L22,4l-2.1,0.9L19,7l-0.9,-2.1L16,4l2.1,-0.9z",
+        )
+    }
+
     /** An open Gift idea. */
     val Lightbulb: ImageVector by lazy {
         filled(

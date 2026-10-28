@@ -301,7 +301,7 @@ private val IdListSaver: Saver<List<Long>, LongArray> = Saver(save = { it.toLong
 
 /** "+ Add": everyone who isn't Archived and isn't in the Interaction yet, searchable by name. */
 @Composable
-private fun PeoplePickerSheet(candidates: List<PickablePerson>, onPick: (Long) -> Unit, onDismiss: () -> Unit) {
+internal fun PeoplePickerSheet(candidates: List<PickablePerson>, onPick: (Long) -> Unit, onDismiss: () -> Unit) {
     OrbitBottomSheet(onDismiss = onDismiss) { sheet ->
         PeoplePickerContent(candidates, onPick = { id -> sheet.close { onPick(id) } })
     }

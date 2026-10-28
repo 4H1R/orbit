@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.wishes
 
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.occasion.BuiltInOccasion
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.NameScript
 import dev.alializadeh.orbit.person.PersonNames
@@ -9,6 +10,9 @@ import dev.alializadeh.orbit.person.PersonNames
 sealed interface WishKind {
     /** An Important date of the Person. A Custom date's label can be anything, so its text is neutral. */
     data class Date(val type: ImportantDateType) : WishKind
+
+    /** An Occasion: a built-in one's own text, else (the user's own) the neutral one. */
+    data class Occasion(val builtIn: BuiltInOccasion?) : WishKind
 }
 
 /**

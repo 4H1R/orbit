@@ -116,6 +116,13 @@ interface InteractionDao {
     )
     fun observeLastDates(): Flow<List<LastInteractionDate>>
 
+    /** Everyone with an Interaction on [date] (an Occasion's "reached"). */
+    @Query(
+        "SELECT DISTINCT interaction_person.personId FROM interaction_person " +
+            "JOIN interaction ON interaction.id = interaction_person.interactionId WHERE interaction.date = :date",
+    )
+    fun observePeopleOn(date: LocalDate): Flow<List<Long>>
+
     /** Every Interaction note with each Person in it, newest first (People search). */
     @Query(
         "SELECT interaction_person.personId AS personId, interaction.id AS interactionId, " +

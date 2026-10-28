@@ -3,6 +3,7 @@ package dev.alializadeh.orbit.upcoming
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.occasion.OccasionRepository
 import dev.alializadeh.orbit.person.photo.PhotoStore
 import java.io.File
 import java.time.Clock
@@ -28,7 +29,7 @@ sealed interface UpcomingUiState {
         val showAllDue: Boolean = false,
     ) : UpcomingUiState {
         /** Nothing to show in any section: the screen shows an empty state instead. */
-        val isEmpty: Boolean get() = feed.today.isEmpty() && feed.due.isEmpty() && feed.comingUp.isEmpty()
+        val isEmpty: Boolean get() = feed.isEmpty
 
         /** The Due rows on screen: the first [DUE_ROWS], or all of them after "Show all". */
         val dueShown: List<DuePerson> get() = if (showAllDue) feed.due else feed.due.take(DUE_ROWS)
@@ -50,6 +51,7 @@ sealed interface UpcomingUiState {
 @HiltViewModel
 class UpcomingViewModel @Inject constructor(
     upcomingRepository: UpcomingRepository,
+    occasionRepository: OccasionRepository,
     photoStore: PhotoStore,
     clock: Clock,
 ) : ViewModel() {
@@ -58,8 +60,13 @@ class UpcomingViewModel @Inject constructor(
     private val showAllDue = MutableStateFlow(false)
 
     val uiState: StateFlow<UpcomingUiState> =
-        combine(upcomingRepository.observePeople(), todayFlow(clock, dateChecks), showAllDue) { people, today, showAll ->
-            val feed = UpcomingFeed.of(people, today)
+        combine(
+            upcomingRepository.observePeople(),
+            occasionRepository.observeOccasions(),
+            todayFlow(clock, dateChecks),
+            showAllDue,
+        ) { people, occasions, today, showAll ->
+            val feed = UpcomingFeed.of(people, today, occasions)
             UpcomingUiState.Loaded(
                 today = today,
                 feed = feed,

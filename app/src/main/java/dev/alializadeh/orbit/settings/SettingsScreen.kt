@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.occasion.OccasionsSettingsKey
 import dev.alializadeh.orbit.about.AboutKey
 import dev.alializadeh.orbit.backup.BackupSettingsKey
 import dev.alializadeh.orbit.backup.lastBackupLine
@@ -83,7 +84,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_rings_title),
                 summary = uiState.ringNames.joinToString(separator) { bidiIsolate(it) },
                 index = 0,
-                count = 2,
+                count = 3,
                 onClick = { onOpen(RingsSettingsKey) },
             )
             NavigationRow(
@@ -98,8 +99,23 @@ fun SettingsScreen(
                     )
                 },
                 index = 1,
-                count = 2,
+                count = 3,
                 onClick = { onOpen(TagsSettingsKey) },
+            )
+            NavigationRow(
+                title = stringResource(R.string.settings_occasions_title),
+                summary = if (uiState.occasionCount == 0) {
+                    stringResource(R.string.settings_occasions_none)
+                } else {
+                    pluralStringResource(
+                        R.plurals.settings_occasions_summary,
+                        uiState.occasionCount,
+                        LocalOrbitFormats.current.numbers.format(uiState.occasionCount),
+                    )
+                },
+                index = 2,
+                count = 3,
+                onClick = { onOpen(OccasionsSettingsKey) },
             )
         }
         Spacer(Modifier.height(16.dp))

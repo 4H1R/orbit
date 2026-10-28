@@ -71,6 +71,33 @@ class DatabaseMigrationTest {
         }
     }
 
+    /** v1.1: the Occasion tables arrive empty, and CASCADE from a deleted Person works. */
+    @Test
+    fun version2To3AddsOccasions() = runTest {
+        val file = File(temp.root, "v2.db")
+        SchemaMigrations.createDatabase(2, file) { connection ->
+            connection.execSQL("INSERT INTO ring (id, name, position, cadence_count, cadence_unit) VALUES (1, 'Close', 0, 30, 'DAYS')")
+            connection.execSQL("INSERT INTO person (id, name, ringId, hasOwnCadence, createdAt) VALUES (1, 'Sara', 1, 0, 0)")
+        }
+
+        val database = SchemaMigrations.openWithRoom(file)
+        try {
+            val repository = dev.alializadeh.orbit.occasion.RoomOccasionRepository(database, database.occasionDao())
+            val id = repository.save(
+                dev.alializadeh.orbit.occasion.OccasionDraft(
+                    label = "Book club",
+                    date = dev.alializadeh.orbit.calendar.RecurringDate(dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian, 3, 1),
+                    personIds = setOf(1),
+                ),
+            )
+            assertEquals(setOf(1L), repository.get(id)!!.personIds)
+            database.personDao().delete(1)
+            assertTrue(repository.get(id)!!.personIds.isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
     /** Runs every migration path to the current version; Room validates each result. */
     @Test
     fun everyOlderVersionMigratesToTheCurrentOne() = runTest {

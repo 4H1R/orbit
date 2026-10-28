@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.reminders
 
 import dev.alializadeh.orbit.calendar.RecurringDate
+import dev.alializadeh.orbit.occasion.OccasionWithAudience
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.upcoming.DuePerson
 import dev.alializadeh.orbit.upcoming.UpcomingFeed
@@ -29,6 +30,8 @@ data class PlannerInput(
      * ones were posted ([NotificationState.renderedAs]), they're quietly re-posted.
      */
     val rendering: NotificationRendering = NotificationRendering(),
+    /** Every Occasion with who it's for (v1.1): they reach [people]. */
+    val occasions: List<OccasionWithAudience> = emptyList(),
 )
 
 /** What `reconcile()` does: post, cancel, mark People as notified, store [state], set the alarm. */
@@ -69,10 +72,17 @@ data class ReminderPlan(
         val missedDates = missed.mapNotNull { (it.key as? NotificationKey.DateReminder)?.dateId }.toSet()
         val missedDigest = missed.filterIsInstance<PlannedDigest>().singleOrNull()
         val postedBefore = previous.postedReminders.toSet()
+        val missedOccasions = missed.mapNotNull { (it.key as? NotificationKey.OccasionReminder)?.occasionId }.toSet()
+        val occasionsPostedBefore = previous.postedOccasionReminders.toSet()
         return state.copy(
             postedReminders = state.postedReminders.filter { it.dateId !in missedDates || it in postedBefore },
             showingReminders = state.showingReminders.filter { it.dateId !in missedDates } +
                 previous.showingReminders.filter { it.dateId in missedDates },
+            postedOccasionReminders = state.postedOccasionReminders.filter {
+                it.occasionId !in missedOccasions || it in occasionsPostedBefore
+            },
+            showingOccasionReminders = state.showingOccasionReminders.filter { it.occasionId !in missedOccasions } +
+                previous.showingOccasionReminders.filter { it.occasionId in missedOccasions },
             lastDigestEpochDay = if (missedDigest?.silent == false) previous.lastDigestEpochDay else state.lastDigestEpochDay,
             digestPersonIds = if (missedDigest != null) previous.digestPersonIds else state.digestPersonIds,
             renderedAs = if (missedDigest != null) previous.renderedAs else state.renderedAs,
@@ -265,6 +275,23 @@ object ReminderPlanner {
             consider(today.plusDays(1).atStartOfDay(zone).toInstant())
         }
 
+        // Occasion Reminders, by the same rules.
+        val occasionPlan = OccasionReminderPlanner.plan(
+            occasions = input.occasions,
+            people = input.people,
+            defaultLeadTimes = input.defaultLeadTimes,
+            today = today,
+            zone = zone,
+            timeHasCome = timeHasCome,
+            canRemind = ReminderChannel.Occasions in input.channelsOn,
+            state = input.state,
+            rendering = input.rendering,
+            slot = ::slot,
+        )
+        post += occasionPlan.post
+        cancel += occasionPlan.cancel
+        occasionPlan.wakeAt.forEach(::consider)
+
         // The Cadence digest: at most one per local day.
         val due = UpcomingFeed.of(input.people, today).due
         val lastDigest = input.state.lastDigestEpochDay?.let(LocalDate::ofEpochDay)
@@ -338,6 +365,8 @@ object ReminderPlanner {
                 lastDigestEpochDay = digestRanFor?.toEpochDay(),
                 digestPersonIds = digestIds,
                 renderedAs = input.rendering,
+                postedOccasionReminders = occasionPlan.posted,
+                showingOccasionReminders = occasionPlan.showing,
             ),
             clearNotified = clearNotified,
             previous = input.state,

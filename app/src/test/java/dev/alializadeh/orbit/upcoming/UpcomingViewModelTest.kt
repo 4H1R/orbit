@@ -9,6 +9,7 @@ import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.due.KeepInTouch
 import dev.alializadeh.orbit.ring.Cadence
+import dev.alializadeh.orbit.testing.FakeOccasionRepository
 import dev.alializadeh.orbit.testing.FakePhotoStore
 import dev.alializadeh.orbit.testing.FakeUpcomingRepository
 import dev.alializadeh.orbit.testing.MainDispatcherRule
@@ -60,7 +61,7 @@ class UpcomingViewModelTest {
     fun theFeedIsForTodayInTheClocksZone() = runTest {
         // 22:00 UTC on 27 Oct is already 28 Oct in Tehran.
         val clock = Clock.fixed(Instant.parse("2026-10-27T22:00:00Z"), tehran)
-        val viewModel = UpcomingViewModel(FakeUpcomingRepository(listOf(person(1, 10, 28, photo = "sara.jpg"))), FakePhotoStore(), clock)
+        val viewModel = UpcomingViewModel(FakeUpcomingRepository(listOf(person(1, 10, 28, photo = "sara.jpg"))), FakeOccasionRepository(), FakePhotoStore(), clock)
 
         viewModel.uiState.test {
             val state = awaitLoaded()
@@ -75,7 +76,7 @@ class UpcomingViewModelTest {
     fun peopleChangesRecomputeTheFeed() = runTest {
         val repository = FakeUpcomingRepository(listOf(person(1, 10, 30)))
         val clock = Clock.fixed(Instant.parse("2026-10-28T09:00:00Z"), tehran)
-        val viewModel = UpcomingViewModel(repository, FakePhotoStore(), clock)
+        val viewModel = UpcomingViewModel(repository, FakeOccasionRepository(), FakePhotoStore(), clock)
 
         viewModel.uiState.test {
             assertEquals(1, awaitLoaded().feed.comingUp.size)
@@ -96,7 +97,7 @@ class UpcomingViewModelTest {
                 keepInTouch = KeepInTouch(cadence = Cadence.days(30), addedOn = LocalDate.of(2026, 1, 1), lastInteraction = LocalDate.of(2026, 9, 1).minusDays(id)),
             )
         }
-        val viewModel = UpcomingViewModel(FakeUpcomingRepository(due), FakePhotoStore(), clock)
+        val viewModel = UpcomingViewModel(FakeUpcomingRepository(due), FakeOccasionRepository(), FakePhotoStore(), clock)
 
         viewModel.uiState.test {
             val folded = awaitLoaded()
@@ -117,7 +118,7 @@ class UpcomingViewModelTest {
     @Test
     fun passingMidnightWhileOpenMovesTheFeedToTheNewDay() = runTest {
         val clock = MutableClock(Instant.parse("2026-10-28T20:29:00Z"), tehran) // 23:59 in Tehran
-        val viewModel = UpcomingViewModel(FakeUpcomingRepository(listOf(person(1, 10, 29))), FakePhotoStore(), clock)
+        val viewModel = UpcomingViewModel(FakeUpcomingRepository(listOf(person(1, 10, 29))), FakeOccasionRepository(), FakePhotoStore(), clock)
 
         viewModel.uiState.test {
             val before = awaitLoaded()
@@ -136,7 +137,7 @@ class UpcomingViewModelTest {
     @Test
     fun resumingOnAnotherDayRecomputes() = runTest {
         val clock = MutableClock(Instant.parse("2026-10-28T09:00:00Z"), tehran)
-        val viewModel = UpcomingViewModel(FakeUpcomingRepository(listOf(person(1, 10, 31))), FakePhotoStore(), clock)
+        val viewModel = UpcomingViewModel(FakeUpcomingRepository(listOf(person(1, 10, 31))), FakeOccasionRepository(), FakePhotoStore(), clock)
 
         viewModel.uiState.test {
             assertEquals(3, awaitLoaded().feed.comingUp.single().daysAway)

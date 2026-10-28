@@ -6,6 +6,7 @@ import dev.alializadeh.orbit.format.OrbitFormats
 import dev.alializadeh.orbit.format.RelativeDays
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.text
+import dev.alializadeh.orbit.occasion.occasionName
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.dates.giftIdeasLine
 import dev.alializadeh.orbit.person.dates.importantDateName
@@ -58,6 +59,35 @@ class NotificationTexts(private val resources: Resources, private val formats: O
             ),
         )
     }
+
+    /**
+     * "Nowruz · in 7 days" with "12 people to send wishes to", or "Today is Nowruz" with "Send
+     * wishes to 12 people".
+     */
+    fun occasion(reminder: PlannedOccasionReminder): NotificationText {
+        val name = bidiIsolate(resources.occasionName(reminder.occasion.occasion))
+        val count = reminder.people.size
+        return if (reminder.isOnTheDay) {
+            NotificationText(
+                resources.getString(R.string.reminder_title_occasion_today, name),
+                listOf(resources.getQuantityString(R.plurals.reminder_occasion_people_today, count, numbers.format(count))),
+            )
+        } else {
+            NotificationText(
+                resources.getString(R.string.reminder_title_occasion, name, whenText(reminder.daysAway)),
+                listOf(resources.getQuantityString(R.plurals.reminder_occasion_people, count, numbers.format(count))),
+            )
+        }
+    }
+
+    /** "An occasion is coming up · in 7 days", "There's an occasion today": no name. */
+    fun discreetOccasion(reminder: PlannedOccasionReminder): NotificationText = NotificationText(
+        if (reminder.isOnTheDay) {
+            resources.getString(R.string.discreet_occasion_today)
+        } else {
+            resources.getString(R.string.discreet_occasion_soon, whenText(reminder.daysAway))
+        },
+    )
 
     /** "A birthday is coming up · in 7 days", "There's a birthday today": no name or label. */
     fun discreetReminder(reminder: PlannedReminder): NotificationText {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An Occasion (OrbitIcons.Sparkle), for the widget, which can't draw Compose vectors. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M11,3l2.35,7.65L21,13l-7.65,2.35L11,23l-2.35,-7.65L1,13l7.65,-2.35zM19,1l0.9,2.1L22,4l-2.1,0.9L19,7l-0.9,-2.1L16,4l2.1,-0.9z" />
+</vector>

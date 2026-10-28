@@ -800,4 +800,82 @@
         <item quantity="other">%1$s days later</item>
     </plurals>
     <string name="lunar_adjustment_footer">Orbit calculates Lunar Hijri dates with the Umm al-Qura calendar. When Iran\'s official calendar starts a month on another day, move every Lunar Hijri date by a day or two to match.</string>
+
+    <!-- Occasions (v1.1) -->
+    <string name="occasion_name_nowruz">Nowruz</string>
+    <string name="occasion_name_yalda">Yalda night</string>
+    <string name="occasion_name_sepandarmazgan">Sepandarmazgan</string>
+    <string name="occasion_name_teachers_day">Teacher\'s Day</string>
+    <string name="occasion_name_mothers_day">Mother\'s Day</string>
+    <string name="occasion_name_fathers_day">Father\'s Day</string>
+    <string name="occasion_name_eid_al_fitr">Eid al-Fitr</string>
+    <string name="occasion_name_eid_al_adha">Eid al-Adha</string>
+    <string name="occasion_name_eid_al_ghadir">Eid al-Ghadir</string>
+    <string name="occasion_name_new_years_day">New Year\'s Day</string>
+    <string name="occasion_name_christmas">Christmas</string>
+    <string name="occasion_name_valentines_day">Valentine\'s Day</string>
+    <!-- The default Wishes for each built-in Occasion; %1$s is the name the Person is greeted by -->
+    <string name="wishes_occasion_nowruz">Happy Nowruz, %1$s. Wishing you a wonderful new year.</string>
+    <string name="wishes_occasion_yalda">Happy Yalda night, %1$s.</string>
+    <string name="wishes_occasion_sepandarmazgan">Happy Sepandarmazgan, %1$s.</string>
+    <string name="wishes_occasion_teachers_day">Happy Teacher\'s Day, %1$s. Thank you for everything you\'ve taught me.</string>
+    <string name="wishes_occasion_mothers_day">Happy Mother\'s Day, %1$s.</string>
+    <string name="wishes_occasion_fathers_day">Happy Father\'s Day, %1$s.</string>
+    <string name="wishes_occasion_eid_al_fitr">Eid Mubarak, %1$s.</string>
+    <string name="wishes_occasion_eid_al_adha">Eid Mubarak, %1$s.</string>
+    <string name="wishes_occasion_eid_al_ghadir">Happy Eid al-Ghadir, %1$s.</string>
+    <string name="wishes_occasion_new_years_day">Happy New Year, %1$s.</string>
+    <string name="wishes_occasion_christmas">Merry Christmas, %1$s.</string>
+    <string name="wishes_occasion_valentines_day">Happy Valentine\'s Day, %1$s.</string>
+    <string name="settings_occasions_title">Occasions</string>
+    <string name="settings_occasions_none">No occasions yet</string>
+    <plurals name="settings_occasions_summary">
+        <item quantity="one">%1$s occasion</item>
+        <item quantity="other">%1$s occasions</item>
+    </plurals>
+    <string name="occasions_add">Add occasion</string>
+    <string name="occasions_empty">Add Nowruz, Eid or a day of your own, and Orbit reminds you whom to send wishes to.</string>
+    <string name="occasion_custom">Your own occasion</string>
+    <string name="occasion_new_title">New occasion</string>
+    <string name="occasion_edit_title">Edit occasion</string>
+    <string name="occasion_name">Name</string>
+    <string name="occasion_date">Date</string>
+    <string name="occasion_who">Who it\'s for</string>
+    <string name="occasion_who_everyone">Everyone</string>
+    <string name="occasion_who_rings">Rings</string>
+    <string name="occasion_who_tags">Tags</string>
+    <string name="occasion_who_people">People</string>
+    <string name="occasion_who_none">Choose rings, tags or people</string>
+    <plurals name="occasion_people">
+        <item quantity="one">%1$s person</item>
+        <item quantity="other">%1$s people</item>
+    </plurals>
+    <plurals name="occasion_reaches">
+        <item quantity="one">Reaches %1$s person</item>
+        <item quantity="other">Reaches %1$s people</item>
+    </plurals>
+    <string name="occasion_reaches_nobody">Reaches nobody yet</string>
+    <!-- On the Occasion's day: %1$s of everyone it's for (%2$s) have an interaction logged that day -->
+    <plurals name="occasion_reached">
+        <item quantity="one">Reached %1$s of %2$s</item>
+        <item quantity="other">Reached %1$s of %2$s</item>
+    </plurals>
+    <string name="occasion_reached_a11y">Reached</string>
+    <string name="occasion_delete_title">Delete %1$s?</string>
+    <string name="occasion_delete_body">Its reminders stop. Your people aren\'t changed.</string>
+    <string name="channel_occasions_name">Occasions</string>
+    <string name="channel_occasions_description">Reminders before Nowruz, Eid and your other occasions</string>
+    <!-- %1$s is the Occasion's name, %2$s when ("in 7 days") -->
+    <string name="reminder_title_occasion">%1$s · %2$s</string>
+    <string name="reminder_title_occasion_today">Today is %1$s</string>
+    <plurals name="reminder_occasion_people">
+        <item quantity="one">%1$s person to send wishes to</item>
+        <item quantity="other">%1$s people to send wishes to</item>
+    </plurals>
+    <plurals name="reminder_occasion_people_today">
+        <item quantity="one">Send wishes to %1$s person</item>
+        <item quantity="other">Send wishes to %1$s people</item>
+    </plurals>
+    <string name="discreet_occasion_soon">An occasion is coming up · %1$s</string>
+    <string name="discreet_occasion_today">There\'s an occasion today</string>
 </resources>

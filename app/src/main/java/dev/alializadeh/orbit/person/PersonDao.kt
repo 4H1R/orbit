@@ -41,6 +41,9 @@ data class PersonWithDates(
     val giftIdeas: List<GiftIdea>,
     @Relation(parentColumns = ["id"], entityColumns = ["personId"])
     val contactMethods: List<ContactMethod>,
+    /** Their Tags (Occasions reach People by Tag). */
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val tags: List<PersonTag> = emptyList(),
 )
 
 @Dao

@@ -9,6 +9,8 @@ import dev.alializadeh.orbit.interaction.InteractionDraft
 import dev.alializadeh.orbit.interaction.InteractionRepository
 import dev.alializadeh.orbit.interaction.InteractionType
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.occasion.OccasionRepository
+import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.person.PersonRepository
 import java.time.Clock
@@ -44,6 +46,7 @@ data class WishesSheetState(
 class WishesViewModel @Inject constructor(
     private val personRepository: PersonRepository,
     private val interactionRepository: InteractionRepository,
+    private val occasionRepository: OccasionRepository,
     private val texts: WishTexts,
     private val clock: Clock,
 ) : ViewModel() {
@@ -65,19 +68,32 @@ class WishesViewModel @Inject constructor(
         opening = viewModelScope.launch {
             val profile = personRepository.getProfile(personId) ?: return@launch
             val date = profile.importantDates.firstOrNull { it.id == dateId } ?: return@launch
-            val channels = WishChannels.of(profile.contactMethods)
-            val language = profile.names.messageLanguage(uiLanguage)
-            val kind = WishKind.Date(date.type)
-            message.setTextAndPlaceCursorAtEnd(texts.defaultText(kind, language, profile.names.nameForMessage(language)))
-            sheet.value = WishesSheetState(
-                personId = personId,
-                names = profile.names,
-                kind = kind,
-                channels = channels,
-                channelKey = WishChannels.default(channels).key,
-                language = language,
-            )
+            open(profile.names, profile.contactMethods, personId, WishKind.Date(date.type), uiLanguage)
         }
+    }
+
+    /** Opens Wishes to [personId] on the Occasion [occasionId]. Nothing opens if either is gone. */
+    fun openForOccasion(personId: Long, occasionId: Long, uiLanguage: OrbitLanguage) {
+        opening?.cancel()
+        opening = viewModelScope.launch {
+            val profile = personRepository.getProfile(personId) ?: return@launch
+            val occasion = occasionRepository.get(occasionId) ?: return@launch
+            open(profile.names, profile.contactMethods, personId, WishKind.Occasion(occasion.occasion.builtIn), uiLanguage)
+        }
+    }
+
+    private fun open(names: PersonNames, methods: List<ContactMethod>, personId: Long, kind: WishKind, uiLanguage: OrbitLanguage) {
+        val channels = WishChannels.of(methods)
+        val language = names.messageLanguage(uiLanguage)
+        message.setTextAndPlaceCursorAtEnd(texts.defaultText(kind, language, names.nameForMessage(language)))
+        sheet.value = WishesSheetState(
+            personId = personId,
+            names = names,
+            kind = kind,
+            channels = channels,
+            channelKey = WishChannels.default(channels).key,
+            language = language,
+        )
     }
 
     /** Writes in [language] instead: the message goes back to that language's default text. */

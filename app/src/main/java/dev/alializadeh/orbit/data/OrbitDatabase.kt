@@ -11,6 +11,11 @@ import dev.alializadeh.orbit.backup.BackupStatusDao
 import dev.alializadeh.orbit.interaction.Interaction
 import dev.alializadeh.orbit.interaction.InteractionDao
 import dev.alializadeh.orbit.interaction.InteractionPerson
+import dev.alializadeh.orbit.occasion.Occasion
+import dev.alializadeh.orbit.occasion.OccasionDao
+import dev.alializadeh.orbit.occasion.OccasionPerson
+import dev.alializadeh.orbit.occasion.OccasionRing
+import dev.alializadeh.orbit.occasion.OccasionTag
 import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.ImportantDate
@@ -45,6 +50,10 @@ import kotlinx.coroutines.Dispatchers
         Interaction::class,
         InteractionPerson::class,
         DataVersion::class,
+        Occasion::class,
+        OccasionRing::class,
+        OccasionTag::class,
+        OccasionPerson::class,
     ],
     version = OrbitDatabase.VERSION,
     exportSchema = true,
@@ -63,6 +72,8 @@ abstract class OrbitDatabase : RoomDatabase() {
     abstract fun interactionDao(): InteractionDao
 
     abstract fun backupStatusDao(): BackupStatusDao
+
+    abstract fun occasionDao(): OccasionDao
 
     /**
      * Seeds the single-row tables ([BackedUpPreferences] with its column defaults, [DataVersion])
@@ -86,11 +97,11 @@ abstract class OrbitDatabase : RoomDatabase() {
     }
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val FILE_NAME = "orbit.db"
 
         /** Every migration, oldest first. */
-        val MIGRATIONS: List<Migration> = listOf(Migration1To2)
+        val MIGRATIONS: List<Migration> = listOf(Migration1To2, Migration2To3)
     }
 }
 
@@ -111,3 +122,24 @@ fun RoomDatabase.Builder<OrbitDatabase>.orbitSetup(seed: Boolean = true): RoomDa
         .setQueryCoroutineContext(Dispatchers.IO)
         .addMigrations(*OrbitDatabase.MIGRATIONS.toTypedArray())
         .apply { if (seed) addCallback(OrbitDatabase.SeedCallback) }
+
+/** v1.1: Occasions and who they're for (PRD v1.1). */
+object Migration2To3 : Migration(2, 3) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        // As exported in 3.json.
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `occasion` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `builtIn` TEXT, " +
+                "`label` TEXT, `forEveryone` INTEGER NOT NULL, `leadTimes` TEXT, `calendar` TEXT NOT NULL, " +
+                "`month` INTEGER NOT NULL, `day` INTEGER NOT NULL, `year` INTEGER)",
+        )
+        for ((table, column, parent) in listOf(Triple("occasion_ring", "ringId", "ring"), Triple("occasion_tag", "tagId", "tag"), Triple("occasion_person", "personId", "person"))) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `$table` (`occasionId` INTEGER NOT NULL, `$column` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`occasionId`, `$column`), " +
+                    "FOREIGN KEY(`occasionId`) REFERENCES `occasion`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                    "FOREIGN KEY(`$column`) REFERENCES `$parent`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_${table}_$column` ON `$table` (`$column`)")
+        }
+    }
+}

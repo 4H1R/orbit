@@ -750,4 +750,79 @@
         <item quantity="other">%1$s روز دیرتر</item>
     </plurals>
     <string name="lunar_adjustment_footer">Orbit تاریخ‌های قمری را با تقویم ام‌القری محاسبه می‌کند. اگر تقویم رسمی ایران ماه را در روز دیگری آغاز کند، همهٔ تاریخ‌های قمری را یک یا دو روز جابه‌جا کنید تا یکی شوند.</string>
+
+    <!-- Occasions (v1.1) -->
+    <string name="occasion_name_nowruz">نوروز</string>
+    <string name="occasion_name_yalda">شب یلدا</string>
+    <string name="occasion_name_sepandarmazgan">سپندارمذگان</string>
+    <string name="occasion_name_teachers_day">روز معلم</string>
+    <string name="occasion_name_mothers_day">روز مادر</string>
+    <string name="occasion_name_fathers_day">روز پدر</string>
+    <string name="occasion_name_eid_al_fitr">عید فطر</string>
+    <string name="occasion_name_eid_al_adha">عید قربان</string>
+    <string name="occasion_name_eid_al_ghadir">عید غدیر</string>
+    <string name="occasion_name_new_years_day">سال نو میلادی</string>
+    <string name="occasion_name_christmas">کریسمس</string>
+    <string name="occasion_name_valentines_day">ولنتاین</string>
+    <string name="wishes_occasion_nowruz">%1$s عزیز، نوروزت پیروز. سال نو مبارک.</string>
+    <string name="wishes_occasion_yalda">%1$s عزیز، شب یلدایت مبارک.</string>
+    <string name="wishes_occasion_sepandarmazgan">%1$s عزیز، سپندارمذگان مبارک.</string>
+    <string name="wishes_occasion_teachers_day">%1$s عزیز، روز معلم مبارک. از همهٔ آنچه به من آموختی سپاسگزارم.</string>
+    <string name="wishes_occasion_mothers_day">%1$s عزیز، روز مادر مبارک.</string>
+    <string name="wishes_occasion_fathers_day">%1$s عزیز، روز پدر مبارک.</string>
+    <string name="wishes_occasion_eid_al_fitr">%1$s عزیز، عید فطر مبارک.</string>
+    <string name="wishes_occasion_eid_al_adha">%1$s عزیز، عید قربان مبارک.</string>
+    <string name="wishes_occasion_eid_al_ghadir">%1$s عزیز، عید غدیر مبارک.</string>
+    <string name="wishes_occasion_new_years_day">%1$s عزیز، سال نو میلادی مبارک.</string>
+    <string name="wishes_occasion_christmas">%1$s عزیز، کریسمس مبارک.</string>
+    <string name="wishes_occasion_valentines_day">%1$s عزیز، ولنتاین مبارک.</string>
+    <string name="settings_occasions_title">مناسبت‌ها</string>
+    <string name="settings_occasions_none">هنوز مناسبتی اضافه نشده</string>
+    <plurals name="settings_occasions_summary">
+        <item quantity="one">%1$s مناسبت</item>
+        <item quantity="other">%1$s مناسبت</item>
+    </plurals>
+    <string name="occasions_add">افزودن مناسبت</string>
+    <string name="occasions_empty">نوروز، عیدها یا روزی دلخواه را اضافه کنید تا Orbit یادآوری کند به چه کسانی تبریک بگویید.</string>
+    <string name="occasion_custom">مناسبت دلخواه</string>
+    <string name="occasion_new_title">مناسبت جدید</string>
+    <string name="occasion_edit_title">ویرایش مناسبت</string>
+    <string name="occasion_name">نام</string>
+    <string name="occasion_date">تاریخ</string>
+    <string name="occasion_who">برای چه کسانی</string>
+    <string name="occasion_who_everyone">همه</string>
+    <string name="occasion_who_rings">حلقه‌ها</string>
+    <string name="occasion_who_tags">برچسب‌ها</string>
+    <string name="occasion_who_people">افراد</string>
+    <string name="occasion_who_none">حلقه، برچسب یا افرادی را انتخاب کنید</string>
+    <plurals name="occasion_people">
+        <item quantity="one">%1$s نفر</item>
+        <item quantity="other">%1$s نفر</item>
+    </plurals>
+    <plurals name="occasion_reaches">
+        <item quantity="one">برای %1$s نفر</item>
+        <item quantity="other">برای %1$s نفر</item>
+    </plurals>
+    <string name="occasion_reaches_nobody">هنوز برای کسی نیست</string>
+    <plurals name="occasion_reached">
+        <item quantity="one">با %1$s نفر از %2$s نفر ارتباط گرفتید</item>
+        <item quantity="other">با %1$s نفر از %2$s نفر ارتباط گرفتید</item>
+    </plurals>
+    <string name="occasion_reached_a11y">ارتباط گرفتید</string>
+    <string name="occasion_delete_title">%1$s حذف شود؟</string>
+    <string name="occasion_delete_body">یادآوری‌هایش متوقف می‌شود. افرادتان تغییری نمی‌کنند.</string>
+    <string name="channel_occasions_name">مناسبت‌ها</string>
+    <string name="channel_occasions_description">یادآوری پیش از نوروز، عیدها و دیگر مناسبت‌هایتان</string>
+    <string name="reminder_title_occasion">%1$s، %2$s</string>
+    <string name="reminder_title_occasion_today">امروز %1$s است</string>
+    <plurals name="reminder_occasion_people">
+        <item quantity="one">تبریک به %1$s نفر</item>
+        <item quantity="other">تبریک به %1$s نفر</item>
+    </plurals>
+    <plurals name="reminder_occasion_people_today">
+        <item quantity="one">به %1$s نفر تبریک بگویید</item>
+        <item quantity="other">به %1$s نفر تبریک بگویید</item>
+    </plurals>
+    <string name="discreet_occasion_soon">مناسبتی در پیش است، %1$s</string>
+    <string name="discreet_occasion_today">امروز یک مناسبت دارید</string>
 </resources>

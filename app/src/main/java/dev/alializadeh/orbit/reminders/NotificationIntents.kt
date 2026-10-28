@@ -35,8 +35,14 @@ sealed interface NotificationEntry {
         override val uri: Uri get() = "$SCHEME://$WISHES/$personId/$dateId".toUri()
     }
 
+    /** An Occasion with its People, over Upcoming (an Occasion Reminder). */
+    data class Occasion(val occasionId: Long) : NotificationEntry {
+        override val uri: Uri get() = "$SCHEME://$OCCASION/$occasionId".toUri()
+    }
+
     companion object {
         private const val SCHEME = "orbit"
+        private const val OCCASION = "occasion"
         private const val PERSON = "person"
         private const val UPCOMING = "upcoming"
         private const val DUE = "due"
@@ -50,6 +56,7 @@ sealed interface NotificationEntry {
             return when (data.host) {
                 PERSON -> data.lastPathSegment?.toLongOrNull()?.let(::PersonDetail)
                 UPCOMING -> UpcomingDue.takeIf { data.lastPathSegment == DUE }
+                OCCASION -> data.lastPathSegment?.toLongOrNull()?.let(::Occasion)
                 WISHES -> {
                     val segments = data.pathSegments
                     val personId = segments.getOrNull(0)?.toLongOrNull()

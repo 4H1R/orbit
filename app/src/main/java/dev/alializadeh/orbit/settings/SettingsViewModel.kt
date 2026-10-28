@@ -8,6 +8,7 @@ import dev.alializadeh.orbit.backup.BackupStatusRepository
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.data.BackedUpPreferences
 import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.occasion.OccasionRepository
 import dev.alializadeh.orbit.lock.AppLockSettings
 import dev.alializadeh.orbit.lock.ScreenLockStatus
 import dev.alializadeh.orbit.person.TagRepository
@@ -34,6 +35,7 @@ data class SettingsUiState(
     /** The Rings' names, innermost first: the Rings row's summary. */
     val ringNames: List<String> = emptyList(),
     val tagCount: Int = 0,
+    val occasionCount: Int = 0,
     /** The day of the last Backup, or null if there's never been one: the Backup row's summary. */
     val lastBackup: LocalDate? = null,
     val today: LocalDate = LocalDate.ofEpochDay(0),
@@ -51,6 +53,7 @@ class SettingsViewModel @Inject constructor(
     preferencesRepository: PreferencesRepository,
     ringRepository: RingRepository,
     tagRepository: TagRepository,
+    occasionRepository: OccasionRepository,
     backupStatusRepository: BackupStatusRepository,
     private val screenLock: ScreenLockStatus,
     clock: Clock,
@@ -63,16 +66,17 @@ class SettingsViewModel @Inject constructor(
         combine(
             preferencesRepository.preferences,
             ringRepository.observeRings(),
-            tagRepository.observeTags(),
+            combine(tagRepository.observeTags(), occasionRepository.observeOccasions(), ::Pair),
             backupStatusRepository.status,
             combine(preferencesRepository.deviceState, hasScreenLock, ::Pair),
-        ) { preferences, rings, tags, backup, (device, screenLock) ->
+        ) { preferences, rings, (tags, occasions), backup, (device, screenLock) ->
             SettingsUiState(
                 theme = preferences.theme,
                 colourSource = preferences.colourSource,
                 primaryCalendar = preferences.primaryCalendar,
                 ringNames = rings.map(Ring::name),
                 tagCount = tags.size,
+                occasionCount = occasions.size,
                 lastBackup = backup.lastBackupAt?.atZone(clock.zone)?.toLocalDate(),
                 today = LocalDate.now(clock),
                 reminderTime = preferences.reminderTime,

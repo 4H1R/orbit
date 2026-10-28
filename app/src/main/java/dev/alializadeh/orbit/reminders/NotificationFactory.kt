@@ -39,7 +39,17 @@ class NotificationFactory(
         when (notification) {
             is PlannedReminder -> reminder(notification, rendering, now)
             is PlannedDigest -> digest(notification, rendering)
+            is PlannedOccasionReminder -> occasion(notification, rendering, now)
         }
+
+    /** An Occasion Reminder: no actions; tapping opens the Occasion with its People. */
+    private fun occasion(reminder: PlannedOccasionReminder, rendering: NotificationRendering, now: Instant): Notification {
+        val builder = base(ReminderChannel.Occasions, texts.discreetOccasion(reminder), silent = reminder.silent)
+            .setContentIntent(intents.open(NotificationEntry.Occasion(reminder.occasion.id)))
+            .setTimeoutAfter(Duration.between(now, reminder.expiresAt).toMillis().coerceAtLeast(1))
+        if (rendering.detail == NotificationDetail.Detailed) builder.setText(texts.occasion(reminder))
+        return builder.build()
+    }
 
     private fun reminder(reminder: PlannedReminder, rendering: NotificationRendering, now: Instant): Notification {
         val discreet = texts.discreetReminder(reminder)

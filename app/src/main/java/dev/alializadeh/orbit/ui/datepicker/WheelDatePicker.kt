@@ -62,6 +62,8 @@ fun WheelDatePicker(
     onStateChange: (WheelDatePickerState) -> Unit,
     modifier: Modifier = Modifier,
     calendars: List<CalendarSystem> = CalendarSystem.Primaries,
+    /** False for a day with no year at all (an Occasion): day · month only. */
+    showYear: Boolean = true,
 ) {
     val formats = LocalOrbitFormats.current
     val calendarLabel = stringResource(R.string.date_picker_calendar)
@@ -90,16 +92,18 @@ fun WheelDatePicker(
                 description = stringResource(R.string.date_picker_month),
                 modifier = Modifier.weight(1.5f),
             )
-            val years = state.yearOptions
-            val noYear = stringResource(R.string.date_picker_no_year)
-            Wheel(
-                count = years.size,
-                selectedIndex = years.indexOf(state.year),
-                onSelect = { onStateChange(state.withYear(years[it])) },
-                label = { years[it]?.let(formats.numbers::format) ?: noYear },
-                description = stringResource(R.string.date_picker_year),
-                modifier = Modifier.weight(1.1f),
-            )
+            if (showYear) {
+                val years = state.yearOptions
+                val noYear = stringResource(R.string.date_picker_no_year)
+                Wheel(
+                    count = years.size,
+                    selectedIndex = years.indexOf(state.year),
+                    onSelect = { onStateChange(state.withYear(years[it])) },
+                    label = { years[it]?.let(formats.numbers::format) ?: noYear },
+                    description = stringResource(R.string.date_picker_year),
+                    modifier = Modifier.weight(1.1f),
+                )
+            }
         }
         // The hint's line is always there, so the picker never changes height: a bottom sheet that
         // shrinks right after a wheel drag gets stuck and can't animate closed (material3
