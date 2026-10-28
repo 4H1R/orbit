@@ -11,4 +11,7 @@ interface PersonModule {
 
     @Binds
     fun bindPersonRepository(repository: RoomPersonRepository): PersonRepository
+
+    @Binds
+    fun bindTagRepository(repository: RoomTagRepository): TagRepository
 }

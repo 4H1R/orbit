@@ -30,6 +30,8 @@ import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.orbitview.OrbitViewKey
 import dev.alializadeh.orbit.orbitview.OrbitViewScreen
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.interaction.AllInteractionsKey
+import dev.alializadeh.orbit.interaction.AllInteractionsRoute
 import dev.alializadeh.orbit.person.AddPersonKey
 import dev.alializadeh.orbit.person.EditPersonKey
 import dev.alializadeh.orbit.person.PeopleKey
@@ -41,6 +43,10 @@ import dev.alializadeh.orbit.settings.AppearanceRoute
 import dev.alializadeh.orbit.settings.AppearanceSettingsKey
 import dev.alializadeh.orbit.settings.LanguageDatesRoute
 import dev.alializadeh.orbit.settings.LanguageDatesSettingsKey
+import dev.alializadeh.orbit.settings.RingsRoute
+import dev.alializadeh.orbit.settings.RingsSettingsKey
+import dev.alializadeh.orbit.settings.TagsRoute
+import dev.alializadeh.orbit.settings.TagsSettingsKey
 import dev.alializadeh.orbit.settings.SettingsKey
 import dev.alializadeh.orbit.settings.SettingsRoute
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
@@ -90,6 +96,7 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
                     key = key,
                     onBack = navigator::goBack,
                     onEdit = { focus -> navigator.navigate(EditPersonKey(key.personId, focus)) },
+                    onAllInteractions = { navigator.navigate(AllInteractionsKey(key.personId)) },
                     onArchived = { name, undo ->
                         snackbars.show(
                             message = resources.getString(R.string.archived_snackbar, bidiIsolate(name)),
@@ -100,10 +107,13 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
                     },
                 )
             }
+            entry<AllInteractionsKey> { key -> AllInteractionsRoute(key = key, onBack = navigator::goBack) }
             entry<OrbitViewKey> { OrbitViewScreen() }
             entry<SettingsKey> { SettingsRoute(onOpen = navigator::navigate) }
             entry<AppearanceSettingsKey> { AppearanceRoute(onBack = navigator::goBack) }
             entry<LanguageDatesSettingsKey> { LanguageDatesRoute(onBack = navigator::goBack) }
+            entry<RingsSettingsKey> { RingsRoute(onBack = navigator::goBack) }
+            entry<TagsSettingsKey> { TagsRoute(onBack = navigator::goBack) }
         },
     )
 

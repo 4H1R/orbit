@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStoreFactory
 import androidx.room3.useWriterConnection
 import dev.alializadeh.orbit.backup.BackupNudgeInterval
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.interaction.InteractionType
 import dev.alializadeh.orbit.person.PeopleSort
 import dev.alializadeh.orbit.reminders.LeadTime
 import dev.alializadeh.orbit.ui.theme.ColourSource
@@ -134,7 +135,22 @@ class PreferencesRepositoryTest {
 
         val out = ByteArrayOutputStream()
         DeviceStateSerializer.writeTo(DeviceState(firstRunFinished = true), out)
-        assertEquals("""{"firstRunFinished":true}""", out.toString(Charsets.UTF_8))
+        assertEquals("""{"firstRunFinished":true,"lastInteractionType":"Call"}""", out.toString(Charsets.UTF_8))
+    }
+
+    @Test
+    fun theLastInteractionTypeRoundTripsAndAnUnknownOneFallsBackToTheDefault() = runBlocking {
+        val out = ByteArrayOutputStream()
+        DeviceStateSerializer.writeTo(DeviceState(lastInteractionType = InteractionType.InPerson), out)
+        assertEquals(
+            InteractionType.InPerson,
+            DeviceStateSerializer.readFrom(ByteArrayInputStream(out.toByteArray())).lastInteractionType,
+        )
+        // A type this version doesn't know must not throw away the whole device state.
+        val read = DeviceStateSerializer.readFrom(
+            ByteArrayInputStream("""{"firstRunFinished":true,"lastInteractionType":"Video"}""".toByteArray()),
+        )
+        assertEquals(DeviceState(firstRunFinished = true), read)
     }
 
     @Test(expected = androidx.datastore.core.CorruptionException::class)

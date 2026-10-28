@@ -7,6 +7,8 @@ import androidx.room3.Index
 import androidx.room3.PrimaryKey
 import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.reminders.LeadTime
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /** What an Important date is. Stored by name: never rename a constant. */
 enum class ImportantDateType {
@@ -78,3 +80,28 @@ data class ImportantDateDraft(
 /** Birthday first, then the others in the order they were added. */
 val ImportantDateOrder: Comparator<ImportantDate> =
     compareBy<ImportantDate> { it.type != ImportantDateType.Birthday }.thenBy { it.position }.thenBy { it.id }
+
+/** How near a Person's nearest Important date is, for the apricot date badge. */
+enum class DateSoon {
+    /** One falls today: the badge is filled. */
+    Today,
+
+    /** One falls in the next [DATE_SOON_DAYS] days. */
+    Soon,
+    ;
+
+    companion object {
+        /** The badge covers Upcoming's Coming up window. */
+        const val DATE_SOON_DAYS = 30
+
+        /** The badge for [dates] on [today], or null when none falls in the next 30 days. */
+        fun of(dates: List<ImportantDate>, today: LocalDate): DateSoon? {
+            val days = dates.minOfOrNull { ChronoUnit.DAYS.between(today, it.date.nextOccurrence(today).date) } ?: return null
+            return when {
+                days == 0L -> Today
+                days <= DATE_SOON_DAYS -> Soon
+                else -> null
+            }
+        }
+    }
+}

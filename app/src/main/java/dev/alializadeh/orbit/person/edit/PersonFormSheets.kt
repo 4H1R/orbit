@@ -4,11 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.InputTransformation
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -16,7 +11,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,17 +21,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
-import dev.alializadeh.orbit.format.Digits
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.person.CadenceSetting
+import dev.alializadeh.orbit.person.ui.CadenceCountUnitFields
+import dev.alializadeh.orbit.person.ui.cadenceOf
 import dev.alializadeh.orbit.person.ui.cadenceText
+import dev.alializadeh.orbit.person.ui.sentenceStart
 import dev.alializadeh.orbit.ring.Cadence
-import dev.alializadeh.orbit.ring.CadenceUnit
 import dev.alializadeh.orbit.ui.components.ChoiceRow
-import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
@@ -79,8 +72,7 @@ internal fun CadenceSheet(
     }
     var unit by rememberSaveable { mutableStateOf(start.unit) }
     val count = rememberTextFieldState(numbers.format(start.count))
-    val parsed = Digits.toAscii(count.text.toString()).trim().toIntOrNull()?.takeIf { it in 1..MAX_COUNT }
-    val custom = parsed?.let { Cadence(it, unit) }
+    val custom = cadenceOf(count, unit)
 
     OrbitBottomSheet(onDismiss = onDismiss) { sheet ->
         Text(
@@ -115,28 +107,12 @@ internal fun CadenceSheet(
             )
         }
         if (choice == CadenceChoice.Every) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            CadenceCountUnitFields(
+                count = count,
+                unit = unit,
+                onUnitSelect = { unit = it },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                OutlinedTextField(
-                    state = count,
-                    label = { Text(stringResource(R.string.cadence_sheet_count)) },
-                    lineLimits = TextFieldLineLimits.SingleLine,
-                    inputTransformation = InputTransformation.maxLength(3),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = parsed == null,
-                    modifier = Modifier.width(96.dp),
-                )
-                OrbitConnectedChoice(
-                    options = CadenceUnit.entries,
-                    selected = unit,
-                    onSelect = { unit = it },
-                    label = { unitName(it) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            )
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
@@ -160,17 +136,4 @@ internal fun CadenceSheet(
     }
 }
 
-@Composable
-private fun unitName(unit: CadenceUnit): String = stringResource(
-    when (unit) {
-        CadenceUnit.Days -> R.string.cadence_unit_days
-        CadenceUnit.Weeks -> R.string.cadence_unit_weeks
-        CadenceUnit.Months -> R.string.cadence_unit_months
-    },
-)
-
-/** "every 3 weeks" → "Every 3 weeks" as a row title (Persian has no case, so it's unchanged). */
-private fun sentenceStart(text: String): String = text.replaceFirstChar { it.titlecase() }
-
 private const val DEFAULT_DAYS = 30
-private const val MAX_COUNT = 999

@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.data
 
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
+import dev.alializadeh.orbit.interaction.InteractionType
 import java.io.InputStream
 import java.io.OutputStream
 import kotlinx.serialization.Serializable
@@ -17,6 +18,8 @@ import kotlinx.serialization.json.Json
 data class DeviceState(
     /** Welcome (and the rest of first run) has been finished once on this device. */
     val firstRunFinished: Boolean = false,
+    /** The type last chosen on the Log interaction sheet, its default next time. */
+    val lastInteractionType: InteractionType = InteractionType.Call,
 )
 
 object DeviceStateSerializer : Serializer<DeviceState> {
@@ -24,6 +27,9 @@ object DeviceStateSerializer : Serializer<DeviceState> {
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        // An enum value this version doesn't know falls back to the field's default, rather than
+        // the whole state being unreadable (and replaced, first run included).
+        coerceInputValues = true
     }
 
     override val defaultValue: DeviceState = DeviceState()

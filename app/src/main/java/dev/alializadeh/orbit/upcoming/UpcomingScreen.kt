@@ -2,10 +2,12 @@ package dev.alializadeh.orbit.upcoming
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,10 +27,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -50,7 +54,11 @@ import dev.alializadeh.orbit.calendar.inCalendar
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.OrbitDateFormatter
 import dev.alializadeh.orbit.format.RelativeDays
+import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.text
+import dev.alializadeh.orbit.interaction.KeepInTouchSheets
+import dev.alializadeh.orbit.interaction.KeepInTouchViewModel
+import dev.alializadeh.orbit.interaction.lastTalkedText
 import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.dates.DateBadge
@@ -69,6 +77,7 @@ import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
 import dev.alializadeh.orbit.ui.expressive.OrbitShapes
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import java.io.File
 import java.time.LocalDate
 import kotlinx.serialization.Serializable
@@ -88,8 +97,6 @@ enum class UpcomingSection {
     /** Slice 5: the Backup nudge card. */
     BackupNudge,
     Today,
-
-    /** Slice 4: Due People. */
     Due,
     ComingUp,
 }
@@ -99,6 +106,7 @@ fun UpcomingRoute(
     onNewPerson: () -> Unit,
     onPersonClick: (personId: Long) -> Unit,
     viewModel: UpcomingViewModel = hiltViewModel(),
+    keepInTouch: KeepInTouchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Back from the background: it may be another day.
@@ -109,6 +117,7 @@ fun UpcomingRoute(
     val context = LocalContext.current
     val snackbars = LocalOrbitSnackbars.current
     val noApp = stringResource(R.string.contact_no_app)
+    KeepInTouchSheets(keepInTouch)
     UpcomingScreen(
         uiState = uiState,
         onNewPerson = onNewPerson,
@@ -120,6 +129,9 @@ fun UpcomingRoute(
                 snackbars?.show(noApp)
             }
         },
+        onLogInteraction = keepInTouch::logInteraction,
+        onSnooze = keepInTouch::openSnooze,
+        onShowAllDue = viewModel::showAllDue,
     )
 }
 
@@ -130,6 +142,9 @@ fun UpcomingScreen(
     onNewPerson: () -> Unit,
     onPersonClick: (personId: Long) -> Unit,
     onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: (personId: Long) -> Unit,
+    onSnooze: (personId: Long) -> Unit,
+    onShowAllDue: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -173,8 +188,10 @@ fun UpcomingScreen(
                 ) {
                     UpcomingSection.entries.forEach { section ->
                         when (section) {
-                            UpcomingSection.Warnings, UpcomingSection.BackupNudge, UpcomingSection.Due -> Unit
-                            UpcomingSection.Today -> todaySection(uiState, onPersonClick, onContactAction)
+                            UpcomingSection.Warnings, UpcomingSection.BackupNudge -> Unit
+                            UpcomingSection.Today -> todaySection(uiState, onPersonClick, onContactAction, onLogInteraction)
+                            UpcomingSection.Due ->
+                                dueSection(uiState, onPersonClick, onContactAction, onLogInteraction, onSnooze, onShowAllDue)
                             UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick)
                         }
                     }
@@ -189,6 +206,7 @@ private fun LazyListScope.todaySection(
     uiState: UpcomingUiState.Loaded,
     onPersonClick: (Long) -> Unit,
     onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: (Long) -> Unit,
 ) {
     val dates = uiState.feed.today
     if (dates.isEmpty()) return
@@ -201,6 +219,7 @@ private fun LazyListScope.todaySection(
             today = uiState.today,
             onClick = { onPersonClick(hero.person.id) },
             onContactAction = onContactAction,
+            onLogInteraction = { onLogInteraction(hero.person.id) },
         )
     }
     val rest = dates.drop(1)
@@ -212,8 +231,54 @@ private fun LazyListScope.todaySection(
             count = rest.size,
             onClick = { onPersonClick(date.person.id) },
             onContactAction = onContactAction,
+            onLogInteraction = { onLogInteraction(date.person.id) },
             modifier = if (index == 0) Modifier.padding(top = 8.dp) else Modifier,
         )
+    }
+}
+
+/**
+ * Everyone Due: innermost Ring first, then longest since the last Interaction. Five show, then
+ * "Show all (n)" expands the rest in place, with "Show fewer" at the end.
+ */
+private fun LazyListScope.dueSection(
+    uiState: UpcomingUiState.Loaded,
+    onPersonClick: (Long) -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: (Long) -> Unit,
+    onSnooze: (Long) -> Unit,
+    onShowAllDue: (Boolean) -> Unit,
+) {
+    val due = uiState.feed.due
+    if (due.isEmpty()) return
+    item(key = "due_title") { SectionTitle(stringResource(R.string.upcoming_section_due)) }
+    val shown = uiState.dueShown
+    itemsIndexed(shown, key = { _, it -> "due_${it.person.id}" }) { index, row ->
+        DueRow(
+            row = row,
+            photo = uiState.photos[row.person.id],
+            today = uiState.today,
+            index = index,
+            count = shown.size,
+            onClick = { onPersonClick(row.person.id) },
+            onContactAction = onContactAction,
+            onLogInteraction = { onLogInteraction(row.person.id) },
+            onSnooze = { onSnooze(row.person.id) },
+        )
+    }
+    if (uiState.dueHasMore) {
+        item(key = "due_more") {
+            val numbers = LocalOrbitFormats.current.numbers
+            TextButton(onClick = { onShowAllDue(!uiState.showAllDue) }) {
+                Text(
+                    if (uiState.showAllDue) {
+                        stringResource(R.string.upcoming_show_fewer)
+                    } else {
+                        stringResource(R.string.upcoming_show_all, numbers.format(due.size))
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -249,6 +314,7 @@ private fun HeroCard(
     today: LocalDate,
     onClick: () -> Unit,
     onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: () -> Unit,
 ) {
     val formats = LocalOrbitFormats.current
     val separator = stringResource(R.string.separator)
@@ -293,9 +359,12 @@ private fun HeroCard(
                 Text(dateLine, style = MaterialTheme.typography.bodyMedium)
                 giftIdeasLine(date.person.openGiftIdeas)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                 val action = date.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
-                // Slice 4: [Log interaction] joins this row.
-                if (action != null) {
-                    Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    modifier = Modifier.padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (action != null) {
                         Button(
                             onClick = { onContactAction(action) },
                             colors = ButtonDefaults.buttonColors(
@@ -307,13 +376,24 @@ private fun HeroCard(
                             Text(action.kind.label(), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
+                    OutlinedButton(
+                        onClick = onLogInteraction,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onTertiaryContainer),
+                        border = BorderStroke(1.dp, colors.onTertiaryContainer),
+                    ) {
+                        Icon(OrbitIcons.LogInteraction, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.interaction_log), modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         }
     }
 }
 
-/** Another date today: whose it is, the years count and Gift ideas, and the contact action. */
+/**
+ * Another date today: whose it is, the years count and Gift ideas, the contact action and Log
+ * interaction.
+ */
 @Composable
 private fun TodayRow(
     date: UpcomingDate,
@@ -322,6 +402,7 @@ private fun TodayRow(
     count: Int,
     onClick: () -> Unit,
     onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val formats = LocalOrbitFormats.current
@@ -334,10 +415,15 @@ private fun TodayRow(
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         leadingContent = { PersonAvatar(name = name, photo = photo) },
         supportingContent = supporting?.let { { Text(it) } },
-        trailingContent = action?.let {
-            {
-                IconButton(onClick = { onContactAction(it) }) {
-                    Icon(it.kind.icon, contentDescription = it.kind.label())
+        trailingContent = {
+            Row {
+                action?.let {
+                    IconButton(onClick = { onContactAction(it) }) {
+                        Icon(it.kind.icon, contentDescription = it.kind.label())
+                    }
+                }
+                IconButton(onClick = onLogInteraction) {
+                    Icon(OrbitIcons.LogInteraction, contentDescription = stringResource(R.string.interaction_log))
                 }
             }
         },
@@ -348,6 +434,56 @@ private fun TodayRow(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * A Due Person: who, "Close · last talked 34 days ago", and their contact action, Log interaction
+ * and Snooze. Tapping opens Person detail.
+ */
+@Composable
+private fun DueRow(
+    row: DuePerson,
+    photo: File?,
+    today: LocalDate,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: () -> Unit,
+    onSnooze: () -> Unit,
+) {
+    val formats = LocalOrbitFormats.current
+    val name = row.person.names.displayName(formats.language)
+    val action = row.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
+    val supporting = listOfNotNull(
+        row.person.ringName?.let(::bidiIsolate),
+        lastTalkedText(row.state.lastInteraction, today, inline = row.person.ringName != null),
+    ).joinToString(stringResource(R.string.separator))
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = { PersonAvatar(name = name, photo = photo) },
+        supportingContent = { Text(supporting, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        trailingContent = {
+            Row {
+                action?.let {
+                    IconButton(onClick = { onContactAction(it) }) {
+                        Icon(it.kind.icon, contentDescription = it.kind.label())
+                    }
+                }
+                IconButton(onClick = onLogInteraction) {
+                    Icon(OrbitIcons.LogInteraction, contentDescription = stringResource(R.string.interaction_log))
+                }
+                IconButton(onClick = onSnooze) {
+                    Icon(OrbitIcons.Snooze, contentDescription = stringResource(R.string.snooze_action))
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+    ) {
+        Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

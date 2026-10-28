@@ -5,6 +5,9 @@ import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
+import dev.alializadeh.orbit.interaction.Interaction
+import dev.alializadeh.orbit.interaction.InteractionDao
+import dev.alializadeh.orbit.interaction.InteractionPerson
 import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.ImportantDate
@@ -35,6 +38,8 @@ import dev.alializadeh.orbit.ring.RingDao
         ContactMethod::class,
         ImportantDate::class,
         GiftIdea::class,
+        Interaction::class,
+        InteractionPerson::class,
     ],
     version = OrbitDatabase.VERSION,
     exportSchema = true,
@@ -49,6 +54,8 @@ abstract class OrbitDatabase : RoomDatabase() {
     abstract fun ringDao(): RingDao
 
     abstract fun tagDao(): TagDao
+
+    abstract fun interactionDao(): InteractionDao
 
     /**
      * Seeds the single [BackedUpPreferences] row (with its column defaults) when the database file

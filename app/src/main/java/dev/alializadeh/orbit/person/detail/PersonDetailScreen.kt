@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -45,6 +46,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.interaction.KeepInTouchSheets
+import dev.alializadeh.orbit.interaction.KeepInTouchViewModel
 import dev.alializadeh.orbit.person.PersonDetailKey
 import dev.alializadeh.orbit.person.ImportantDateDraft
 import dev.alializadeh.orbit.person.ImportantDateType
@@ -68,12 +71,14 @@ fun PersonDetailRoute(
     key: PersonDetailKey,
     onBack: () -> Unit,
     onEdit: (focus: PersonField?) -> Unit,
+    onAllInteractions: () -> Unit,
     /** Archived: show "[name] archived · Undo" ([undo] outlives this screen) and leave. */
     onArchived: (displayName: String, undo: suspend () -> Unit) -> Unit,
     viewModel: PersonDetailViewModel =
         hiltViewModel<PersonDetailViewModel, PersonDetailViewModel.Factory>(
             creationCallback = { factory -> factory.create(key.personId) },
         ),
+    keepInTouchViewModel: KeepInTouchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -102,8 +107,19 @@ fun PersonDetailRoute(
         }
     }
 
+    val keepInTouch = remember(keepInTouchViewModel, key.personId) {
+        object : PersonDetailKeepInTouch {
+            override fun logInteraction() = keepInTouchViewModel.logInteraction(key.personId)
+            override fun openInteraction(interactionId: Long) = keepInTouchViewModel.editInteraction(interactionId)
+            override fun allInteractions() = onAllInteractions()
+            override fun snooze() = keepInTouchViewModel.openSnooze(key.personId)
+            override fun cancelSnooze() = keepInTouchViewModel.cancelSnooze(key.personId)
+        }
+    }
+    KeepInTouchSheets(keepInTouchViewModel)
     PersonDetailScreen(
         uiState = uiState,
+        keepInTouch = keepInTouch,
         onBack = onBack,
         onEdit = { onEdit(null) },
         onAddDetail = onEdit,
@@ -135,6 +151,7 @@ fun PersonDetailRoute(
 @Composable
 fun PersonDetailScreen(
     uiState: PersonDetailUiState,
+    keepInTouch: PersonDetailKeepInTouch,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onAddDetail: (PersonField) -> Unit,
@@ -214,11 +231,13 @@ fun PersonDetailScreen(
                     if (uiState.profile.person.isArchived) ArchivedBanner(onUnarchive)
                     PersonHeader(
                         uiState = uiState,
+                        keepInTouch = keepInTouch,
                         onContactAction = onContactAction,
                         onMoreContact = { moreContactSheet = true },
                     )
                     PersonSections(
                         uiState = uiState,
+                        keepInTouch = keepInTouch,
                         onOpenDate = { dateSheet = it.id },
                         onAddGiftIdea = { giftSheet = NEW_GIFT_IDEA },
                         onOpenGiftIdea = { giftSheet = it.id },

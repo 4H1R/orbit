@@ -6,6 +6,9 @@ import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonNames
+import dev.alializadeh.orbit.due.KeepInTouch
+import dev.alializadeh.orbit.ring.Cadence
+import dev.alializadeh.orbit.testing.NeverDue
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,6 +35,8 @@ class UpcomingFeedTest {
         vararg dates: ImportantDate,
         archived: Boolean = false,
         ideas: List<String> = emptyList(),
+        keepInTouch: KeepInTouch = NeverDue,
+        ringPosition: Int = 0,
     ) = UpcomingPerson(
         id = id,
         names = PersonNames("Person $id"),
@@ -40,6 +45,8 @@ class UpcomingFeedTest {
         primaryContactMethod = null,
         importantDates = dates.map { it.copy(personId = id) },
         openGiftIdeas = ideas,
+        keepInTouch = keepInTouch,
+        ringPosition = ringPosition,
     )
 
     private fun UpcomingFeed.days(list: List<UpcomingDate>) = list.map { it.date }
@@ -169,5 +176,44 @@ class UpcomingFeedTest {
         val feed = UpcomingFeed.of(listOf(person(1, date(RecurringDate(Gregorian, 10, 30)), ideas = listOf("Book", "Scarf"))), today)
 
         assertEquals(listOf("Book", "Scarf"), feed.comingUp.single().person.openGiftIdeas)
+    }
+
+    // Due
+
+    private fun due(lastInteraction: LocalDate?, cadence: Cadence? = Cadence.days(30), snoozedUntil: LocalDate? = null) =
+        KeepInTouch(cadence = cadence, addedOn = LocalDate.of(2026, 1, 1), lastInteraction = lastInteraction, snoozedUntil = snoozedUntil)
+
+    @Test
+    fun dueIsInnermostRingFirstThenLongestSinceTheLastContact() {
+        val feed = UpcomingFeed.of(
+            listOf(
+                person(1, keepInTouch = due(today.minusDays(40)), ringPosition = 2),
+                person(2, keepInTouch = due(today.minusDays(31)), ringPosition = 0),
+                person(3, keepInTouch = due(today.minusDays(90)), ringPosition = 2),
+                // Never talked: counted from the day they were added (300 days ago).
+                person(4, keepInTouch = due(null), ringPosition = 2),
+                person(5, keepInTouch = due(today.minusDays(29)), ringPosition = 0),
+            ),
+            today,
+        )
+
+        assertEquals(listOf(2L, 4L, 3L, 1L), feed.due.map { it.person.id })
+        assertTrue(feed.due.all { it.state.isDue })
+    }
+
+    @Test
+    fun snoozedArchivedAndNoCadencePeopleAreNotDue() {
+        val feed = UpcomingFeed.of(
+            listOf(
+                person(1, keepInTouch = due(today.minusDays(40), snoozedUntil = today.plusDays(1))),
+                person(2, keepInTouch = due(today.minusDays(40)), archived = true),
+                person(3, keepInTouch = due(today.minusDays(400), cadence = null)),
+                // The Snooze ended today: Due again.
+                person(4, keepInTouch = due(today.minusDays(40), snoozedUntil = today)),
+            ),
+            today,
+        )
+
+        assertEquals(listOf(4L), feed.due.map { it.person.id })
     }
 }

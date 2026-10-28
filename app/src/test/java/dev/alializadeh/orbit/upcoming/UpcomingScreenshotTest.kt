@@ -10,6 +10,9 @@ import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.person.contact.ContactType
+import dev.alializadeh.orbit.due.KeepInTouch
+import dev.alializadeh.orbit.ring.Cadence
+import dev.alializadeh.orbit.testing.NeverDue
 import dev.alializadeh.orbit.testing.ScreenshotVariant
 import dev.alializadeh.orbit.testing.captureScreen
 import java.time.LocalDate
@@ -20,8 +23,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Upcoming in en/LTR and fa/RTL, light and dark: Today's hero card and rows with Coming up, the
- * same with the other Primary calendar, and both empty states.
+ * Upcoming in en/LTR and fa/RTL, light and dark: Today's hero card and rows, Due (five of six,
+ * then all of them) and Coming up, the same with the other Primary calendar, and both empty states.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -32,12 +35,18 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
 
     private val people = if (variant.persian) PersianPeople else EnglishPeople
 
-    private fun loaded(people: List<UpcomingPerson>) =
-        UpcomingUiState.Loaded(today = today, feed = UpcomingFeed.of(people, today))
+    private fun loaded(people: List<UpcomingPerson>, showAllDue: Boolean = false) =
+        UpcomingUiState.Loaded(today = today, feed = UpcomingFeed.of(people, today), showAllDue = showAllDue)
 
     @Test
     fun upcoming() = captureScreen("upcoming", variant, tall = true) {
         Screen(loaded(people))
+    }
+
+    /** "Show all (6)" tapped: every Due row, then "Show fewer". */
+    @Test
+    fun upcomingDueShowAll() = captureScreen("upcoming_due_all", variant, tall = true) {
+        Screen(loaded(people, showAllDue = true))
     }
 
     @Test
@@ -61,7 +70,15 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
 
     @androidx.compose.runtime.Composable
     private fun Screen(uiState: UpcomingUiState) {
-        UpcomingScreen(uiState = uiState, onNewPerson = {}, onPersonClick = {}, onContactAction = {})
+        UpcomingScreen(
+            uiState = uiState,
+            onNewPerson = {},
+            onPersonClick = {},
+            onContactAction = {},
+            onLogInteraction = {},
+            onSnooze = {},
+            onShowAllDue = {},
+        )
     }
 
     companion object {
@@ -93,6 +110,47 @@ private fun person(
         ImportantDate(id = nextId++, personId = id, type = type, label = label, date = date, position = 0),
     ),
     openGiftIdeas = ideas,
+    keepInTouch = NeverDue,
+)
+
+private val Today = LocalDate.of(2026, 10, 28)
+
+/** Someone Due, with no Important dates: in [ring] (position [ringPosition], every [every] days), last talked [lastDaysAgo] days ago. */
+private fun duePerson(
+    id: Long,
+    name: String,
+    ring: String,
+    ringPosition: Int,
+    every: Int,
+    lastDaysAgo: Long?,
+    contact: ContactType? = null,
+) = UpcomingPerson(
+    id = id,
+    names = PersonNames(name),
+    photoFileName = null,
+    isArchived = false,
+    primaryContactMethod = contact?.let {
+        ContactMethod(id = id, personId = id, type = it, value = "+49 151 2345 6789", isPrimary = true, position = 0)
+    },
+    importantDates = emptyList(),
+    openGiftIdeas = emptyList(),
+    keepInTouch = KeepInTouch(
+        cadence = Cadence.days(every),
+        addedOn = Today.minusDays(60),
+        lastInteraction = lastDaysAgo?.let(Today::minusDays),
+    ),
+    ringName = ring,
+    ringPosition = ringPosition,
+)
+
+/** Six Due People: innermost Ring first, then longest since the last contact. */
+private fun duePeople(names: List<String>, inner: String, close: String, friends: String) = listOf(
+    duePerson(10, names[0], inner, 0, every = 14, lastDaysAgo = 20, contact = ContactType.Phone),
+    duePerson(11, names[1], close, 1, every = 30, lastDaysAgo = 45, contact = ContactType.Telegram),
+    duePerson(12, names[2], close, 1, every = 30, lastDaysAgo = null),
+    duePerson(13, names[3], friends, 2, every = 90, lastDaysAgo = 120, contact = ContactType.WhatsApp),
+    duePerson(14, names[4], friends, 2, every = 90, lastDaysAgo = 95),
+    duePerson(15, names[5], friends, 2, every = 90, lastDaysAgo = 400, contact = ContactType.Email),
 )
 
 private fun people(
@@ -125,7 +183,7 @@ private val EnglishPeople = people(
     graduation = "graduation",
     ideas = listOf("Fountain pen (Lamy 2000)", "Illustrated Divan of Hafez", "Silk scarf"),
     minaIdeas = listOf("Concert tickets", "Plant"),
-)
+) + duePeople(listOf("Leila Navabi", "Omid", "Hannah Becker", "Kian", "Nasrin", "Jonas"), "Inner", "Close", "Friends")
 
 private val PersianPeople = people(
     sara = "سارا احمدی",
@@ -136,4 +194,4 @@ private val PersianPeople = people(
     graduation = "جشن فارغ‌التحصیلی",
     ideas = listOf("خودنویس لامی ۲۰۰۰", "دیوان مصور حافظ", "شال ابریشمی"),
     minaIdeas = listOf("بلیت کنسرت", "گلدان"),
-)
+) + duePeople(listOf("لیلا نوابی", "امید", "Hannah Becker", "کیان", "نسرین", "Jonas"), "صمیمی", "نزدیک", "دوستان")

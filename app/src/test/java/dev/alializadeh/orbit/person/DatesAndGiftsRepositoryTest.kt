@@ -197,7 +197,7 @@ class DatesAndGiftsRepositoryTest {
         val reza = repository.save(draft("Reza"))
         repository.setArchived(reza, archived = true)
 
-        val people = RoomUpcomingRepository(database.personDao()).observePeople().first().associateBy { it.id }
+        val people = RoomUpcomingRepository(database.personDao(), database.ringDao(), database.interactionDao(), Clock.fixed(now, ZoneOffset.UTC)).observePeople().first().associateBy { it.id }
 
         val saraRow = people.getValue(sara)
         assertEquals(listOf(ImportantDateType.Birthday, ImportantDateType.Anniversary), saraRow.importantDates.map { it.type })

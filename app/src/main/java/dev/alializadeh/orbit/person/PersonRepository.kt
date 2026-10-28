@@ -2,7 +2,10 @@ package dev.alializadeh.orbit.person
 
 import androidx.room3.withWriteTransaction
 import dev.alializadeh.orbit.data.OrbitDatabase
+import dev.alializadeh.orbit.due.KeepInTouch
+import dev.alializadeh.orbit.due.keepInTouch
 import dev.alializadeh.orbit.person.photo.PhotoStore
+import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingDao
 import java.time.Clock
 import java.time.LocalDate
@@ -10,12 +13,20 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
-/** A People-list row: who, their photo and their Ring. */
+/**
+ * A People-list row: who, their photo and Ring, how to reach them, their Important dates (for the
+ * date badge) and what Due is worked out from.
+ */
 data class PersonSummary(
     val id: Long,
     val names: PersonNames,
     val photoFileName: String?,
     val ringName: String?,
+    val keepInTouch: KeepInTouch,
+    /** The Ring's place, innermost 0. */
+    val ringPosition: Int = 0,
+    val primaryContactMethod: ContactMethod? = null,
+    val importantDates: List<ImportantDate> = emptyList(),
 )
 
 /** Reads and writes People and what's stored around them. Screens observe it through Flows. */
@@ -23,6 +34,9 @@ interface PersonRepository {
 
     /** Every Person who isn't Archived, unsorted: the UI sorts by the displayed name. */
     fun observePeople(): Flow<List<PersonSummary>>
+
+    /** Every Person, Archived ones included (the Interaction People picker filters them). */
+    fun observeAllPeople(): Flow<List<Person>>
 
     /** One Person with everything around them, or null once they no longer exist. */
     fun observeProfile(id: Long): Flow<PersonProfile?>
@@ -50,6 +64,12 @@ interface PersonRepository {
     suspend fun setArchived(id: Long, archived: Boolean)
 
     /**
+     * Snoozes the Person until [until] (null cancels a Snooze) and returns what it was before, for
+     * Undo.
+     */
+    suspend fun setSnoozedUntil(id: Long, until: LocalDate?): LocalDate?
+
+    /**
      * Adds (no [ImportantDateDraft.id]) or updates one Important date of [personId] (Person
      * detail's date sheet) and returns its id. Throws if it would give the Person a second Birthday.
      */
@@ -65,7 +85,10 @@ interface PersonRepository {
 
     suspend fun deleteGiftIdea(id: Long)
 
-    /** Deletes the Person, everything they own, and their photo. Permanent. */
+    /**
+     * Deletes the Person, everything they own, and their photo. Permanent. They leave shared
+     * Interactions, which stay for the others; one left with nobody is deleted.
+     */
     suspend fun delete(id: Long)
 }
 
@@ -78,13 +101,29 @@ class RoomPersonRepository @Inject constructor(
     private val clock: Clock,
 ) : PersonRepository {
 
+    private val interactionDao = database.interactionDao()
+
     override fun observePeople(): Flow<List<PersonSummary>> =
-        combine(personDao.observeActive(), ringDao.observeAll()) { people, rings ->
-            val ringNames = rings.associate { it.id to it.name }
-            people.map { person ->
-                PersonSummary(person.id, person.names, person.photoFileName, ringNames[person.ringId])
+        combine(personDao.observeActiveWithDates(), ringDao.observeAll(), interactionDao.observeLastDates()) { people, rings, last ->
+            val ringsById = rings.associateBy(Ring::id)
+            val lastDates = last.associate { it.personId to it.date }
+            people.map { row ->
+                val person = row.person
+                val ring = ringsById[person.ringId]
+                PersonSummary(
+                    id = person.id,
+                    names = person.names,
+                    photoFileName = person.photoFileName,
+                    ringName = ring?.name,
+                    keepInTouch = person.keepInTouch(ring, lastDates[person.id], clock.zone),
+                    ringPosition = ring?.position ?: Int.MAX_VALUE,
+                    primaryContactMethod = row.contactMethods.firstOrNull(ContactMethod::isPrimary),
+                    importantDates = row.importantDates.sortedWith(ImportantDateOrder),
+                )
             }
         }
+
+    override fun observeAllPeople(): Flow<List<Person>> = personDao.observeAll()
 
     override fun observeProfile(id: Long): Flow<PersonProfile?> =
         combine(personDao.observeWithDetails(id), ringDao.observeAll()) { details, rings ->
@@ -174,6 +213,13 @@ class RoomPersonRepository @Inject constructor(
         personDao.setArchivedAt(id, if (archived) clock.instant().toEpochMilli() else null)
     }
 
+    override suspend fun setSnoozedUntil(id: Long, until: LocalDate?): LocalDate? =
+        database.withWriteTransaction {
+            val before = personDao.get(id)?.snoozedUntil
+            personDao.setSnoozedUntil(id, until)
+            before
+        }
+
     /**
      * Makes [personId]'s Important dates exactly [drafts], in that order. Dates that already exist
      * keep their ids (later, their Reminders), so editing one doesn't look like delete + add.
@@ -232,8 +278,12 @@ class RoomPersonRepository @Inject constructor(
     override suspend fun deleteGiftIdea(id: Long) = personDao.deleteGiftIdea(id)
 
     override suspend fun delete(id: Long) {
-        val photo = personDao.get(id)?.photoFileName
-        personDao.delete(id)
+        val photo = database.withWriteTransaction {
+            val photo = personDao.get(id)?.photoFileName
+            personDao.delete(id)
+            interactionDao.deleteOrphans()
+            photo
+        }
         photo?.let(photoStore::delete)
     }
 

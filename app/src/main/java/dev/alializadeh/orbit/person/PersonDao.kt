@@ -46,10 +46,6 @@ data class PersonWithDates(
 @Dao
 interface PersonDao {
 
-    /** Every Person who isn't Archived, in no order: lists sort by the displayed name in Kotlin. */
-    @Query("SELECT * FROM person WHERE archivedAt IS NULL")
-    fun observeActive(): Flow<List<Person>>
-
     @Transaction
     @Query("SELECT * FROM person WHERE id = :id")
     fun observeWithDetails(id: Long): Flow<PersonWithDetails?>
@@ -74,6 +70,17 @@ interface PersonDao {
     @Query("UPDATE person SET archivedAt = :archivedAt WHERE id = :id")
     suspend fun setArchivedAt(id: Long, archivedAt: Long?)
 
+    @Query("UPDATE person SET snoozedUntil = :until WHERE id = :id")
+    suspend fun setSnoozedUntil(id: Long, until: LocalDate?)
+
+    /** Slice 6: the Cadence digest named them as Due on [day]. */
+    @Query("UPDATE person SET lastNotifiedDueOn = :day WHERE id = :id")
+    suspend fun setLastNotifiedDueOn(id: Long, day: LocalDate?)
+
+    /** Every Person, Archived ones included. */
+    @Query("SELECT * FROM person")
+    fun observeAll(): Flow<List<Person>>
+
     /**
      * Every Person, Archived ones included (Upcoming leaves those out itself), with their
      * Important dates, Gift ideas and Contact methods.
@@ -82,9 +89,15 @@ interface PersonDao {
     @Query("SELECT * FROM person")
     fun observeWithDates(): Flow<List<PersonWithDates>>
 
+    /** Every Person who isn't Archived, with their Important dates, Gift ideas and Contact methods. */
+    @Transaction
+    @Query("SELECT * FROM person WHERE archivedAt IS NULL")
+    fun observeActiveWithDates(): Flow<List<PersonWithDates>>
+
     /**
      * Deletes the Person; their items, Tags links, Contact methods, Important dates and Gift ideas
-     * go with them (CASCADE).
+     * go with them (CASCADE), and so do their places in Interactions (the repository then deletes the
+     * Interactions left with nobody).
      */
     @Query("DELETE FROM person WHERE id = :id")
     suspend fun delete(id: Long)
@@ -165,4 +178,37 @@ interface TagDao {
 
     @Insert
     suspend fun insert(tag: Tag): Long
+
+    @Query("SELECT * FROM tag WHERE id = :id")
+    suspend fun get(id: Long): Tag?
+
+    /** Every Tag with how many People (Archived ones too) have it. */
+    @Query(
+        "SELECT tag.*, (SELECT COUNT(*) FROM person_tag WHERE person_tag.tagId = tag.id) AS peopleCount " +
+            "FROM tag ORDER BY name COLLATE NOCASE",
+    )
+    fun observeWithCounts(): Flow<List<TagWithCount>>
+
+    @Query("UPDATE tag SET name = :name WHERE id = :id")
+    suspend fun rename(id: Long, name: String)
+
+    /**
+     * Gives everyone tagged [sourceId] the Tag [targetId] in its place (those who already have it
+     * keep theirs).
+     */
+    @Query(
+        "INSERT OR IGNORE INTO person_tag (personId, tagId, position) " +
+            "SELECT personId, :targetId, position FROM person_tag WHERE tagId = :sourceId",
+    )
+    suspend fun copyPeople(sourceId: Long, targetId: Long)
+
+    /** Deletes the Tag; it comes off everyone (CASCADE). */
+    @Query("DELETE FROM tag WHERE id = :id")
+    suspend fun delete(id: Long)
 }
+
+/** A Tag and how many People have it (Settings → Tags). */
+data class TagWithCount(
+    @Embedded val tag: Tag,
+    val peopleCount: Int,
+)

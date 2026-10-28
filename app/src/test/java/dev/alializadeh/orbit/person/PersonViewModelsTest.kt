@@ -22,6 +22,7 @@ import dev.alializadeh.orbit.person.list.PeopleUiState
 import dev.alializadeh.orbit.person.list.PeopleViewModel
 import dev.alializadeh.orbit.person.photo.CropRect
 import dev.alializadeh.orbit.ring.Cadence
+import dev.alializadeh.orbit.testing.FakeInteractionRepository
 import dev.alializadeh.orbit.testing.FakePersonRepository
 import dev.alializadeh.orbit.testing.FakePreferencesRepository
 import dev.alializadeh.orbit.testing.FakePhotoStore
@@ -60,7 +61,7 @@ class PersonViewModelsTest {
     @Test
     fun peopleListShowsEveryoneButTheArchived() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara, profileOf(2, "Reza")))
-        val viewModel = PeopleViewModel(repository, photos)
+        val viewModel = PeopleViewModel(repository, photos, clock)
 
         assertEquals(PeopleUiState.Loading, viewModel.uiState.value)
         viewModel.uiState.test {
@@ -78,7 +79,7 @@ class PersonViewModelsTest {
     @Test
     fun personDetailShowsThePersonThenNotFoundOnceTheyAreGone() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
 
         viewModel.uiState.test {
             assertEquals(sara, (awaitItem() as PersonDetailUiState.Loaded).profile)
@@ -90,7 +91,7 @@ class PersonViewModelsTest {
     @Test
     fun archiveLeavesAndUndoBringsThemBack() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.archive()
@@ -104,7 +105,7 @@ class PersonViewModelsTest {
     @Test
     fun deleteAsksFirstThenLeavesWithoutFlashingNotFound() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
         val states = mutableListOf<PersonDetailUiState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect { states += it } }
 
@@ -120,7 +121,7 @@ class PersonViewModelsTest {
     @Test
     fun addDetailsOffersTheEmptyFields() = runTest {
         val repository = FakePersonRepository(initial = listOf(sara.copy(likes = listOf("Jazz"))))
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
 
         viewModel.uiState.test {
             val missing = (awaitItem() as PersonDetailUiState.Loaded).missingFields
@@ -576,7 +577,7 @@ class PersonViewModelsTest {
     // Important dates and Gift ideas on Person detail
 
     private fun TestScope.detail(repository: FakePersonRepository): PersonDetailViewModel {
-        val viewModel = PersonDetailViewModel(sara.person.id, repository, photos, FakePreferencesRepository(), clock)
+        val viewModel = PersonDetailViewModel(sara.person.id, repository, FakeInteractionRepository(repository, clock), photos, FakePreferencesRepository(), clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         return viewModel
     }

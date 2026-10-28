@@ -6,6 +6,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -79,10 +80,11 @@ internal fun ArchivedBanner(onUnarchive: () -> Unit) {
     }
 }
 
-/** Photo, names, Ring and Tag chips, and the contact button group. */
+/** Photo, names, Ring and Tag chips, the Cadence line, and the contact button group. */
 @Composable
 internal fun PersonHeader(
     uiState: PersonDetailUiState.Loaded,
+    keepInTouch: PersonDetailKeepInTouch,
     onContactAction: (ContactAction) -> Unit,
     onMoreContact: () -> Unit,
 ) {
@@ -126,18 +128,28 @@ internal fun PersonHeader(
             }
             profile.tags.forEach { LabelChip(it.name) }
         }
-        ContactButtons(profile, onContactAction, onMoreContact, Modifier.padding(top = 8.dp))
+        uiState.due?.let { due ->
+            CadenceLine(
+                due = due,
+                today = uiState.today,
+                onSnooze = keepInTouch::snooze,
+                onCancelSnooze = keepInTouch::cancelSnooze,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        ContactButtons(profile, onContactAction, keepInTouch::logInteraction, onMoreContact, Modifier.padding(top = 8.dp))
     }
 }
 
 /**
- * The connected button group: [primary contact action] [More contact ▾]. More contact only shows
- * when there are other Contact methods. Slice 4 puts [Log interaction] between the two.
+ * The connected button group: [primary contact action] [Log interaction] [More contact ▾]. The
+ * first is there when there's a primary Contact method, More contact when there are others.
  */
 @Composable
 private fun ContactButtons(
     profile: PersonProfile,
     onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: () -> Unit,
     onMoreContact: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -147,35 +159,47 @@ private fun ContactButtons(
         primaryAction?.let { action ->
             ButtonSpec(action.kind.label(), action.kind.icon, filled = true) { onContactAction(action) }
         },
-        // Slice 4: Log interaction.
+        ButtonSpec(
+            label = stringResource(R.string.interaction_log),
+            icon = OrbitIcons.LogInteraction,
+            filled = primaryAction == null,
+            onClick = onLogInteraction,
+        ),
         if (hasMore) {
             ButtonSpec(stringResource(R.string.person_detail_more_contact), Icons.Filled.ArrowDropDown, filled = false, iconAfter = true, onClick = onMoreContact)
         } else {
             null
         },
     )
-    if (buttons.isEmpty()) return
     Row(
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         modifier = modifier.fillMaxWidth(),
     ) {
+        // With all three, More contact shrinks to its arrow so the other two keep their labels.
+        val compactMore = buttons.size == 3
         buttons.forEachIndexed { index, button ->
             val shape: Shape = when {
                 buttons.size == 1 -> ButtonDefaults.shape
                 index == 0 -> ButtonGroupDefaults.connectedLeadingButtonShape
                 index == buttons.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShape
-                else -> ButtonDefaults.shape
+                else -> ButtonGroupDefaults.connectedMiddleButtonShapes().shape
             }
+            val iconOnly = compactMore && button.iconAfter
             val content: @Composable () -> Unit = {
-                if (!button.iconAfter) Icon(button.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(button.label, maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp))
-                if (button.iconAfter) Icon(button.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                if (iconOnly) {
+                    Icon(button.icon, contentDescription = button.label)
+                } else {
+                    if (!button.iconAfter) Icon(button.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(button.label, maxLines = 1, modifier = Modifier.padding(start = 8.dp, end = if (button.iconAfter) 4.dp else 0.dp))
+                    if (button.iconAfter) Icon(button.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
             }
-            val buttonModifier = Modifier.weight(1f)
+            val buttonModifier = if (iconOnly) Modifier else Modifier.weight(1f)
+            val padding = PaddingValues(horizontal = if (iconOnly) 16.dp else 12.dp)
             if (button.filled) {
-                Button(onClick = button.onClick, shape = shape, modifier = buttonModifier) { content() }
+                Button(onClick = button.onClick, shape = shape, contentPadding = padding, modifier = buttonModifier) { content() }
             } else {
-                FilledTonalButton(onClick = button.onClick, shape = shape, modifier = buttonModifier) { content() }
+                FilledTonalButton(onClick = button.onClick, shape = shape, contentPadding = padding, modifier = buttonModifier) { content() }
             }
         }
     }
@@ -191,11 +215,12 @@ private class ButtonSpec(
 
 /**
  * The sections in order: Important dates (when there are any), Gift ideas (always), then the
- * others that have content.
+ * others that have content, then Interactions (always).
  */
 @Composable
 internal fun PersonSections(
     uiState: PersonDetailUiState.Loaded,
+    keepInTouch: PersonDetailKeepInTouch,
     onOpenDate: (ImportantDate) -> Unit,
     onAddGiftIdea: () -> Unit,
     onOpenGiftIdea: (GiftIdea) -> Unit,
@@ -238,7 +263,14 @@ internal fun PersonSections(
     }
     profile.person.howWeMet?.let { TextSection(stringResource(R.string.person_section_how_we_met), it) }
     profile.person.notes?.let { TextSection(stringResource(R.string.person_section_notes), it) }
-    // Slice 4: Interactions.
+    InteractionsSection(
+        personId = profile.person.id,
+        interactions = uiState.interactions,
+        today = uiState.today,
+        onOpen = keepInTouch::openInteraction,
+        onLog = keepInTouch::logInteraction,
+        onAll = keepInTouch::allInteractions,
+    )
 }
 
 @Composable

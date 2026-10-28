@@ -294,6 +294,101 @@
     <string name="upcoming_all_caught_up">فعلاً خبری نیست</string>
     <string name="upcoming_next">بعدی: %1$s</string>
 
+    <!-- Interactions -->
+    <string name="person_section_interactions">ارتباط‌ها</string>
+    <string name="interaction_log">ثبت ارتباط</string>
+    <string name="interaction_sheet_edit">ویرایش ارتباط</string>
+    <string name="interaction_type_label">نوع</string>
+    <string name="interaction_type_call">تماس</string>
+    <string name="interaction_type_message">پیام</string>
+    <string name="interaction_type_in_person">حضوری</string>
+    <string name="interaction_type_other">دیگر</string>
+    <string name="interaction_date">تاریخ</string>
+    <string name="interaction_date_yesterday">دیروز</string>
+    <string name="interaction_date_pick">انتخاب…</string>
+    <string name="interaction_date_future">روزی را انتخاب کنید که در آینده نباشد</string>
+    <string name="interaction_people">افراد</string>
+    <string name="interaction_people_add">افزودن</string>
+    <string name="interaction_people_title">افزودن افراد</string>
+    <string name="interaction_people_search">جستجوی افراد</string>
+    <string name="search_no_matches">کسی پیدا نشد</string>
+    <string name="interaction_note">یادداشت (اختیاری)</string>
+    <string name="interaction_with">با %1$s</string>
+    <string name="interactions_all">همهٔ ارتباط‌ها (%1$s)</string>
+    <string name="interactions_all_title">ارتباط‌ها با %1$s</string>
+    <string name="no_interactions_yet">هنوز ارتباطی ثبت نشده</string>
+    <string name="last_interaction">آخرین ارتباط: %1$s</string>
+    <string name="last_interaction_inline">آخرین ارتباط: %1$s</string>
+
+    <!-- Due and Snooze -->
+    <string name="due_label">موعد ارتباط</string>
+    <string name="snooze_action">تعویق</string>
+    <string name="snooze_title">تعویق ارتباط با %1$s</string>
+    <plurals name="duration_days">
+        <item quantity="one">%1$s روز</item>
+        <item quantity="other">%1$s روز</item>
+    </plurals>
+    <string name="duration_one_week">یک هفته</string>
+    <string name="duration_one_month">یک ماه</string>
+    <string name="snoozed_snackbar">ارتباط با %1$s %2$s به تعویق افتاد</string>
+    <string name="snoozed_until">به تعویق افتاده تا %1$s</string>
+    <string name="snooze_cancel">لغو تعویق</string>
+
+    <!-- Upcoming: Due -->
+    <string name="upcoming_section_due">موعد ارتباط</string>
+    <string name="upcoming_show_all">نمایش همه (%1$s)</string>
+    <string name="upcoming_show_fewer">نمایش کمتر</string>
+
+    <!-- People list -->
+    <string name="people_date_soon">تاریخ مهمی نزدیک است</string>
+    <string name="people_date_today">امروز تاریخ مهمی است</string>
+    <plurals name="people_count">
+        <item quantity="one">%1$s نفر</item>
+        <item quantity="other">%1$s نفر</item>
+    </plurals>
+    <string name="people_count_none">هنوز کسی نیست</string>
+
+    <!-- Settings → Rings -->
+    <string name="settings_rings_title">حلقه‌ها</string>
+    <string name="rings_hint">درونی‌ترین حلقه اول است. برای جابه‌جایی بکشید.</string>
+    <string name="rings_add">افزودن حلقه</string>
+    <string name="rings_max">حداکثر %1$s حلقه</string>
+    <string name="rings_reorder">جابه‌جا کردن %1$s</string>
+    <string name="rings_move_inward">انتقال به داخل</string>
+    <string name="rings_move_outward">انتقال به بیرون</string>
+    <string name="ring_sheet_new">حلقهٔ جدید</string>
+    <string name="ring_sheet_edit">ویرایش حلقه</string>
+    <string name="ring_name">نام</string>
+    <string name="ring_default_cadence">فاصلهٔ ارتباط پیش‌فرض</string>
+    <string name="ring_remove">حذف حلقه</string>
+    <string name="ring_remove_only">تنها حلقه را نمی‌توان حذف کرد</string>
+    <string name="ring_remove_has_people">حلقه‌ای را که فردی در آن هست، تا افرادش منتقل نشوند نمی‌توان حذف کرد.</string>
+    <plurals name="ring_move_people">
+        <item quantity="one">انتقال %1$s نفرِ این حلقه به</item>
+        <item quantity="other">انتقال %1$s نفرِ این حلقه به</item>
+    </plurals>
+    <string name="ring_move">انتقال</string>
+
+    <!-- Settings → Tags -->
+    <string name="settings_tags_title">برچسب‌ها</string>
+    <plurals name="settings_tags_summary">
+        <item quantity="one">%1$s برچسب</item>
+        <item quantity="other">%1$s برچسب</item>
+    </plurals>
+    <string name="settings_tags_none">هنوز برچسبی ندارید</string>
+    <string name="tags_empty">هنوز برچسبی ندارید. هنگام ویرایش یک فرد می‌توانید برچسب اضافه کنید.</string>
+    <string name="tag_name">نام</string>
+    <string name="tag_rename">تغییر نام</string>
+    <plurals name="tag_delete_title">
+        <item quantity="one">برچسب %1$s از %2$s نفر برداشته شود؟</item>
+        <item quantity="other">برچسب %1$s از %2$s نفر برداشته شود؟</item>
+    </plurals>
+    <string name="tag_delete_confirm">برداشتن</string>
+    <string name="tag_merge_title">در %1$s ادغام شود؟</string>
+    <string name="tag_merge_body">همهٔ افراد دارای برچسب %1$s برچسب %2$s می‌گیرند.</string>
+    <string name="tag_merge_confirm">ادغام</string>
+    <string name="tag_show_people">نمایش افراد</string>
+
     <!-- TEMPORARY: slice 0 backup-format spike. Slice 5 replaces these. -->
     <string name="settings_spike_backup_title">پشتیبان‌گیری (آزمایشی)</string>
     <string name="settings_spike_backup_body">آزمایش موقت: یک پشتیبان رمزگذاری‌شده با عبارت عبور ثابت %1$s ذخیره می‌شود و سپس دوباره باز می‌شود تا بررسی شود.</string>

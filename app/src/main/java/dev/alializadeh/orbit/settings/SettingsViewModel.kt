@@ -9,6 +9,9 @@ import dev.alializadeh.orbit.backup.spike.BackupSpikeRunner
 import dev.alializadeh.orbit.backup.suggestedBackupFileName
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.person.TagRepository
+import dev.alializadeh.orbit.ring.Ring
+import dev.alializadeh.orbit.ring.RingRepository
 import dev.alializadeh.orbit.ui.theme.ColourSource
 import dev.alializadeh.orbit.ui.theme.ThemeMode
 import java.io.IOException
@@ -27,6 +30,9 @@ data class SettingsUiState(
     val theme: ThemeMode = ThemeMode.System,
     val colourSource: ColourSource = ColourSource.OrbitViolet,
     val primaryCalendar: CalendarSystem = CalendarSystem.Gregorian,
+    /** The Rings' names, innermost first: the Rings row's summary. */
+    val ringNames: List<String> = emptyList(),
+    val tagCount: Int = 0,
     val backupSpike: BackupSpikeStatus = BackupSpikeStatus.Idle,
 )
 
@@ -41,6 +47,8 @@ sealed interface BackupSpikeStatus {
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     preferencesRepository: PreferencesRepository,
+    ringRepository: RingRepository,
+    tagRepository: TagRepository,
     private val backupSpikeRunner: BackupSpikeRunner,
     private val clock: Clock,
 ) : ViewModel() {
@@ -48,11 +56,18 @@ class SettingsViewModel @Inject constructor(
     private val backupSpike = MutableStateFlow<BackupSpikeStatus>(BackupSpikeStatus.Idle)
 
     val uiState: StateFlow<SettingsUiState> =
-        combine(preferencesRepository.preferences, backupSpike) { preferences, spike ->
+        combine(
+            preferencesRepository.preferences,
+            ringRepository.observeRings(),
+            tagRepository.observeTags(),
+            backupSpike,
+        ) { preferences, rings, tags, spike ->
             SettingsUiState(
                 theme = preferences.theme,
                 colourSource = preferences.colourSource,
                 primaryCalendar = preferences.primaryCalendar,
+                ringNames = rings.map(Ring::name),
+                tagCount = tags.size,
                 backupSpike = spike,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())

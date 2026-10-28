@@ -8,6 +8,7 @@ import androidx.room3.PrimaryKey
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.ring.Ring
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * Someone the user keeps in Orbit. Only the [name] is required.
@@ -50,6 +51,17 @@ data class Person(
     /** Set while the Person is Archived. */
     val archivedAt: Instant? = null,
     val createdAt: Instant,
+    /**
+     * Snooze: while a Due Person's [snoozedUntil] is after today they aren't Due; they're Due again
+     * on that day (if still behind on their Cadence). It's not an Interaction and doesn't change the
+     * Cadence. Read through `KeepInTouch`.
+     */
+    val snoozedUntil: LocalDate? = null,
+    /**
+     * The day the Cadence digest last named them as Due (slice 6): they're notified once per Due
+     * period, so a marker on or after the period's start means "already notified".
+     */
+    val lastNotifiedDueOn: LocalDate? = null,
 ) {
     val isArchived: Boolean get() = archivedAt != null
 }

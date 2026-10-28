@@ -13,6 +13,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dev.alializadeh.orbit.interaction.InteractionDao
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.person.TagDao
 import dev.alializadeh.orbit.ring.RingDao
@@ -44,6 +45,9 @@ object DatabaseModule {
 
     @Provides
     fun provideRingDao(database: OrbitDatabase): RingDao = database.ringDao()
+
+    @Provides
+    fun provideInteractionDao(database: OrbitDatabase): InteractionDao = database.interactionDao()
 
     /** Device-bound state (ADR 0006), in app storage that no Android backup includes. */
     @Provides

@@ -55,4 +55,37 @@ interface RingDao {
 
     @Insert
     suspend fun insert(ring: Ring): Long
+
+    /** Every Ring, innermost first, with how many People (Archived ones too) sit in it. */
+    @Query(
+        "SELECT ring.*, (SELECT COUNT(*) FROM person WHERE person.ringId = ring.id) AS peopleCount " +
+            "FROM ring ORDER BY position, id",
+    )
+    fun observeWithCounts(): Flow<List<RingWithCount>>
+
+    @Query("SELECT * FROM ring ORDER BY position, id")
+    suspend fun getAll(): List<Ring>
+
+    @Query("SELECT COUNT(*) FROM person WHERE ringId = :ringId")
+    suspend fun peopleCount(ringId: Long): Int
+
+    @Query("UPDATE ring SET name = :name, cadence_count = :cadenceCount, cadence_unit = :cadenceUnit WHERE id = :id")
+    suspend fun update(id: Long, name: String, cadenceCount: Int?, cadenceUnit: CadenceUnit?)
+
+    @Query("UPDATE ring SET position = :position WHERE id = :id")
+    suspend fun setPosition(id: Long, position: Int)
+
+    /** Moves everyone in Ring [fromId], Archived People too, to Ring [toId]. */
+    @Query("UPDATE person SET ringId = :toId WHERE ringId = :fromId")
+    suspend fun movePeople(fromId: Long, toId: Long)
+
+    /** Fails (RESTRICT) while People are in it. */
+    @Query("DELETE FROM ring WHERE id = :id")
+    suspend fun delete(id: Long)
 }
+
+/** A Ring and how many People are in it (Settings → Rings). */
+data class RingWithCount(
+    @Embedded val ring: Ring,
+    val peopleCount: Int,
+)

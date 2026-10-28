@@ -315,6 +315,106 @@
     <!-- %1$s is the date and when: "Sara's birthday · 12 Jan" -->
     <string name="upcoming_next">Next: %1$s</string>
 
+    <!-- Interactions -->
+    <string name="person_section_interactions">Interactions</string>
+    <string name="interaction_log">Log interaction</string>
+    <string name="interaction_sheet_edit">Edit interaction</string>
+    <string name="interaction_type_label">Type</string>
+    <string name="interaction_type_call">Call</string>
+    <string name="interaction_type_message">Message</string>
+    <string name="interaction_type_in_person">In person</string>
+    <string name="interaction_type_other">Other</string>
+    <string name="interaction_date">Date</string>
+    <!-- A date chip, so capitalised (time_yesterday is the lower-case form for sentences) -->
+    <string name="interaction_date_yesterday">Yesterday</string>
+    <string name="interaction_date_pick">Pick…</string>
+    <string name="interaction_date_future">Pick a day that isn\'t in the future</string>
+    <string name="interaction_people">People</string>
+    <string name="interaction_people_add">Add</string>
+    <string name="interaction_people_title">Add people</string>
+    <string name="interaction_people_search">Search people</string>
+    <string name="search_no_matches">No one matches</string>
+    <string name="interaction_note">Note (optional)</string>
+    <!-- The others in an Interaction: "with Reza, Mina" (names joined with list_separator) -->
+    <string name="interaction_with">with %1$s</string>
+    <string name="interactions_all">All interactions (%1$s)</string>
+    <string name="interactions_all_title">Interactions with %1$s</string>
+    <string name="no_interactions_yet">No interactions yet</string>
+    <!-- %1$s is relative time: "Last talked 34 days ago", "Last talked yesterday" -->
+    <string name="last_interaction">Last talked %1$s</string>
+    <!-- After a separator: "Close · last talked 34 days ago" -->
+    <string name="last_interaction_inline">last talked %1$s</string>
+
+    <!-- Due and Snooze -->
+    <string name="due_label">Due</string>
+    <string name="snooze_action">Snooze</string>
+    <string name="snooze_title">Snooze %1$s</string>
+    <plurals name="duration_days">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
+    </plurals>
+    <string name="duration_one_week">1 week</string>
+    <string name="duration_one_month">1 month</string>
+    <!-- %1$s is the name, %2$s a duration: "Snoozed Sara for 1 week" -->
+    <string name="snoozed_snackbar">Snoozed %1$s for %2$s</string>
+    <string name="snoozed_until">Snoozed until %1$s</string>
+    <string name="snooze_cancel">Cancel snooze</string>
+
+    <!-- Upcoming: Due -->
+    <string name="upcoming_section_due">Due</string>
+    <string name="upcoming_show_all">Show all (%1$s)</string>
+    <string name="upcoming_show_fewer">Show fewer</string>
+
+    <!-- People list: the date badge, for TalkBack -->
+    <string name="people_date_soon">Important date soon</string>
+    <string name="people_date_today">Important date today</string>
+    <plurals name="people_count">
+        <item quantity="one">%1$s person</item>
+        <item quantity="other">%1$s people</item>
+    </plurals>
+    <string name="people_count_none">No one yet</string>
+
+    <!-- Settings → Rings -->
+    <string name="settings_rings_title">Rings</string>
+    <string name="rings_hint">Innermost first. Drag to reorder.</string>
+    <string name="rings_add">Add ring</string>
+    <string name="rings_max">At most %1$s rings</string>
+    <string name="rings_reorder">Reorder %1$s</string>
+    <string name="rings_move_inward">Move inward</string>
+    <string name="rings_move_outward">Move outward</string>
+    <string name="ring_sheet_new">New ring</string>
+    <string name="ring_sheet_edit">Edit ring</string>
+    <string name="ring_name">Name</string>
+    <string name="ring_default_cadence">Default cadence</string>
+    <string name="ring_remove">Remove ring</string>
+    <string name="ring_remove_only">The only ring can\'t be removed</string>
+    <string name="ring_remove_has_people">A ring with people in it can\'t be removed until they\'re moved.</string>
+    <plurals name="ring_move_people">
+        <item quantity="one">Move its %1$s person to</item>
+        <item quantity="other">Move its %1$s people to</item>
+    </plurals>
+    <string name="ring_move">Move</string>
+
+    <!-- Settings → Tags -->
+    <string name="settings_tags_title">Tags</string>
+    <plurals name="settings_tags_summary">
+        <item quantity="one">%1$s tag</item>
+        <item quantity="other">%1$s tags</item>
+    </plurals>
+    <string name="settings_tags_none">No tags yet</string>
+    <string name="tags_empty">No tags yet. Add them while editing a person.</string>
+    <string name="tag_name">Name</string>
+    <string name="tag_rename">Rename</string>
+    <plurals name="tag_delete_title">
+        <item quantity="one">Remove %1$s from %2$s person?</item>
+        <item quantity="other">Remove %1$s from %2$s people?</item>
+    </plurals>
+    <string name="tag_delete_confirm">Remove</string>
+    <string name="tag_merge_title">Merge into %1$s?</string>
+    <string name="tag_merge_body">Everyone tagged %1$s will be tagged %2$s.</string>
+    <string name="tag_merge_confirm">Merge</string>
+    <string name="tag_show_people">Show people</string>
+
     <!--
         TEMPORARY: slice 0 backup-format spike. Slice 5 replaces this row and these strings with
         the real Back up now flow (copy deck: backup_now, backed_up_result).

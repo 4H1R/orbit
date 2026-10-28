@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -22,6 +23,7 @@ import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.backup.BACKUP_MIME_TYPE
 import dev.alializadeh.orbit.backup.spike.BackupSpikeRunner
 import dev.alializadeh.orbit.format.LocalOrbitFormats
+import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.bidiIsolateLtr
 import dev.alializadeh.orbit.ui.components.NavigationRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
@@ -50,7 +52,7 @@ fun SettingsRoute(
 
 /**
  * Settings: a grouped list where each row shows a one-line summary and opens a sub-screen pushed
- * on the Settings tab. Later slices add Rings, Tags, Reminders, App lock, Backup and About.
+ * on the Settings tab. Later slices add Reminders, App lock, Backup and About.
  */
 @Composable
 fun SettingsScreen(
@@ -79,6 +81,31 @@ fun SettingsScreen(
                 index = 1,
                 count = 2,
                 onClick = { onOpen(LanguageDatesSettingsKey) },
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        OrbitListGroup(title = null) {
+            NavigationRow(
+                title = stringResource(R.string.settings_rings_title),
+                summary = uiState.ringNames.joinToString(separator) { bidiIsolate(it) },
+                index = 0,
+                count = 2,
+                onClick = { onOpen(RingsSettingsKey) },
+            )
+            NavigationRow(
+                title = stringResource(R.string.settings_tags_title),
+                summary = if (uiState.tagCount == 0) {
+                    stringResource(R.string.settings_tags_none)
+                } else {
+                    pluralStringResource(
+                        R.plurals.settings_tags_summary,
+                        uiState.tagCount,
+                        LocalOrbitFormats.current.numbers.format(uiState.tagCount),
+                    )
+                },
+                index = 1,
+                count = 2,
+                onClick = { onOpen(TagsSettingsKey) },
             )
         }
         Spacer(Modifier.height(24.dp))

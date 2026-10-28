@@ -7,6 +7,10 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.due.DueState
+import dev.alializadeh.orbit.due.keepInTouch
+import dev.alializadeh.orbit.interaction.InteractionRepository
+import dev.alializadeh.orbit.interaction.InteractionWithPeople
 import dev.alializadeh.orbit.person.GiftIdeaDraft
 import dev.alializadeh.orbit.person.ImportantDateDraft
 import dev.alializadeh.orbit.person.ImportantDateType
@@ -42,6 +46,10 @@ sealed interface PersonDetailUiState {
         val confirmingDelete: Boolean = false,
         /** Set once Archive or Delete is done; the screen then leaves. */
         val exit: DetailExit? = null,
+        /** Their Interactions, newest first (the section shows the latest [LATEST_INTERACTIONS]). */
+        val interactions: List<InteractionWithPeople> = emptyList(),
+        /** Where they stand with their Cadence: the header's Cadence line. */
+        val due: DueState? = null,
     ) : PersonDetailUiState {
         /** What the Add details row offers: the fields with nothing in them yet. */
         val missingFields: List<PersonField>
@@ -66,6 +74,11 @@ sealed interface PersonDetailUiState {
 
     /** The Person was deleted, or never existed. */
     data object NotFound : PersonDetailUiState
+
+    companion object {
+        /** Person detail lists this many Interactions, then "All interactions (n)". */
+        const val LATEST_INTERACTIONS = 5
+    }
 }
 
 /** Changes Person detail makes in place: Important dates (edit, delete) and Gift ideas. */
@@ -80,6 +93,7 @@ interface PersonDetailEdits {
 class PersonDetailViewModel @AssistedInject constructor(
     @Assisted private val personId: Long,
     private val personRepository: PersonRepository,
+    interactionRepository: InteractionRepository,
     private val photoStore: PhotoStore,
     preferencesRepository: PreferencesRepository,
     private val clock: Clock,
@@ -91,22 +105,28 @@ class PersonDetailViewModel @AssistedInject constructor(
     val uiState: StateFlow<PersonDetailUiState> =
         combine(
             personRepository.observeProfile(personId),
+            interactionRepository.observeForPerson(personId),
             phase,
             preferencesRepository.preferences.map { it.defaultLeadTimes },
-        ) { profile, phase, defaultLeadTimes ->
+        ) { profile, interactions, phase, defaultLeadTimes ->
             val exit = when (phase) {
                 Phase.Archived -> DetailExit.Archived
                 Phase.Deleted -> DetailExit.Deleted
                 else -> null
             }
+            val today = LocalDate.now(clock)
             when {
                 profile != null -> PersonDetailUiState.Loaded(
                     profile = profile,
                     photo = profile.person.photoFileName?.let(photoStore::file),
-                    today = LocalDate.now(clock),
+                    today = today,
                     defaultLeadTimes = defaultLeadTimes,
                     confirmingDelete = phase == Phase.ConfirmingDelete,
                     exit = exit,
+                    interactions = interactions,
+                    due = profile.person
+                        .keepInTouch(profile.ring, interactions.maxOfOrNull { it.interaction.date }, clock.zone)
+                        .on(today),
                 ).also { lastLoaded = it }
                 // Being deleted: keep showing them while the screen leaves.
                 phase == Phase.Deleting || phase == Phase.Deleted ->

@@ -10,7 +10,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.RecurringDate
+import dev.alializadeh.orbit.due.KeepInTouch
+import dev.alializadeh.orbit.interaction.AllInteractionsScreen
+import dev.alializadeh.orbit.interaction.AllInteractionsUiState
+import dev.alializadeh.orbit.interaction.Interaction
+import dev.alializadeh.orbit.interaction.InteractionType
+import dev.alializadeh.orbit.interaction.InteractionWithPeople
 import dev.alializadeh.orbit.person.contact.ContactType
+import dev.alializadeh.orbit.person.detail.PersonDetailKeepInTouch
 import dev.alializadeh.orbit.person.edit.DateRow
 import dev.alializadeh.orbit.person.detail.PersonDetailEdits
 import dev.alializadeh.orbit.person.detail.PersonDetailScreen
@@ -53,28 +60,88 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
 
     private val data = if (variant.persian) PersianData else EnglishData
 
+    /** Rows with "Ring · last talked…", the Due chip and the date badge (soon, and filled today). */
     @Test
     fun peopleList() = captureScreen("people_list", variant) {
-        PeopleScreen(
-            uiState = PeopleUiState.Loaded(data.people.map { PersonRow(it, photo = null) }),
-            onPersonClick = {},
-            onAddPerson = {},
+        People(
+            PeopleUiState.Loaded(
+                data.people.map {
+                    PersonRow(it, photo = null, due = it.keepInTouch.on(ScreenshotToday), dateSoon = DateSoon.of(it.importantDates, ScreenshotToday))
+                },
+                today = ScreenshotToday,
+            ),
         )
     }
 
     @Test
     fun peopleListEmpty() = captureScreen("people_list_empty", variant) {
-        PeopleScreen(uiState = PeopleUiState.Loaded(emptyList()), onPersonClick = {}, onAddPerson = {})
+        People(PeopleUiState.Loaded(emptyList()))
     }
 
+    /** Last talked 12 days ago, every 30 days; seven Interactions, so "All interactions (7)". */
     @Test
     fun personDetailFull() = captureScreen("person_detail_full", variant, tall = true) {
-        Detail(PersonDetailUiState.Loaded(data.fullProfile, today = ScreenshotToday))
+        Detail(
+            PersonDetailUiState.Loaded(
+                data.fullProfile,
+                today = ScreenshotToday,
+                interactions = data.interactions,
+                due = keepInTouch(Cadence.days(30), lastDaysAgo = 12).on(ScreenshotToday),
+            ),
+        )
+    }
+
+    /** No Cadence and no Interactions: "No interactions yet" in the header and the section. */
+    @Test
+    fun personDetailSparse() = captureScreen("person_detail_sparse", variant, tall = true) {
+        Detail(
+            PersonDetailUiState.Loaded(
+                data.sparseProfile,
+                today = ScreenshotToday,
+                due = keepInTouch(cadence = null, lastDaysAgo = null).on(ScreenshotToday),
+            ),
+        )
+    }
+
+    /** Due: the wavy progress full, **Due** and Snooze. */
+    @Test
+    fun personDetailDue() = captureScreen("person_detail_due", variant) {
+        Detail(
+            PersonDetailUiState.Loaded(
+                data.dueProfile,
+                today = ScreenshotToday,
+                interactions = data.interactions.drop(1),
+                due = keepInTouch(Cadence.days(30), lastDaysAgo = 34).on(ScreenshotToday),
+            ),
+        )
+    }
+
+    /** Snoozed: "Snoozed until 4 Nov · Cancel snooze". */
+    @Test
+    fun personDetailSnoozed() = captureScreen("person_detail_snoozed", variant) {
+        Detail(
+            PersonDetailUiState.Loaded(
+                data.dueProfile,
+                today = ScreenshotToday,
+                interactions = data.interactions.drop(1),
+                due = keepInTouch(Cadence.days(30), lastDaysAgo = 34, snoozedUntil = ScreenshotToday.plusDays(7)).on(ScreenshotToday),
+            ),
+        )
     }
 
     @Test
-    fun personDetailSparse() = captureScreen("person_detail_sparse", variant) {
-        Detail(PersonDetailUiState.Loaded(data.sparseProfile, today = ScreenshotToday))
+    fun allInteractions() = captureScreen("all_interactions", variant, tall = true) {
+        AllInteractionsScreen(
+            uiState = AllInteractionsUiState.Loaded(
+                personId = data.fullProfile.person.id,
+                names = data.fullProfile.names,
+                interactions = data.interactions,
+                today = ScreenshotToday,
+            ),
+            onBack = {},
+            onLogInteraction = {},
+            onOpen = {},
+        )
     }
 
     @Test
@@ -156,9 +223,22 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @androidx.compose.runtime.Composable
+    private fun People(uiState: PeopleUiState) {
+        PeopleScreen(
+            uiState = uiState,
+            onPersonClick = {},
+            onAddPerson = {},
+            onContactAction = {},
+            onLogInteraction = {},
+            onSnooze = {},
+        )
+    }
+
+    @androidx.compose.runtime.Composable
     private fun Detail(uiState: PersonDetailUiState) {
         PersonDetailScreen(
             uiState = uiState,
+            keepInTouch = NoKeepInTouch,
             onBack = {},
             onEdit = {},
             onAddDetail = {},
@@ -209,6 +289,22 @@ private object NoActions : PersonFormActions {
     override fun dismissDialog() = Unit
 }
 
+private object NoKeepInTouch : PersonDetailKeepInTouch {
+    override fun logInteraction() = Unit
+    override fun openInteraction(interactionId: Long) = Unit
+    override fun allInteractions() = Unit
+    override fun snooze() = Unit
+    override fun cancelSnooze() = Unit
+}
+
+/** Keep-in-touch facts on [ScreenshotToday]: added 200 days ago, last talked [lastDaysAgo] days ago. */
+private fun keepInTouch(cadence: Cadence?, lastDaysAgo: Long?, snoozedUntil: LocalDate? = null) = KeepInTouch(
+    cadence = cadence,
+    addedOn = ScreenshotToday.minusDays(200),
+    lastInteraction = lastDaysAgo?.let(ScreenshotToday::minusDays),
+    snoozedUntil = snoozedUntil,
+)
+
 private object NoEdits : PersonDetailEdits {
     override fun saveImportantDate(draft: ImportantDateDraft) = Unit
     override fun deleteImportantDate(id: Long) = Unit
@@ -243,13 +339,53 @@ private class ScreenshotData(
     val fullProfile: PersonProfile,
     val sparseProfile: PersonProfile,
     val tagInput: String,
-)
+    /** Sara's Interactions, newest first, some with [others]. */
+    val interactions: List<InteractionWithPeople> = emptyList(),
+) {
+    /** The sparse Person in the Close Ring (every 30 days), for the Due and Snoozed headers. */
+    val dueProfile: PersonProfile
+        get() = sparseProfile.copy(person = sparseProfile.person.copy(ringId = rings[1].id), ring = rings[1])
+}
+
+/** Sara's Interactions: (type, days ago, others, note). */
+private fun interactions(
+    sara: Person,
+    reza: Person,
+    mina: Person,
+    entries: List<InteractionEntry>,
+) = entries.mapIndexed { index, (type, daysAgo, others, note) ->
+    InteractionWithPeople(
+        Interaction(id = index + 1L, type = type, date = ScreenshotToday.minusDays(daysAgo), note = note),
+        listOf(sara) + others.map { if (it == 2) reza else mina },
+    )
+}
+
+private data class InteractionEntry(val type: InteractionType, val daysAgo: Long, val others: List<Int> = emptyList(), val note: String? = null)
+
+private fun otherPerson(id: Long, name: String) = Person(id = id, name = name, ringId = 1, createdAt = Instant.EPOCH)
+
+/** An Important date of Person [id] on Gregorian [month]/[day] (for the date badge). */
+private fun dateOn(id: Long, month: Int, day: Int) =
+    ImportantDate(id = id * 10, personId = id, type = ImportantDateType.Birthday, date = RecurringDate(CalendarSystem.Gregorian, month, day), position = 0)
 
 private fun ring(id: Long, name: String, days: Int?) =
     Ring(id = id, name = name, position = id.toInt() - 1, cadence = days?.let(Cadence::days))
 
-private fun summary(id: Long, name: String, other: String?, ring: String) =
-    PersonSummary(id, PersonNames(name, other), photoFileName = null, ringName = ring)
+/** A People-list row in [ring], last talked [lastDaysAgo] days ago (null: never; added 10 days ago). */
+private fun summary(id: Long, name: String, other: String?, ring: Ring, lastDaysAgo: Long?, dates: List<ImportantDate> = emptyList()) =
+    PersonSummary(
+        id = id,
+        names = PersonNames(name, other),
+        photoFileName = null,
+        ringName = ring.name,
+        keepInTouch = KeepInTouch(
+            cadence = ring.cadence,
+            addedOn = ScreenshotToday.minusDays(10),
+            lastInteraction = lastDaysAgo?.let(ScreenshotToday::minusDays),
+        ),
+        ringPosition = ring.position,
+        importantDates = dates,
+    )
 
 private fun profile(
     name: String,
@@ -302,11 +438,11 @@ private val PersianRings = listOf(ring(1, "صمیمی", 14), ring(2, "نزدیک
 private val EnglishData = ScreenshotData(
     rings = EnglishRings,
     people = listOf(
-        summary(1, "Sara Ahmadi", "سارا احمدی", "Close"),
-        summary(2, "Ali Rezaei", null, "Inner"),
-        summary(3, "بابک", "Babak", "Friends"),
-        summary(4, "Mina Karimi", null, "Acquaintances"),
-        summary(5, "Tom O'Neill", null, "Friends"),
+        summary(1, "Sara Ahmadi", "سارا احمدی", EnglishRings[1], lastDaysAgo = 34, dates = listOf(dateOn(1, 11, 2))),
+        summary(2, "Ali Rezaei", null, EnglishRings[0], lastDaysAgo = 1),
+        summary(3, "بابک", "Babak", EnglishRings[2], lastDaysAgo = null, dates = listOf(dateOn(3, 10, 28))),
+        summary(4, "Mina Karimi", null, EnglishRings[3], lastDaysAgo = 95),
+        summary(5, "Tom O'Neill", null, EnglishRings[2], lastDaysAgo = 800),
     ),
     fullProfile = profile(
         name = "Sara Ahmadi",
@@ -339,17 +475,31 @@ private val EnglishData = ScreenshotData(
     ),
     sparseProfile = profile(name = "Mina Karimi", otherScriptName = null, nickname = null, ring = EnglishRings[3]),
     tagInput = "",
+    interactions = interactions(
+        sara = otherPerson(1, "Sara Ahmadi"),
+        reza = otherPerson(2, "Reza Tehrani"),
+        mina = otherPerson(3, "Mina Karimi"),
+        entries = listOf(
+            InteractionEntry(InteractionType.Call, 12, note = "Talked about the new job in Hamburg"),
+            InteractionEntry(InteractionType.InPerson, 30, others = listOf(2, 3), note = "Dinner at Mina's. Sara brought the photos from Yazd"),
+            InteractionEntry(InteractionType.Message, 45),
+            InteractionEntry(InteractionType.Other, 70, note = "Sent a birthday card"),
+            InteractionEntry(InteractionType.Call, 100),
+            InteractionEntry(InteractionType.InPerson, 150, others = listOf(2)),
+            InteractionEntry(InteractionType.Message, 400, note = "Happy Nowruz"),
+        ),
+    ),
 )
 
 private val PersianData = ScreenshotData(
     rings = PersianRings,
     people = listOf(
-        summary(1, "سارا احمدی", "Sara Ahmadi", "نزدیک"),
-        summary(2, "علی رضایی", null, "صمیمی"),
-        summary(3, "Babak", "بابک", "دوستان"),
-        summary(4, "مینا کریمی", null, "آشنایان"),
-        summary(5, "Tom O'Neill", null, "دوستان"),
-        summary(6, "پریا", null, "دوستان"),
+        summary(1, "سارا احمدی", "Sara Ahmadi", PersianRings[1], lastDaysAgo = 34, dates = listOf(dateOn(1, 11, 2))),
+        summary(2, "علی رضایی", null, PersianRings[0], lastDaysAgo = 1),
+        summary(3, "Babak", "بابک", PersianRings[2], lastDaysAgo = null, dates = listOf(dateOn(3, 10, 28))),
+        summary(4, "مینا کریمی", null, PersianRings[3], lastDaysAgo = 95),
+        summary(5, "Tom O'Neill", null, PersianRings[2], lastDaysAgo = 800),
+        summary(6, "پریا", null, PersianRings[2], lastDaysAgo = 20),
     ),
     fullProfile = profile(
         name = "سارا احمدی",
@@ -382,4 +532,18 @@ private val PersianData = ScreenshotData(
     ),
     sparseProfile = profile(name = "مینا کریمی", otherScriptName = null, nickname = null, ring = PersianRings[3]),
     tagInput = "",
+    interactions = interactions(
+        sara = otherPerson(1, "سارا احمدی"),
+        reza = otherPerson(2, "رضا تهرانی"),
+        mina = otherPerson(3, "مینا کریمی"),
+        entries = listOf(
+            InteractionEntry(InteractionType.Call, 12, note = "دربارهٔ کار تازه‌اش در هامبورگ حرف زدیم"),
+            InteractionEntry(InteractionType.InPerson, 30, others = listOf(2, 3), note = "شام خانهٔ مینا. سارا عکس‌های یزد را آورد"),
+            InteractionEntry(InteractionType.Message, 45),
+            InteractionEntry(InteractionType.Other, 70, note = "کارت تبریک تولد فرستادم"),
+            InteractionEntry(InteractionType.Call, 100),
+            InteractionEntry(InteractionType.InPerson, 150, others = listOf(2)),
+            InteractionEntry(InteractionType.Message, 400, note = "نوروز مبارک"),
+        ),
+    ),
 )

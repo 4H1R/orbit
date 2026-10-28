@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.testing
 
+import dev.alializadeh.orbit.due.keepInTouch
 import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.GiftIdeaDraft
@@ -22,7 +23,9 @@ import dev.alializadeh.orbit.ring.Ring
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import java.time.ZoneOffset
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /** An in-memory [PersonRepository] with the Room one's rules, over [rings]. */
@@ -34,15 +37,35 @@ class FakePersonRepository(
     val profiles = MutableStateFlow(initial.associateBy { it.person.id })
     val tags = MutableStateFlow<List<Tag>>(emptyList())
 
+    /** Each Person's latest Interaction date, as the Room repository reads it from Interactions. */
+    val lastInteractions = MutableStateFlow<Map<Long, LocalDate>>(emptyMap())
+
     /** Every draft passed to [save], as given. */
     val saved = mutableListOf<PersonDraft>()
 
     val people: List<Person> get() = profiles.value.values.map(PersonProfile::person)
 
-    override fun observePeople(): Flow<List<PersonSummary>> = profiles.map { all ->
+    override fun observePeople(): Flow<List<PersonSummary>> = combine(profiles, lastInteractions) { all, last ->
         all.values.filter { !it.person.isArchived }.map {
-            PersonSummary(it.person.id, it.person.names, it.person.photoFileName, it.ring?.name)
+            PersonSummary(
+                id = it.person.id,
+                names = it.person.names,
+                photoFileName = it.person.photoFileName,
+                ringName = it.ring?.name,
+                keepInTouch = it.person.keepInTouch(it.ring, last[it.person.id], ZoneOffset.UTC),
+                ringPosition = it.ring?.position ?: Int.MAX_VALUE,
+                primaryContactMethod = it.primaryContactMethod,
+                importantDates = it.importantDates,
+            )
         }
+    }
+
+    override fun observeAllPeople(): Flow<List<Person>> = profiles.map { all -> all.values.map(PersonProfile::person) }
+
+    override suspend fun setSnoozedUntil(id: Long, until: LocalDate?): LocalDate? {
+        val profile = profiles.value[id] ?: return null
+        profiles.value += id to profile.copy(person = profile.person.copy(snoozedUntil = until))
+        return profile.person.snoozedUntil
     }
 
     override fun observeProfile(id: Long): Flow<PersonProfile?> = profiles.map { it[id] }

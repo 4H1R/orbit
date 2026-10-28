@@ -144,6 +144,50 @@ object OrbitIcons {
         )
     }
 
+    /** Log interaction: a speech bubble with a plus. */
+    val LogInteraction: ImageVector by lazy {
+        filled(
+            "LogInteraction",
+            "M21.99,4c0,-1.1 -0.89,-2 -1.99,-2H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h14l4,4 -0.01,-18z" +
+                "M17,11h-4v4h-2v-4H7V9h4V5h2v4h4v2z",
+        )
+    }
+
+    /** An In person Interaction. */
+    val People: ImageVector by lazy {
+        filled(
+            "People",
+            "M16,11c1.66,0 2.99,-1.34 2.99,-3S17.66,5 16,5c-1.66,0 -3,1.34 -3,3s1.34,3 3,3zM8,11" +
+                "c1.66,0 2.99,-1.34 2.99,-3S9.66,5 8,5C6.34,5 5,6.34 5,8s1.34,3 3,3zM8,13c-2.33,0 -7,1.17 -7,3.5" +
+                "L1,19h14v-2.5c0,-2.33 -4.67,-3.5 -7,-3.5zM16,13c-0.29,0 -0.62,0.02 -0.97,0.05 1.16,0.84 1.97,1.97" +
+                " 1.97,3.45L17,19h6v-2.5c0,-2.33 -4.67,-3.5 -7,-3.5z",
+        )
+    }
+
+    /** An Interaction of type Other. */
+    val MoreHoriz: ImageVector by lazy {
+        filled(
+            "MoreHoriz",
+            "M6,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM18,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2" +
+                " 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z",
+        )
+    }
+
+    /** Snooze: an alarm clock with a z. */
+    val Snooze: ImageVector by lazy {
+        filled(
+            "Snooze",
+            "M9,11h3.63L9,15.2V17h6v-2h-3.63L15,10.8V9H9v2zM16.56,2.44l4.6,3.86 -1.29,1.53 -4.6,-3.86 1.29,-1.53z" +
+                "M7.44,2.44l1.29,1.53 -4.6,3.86 -1.29,-1.53 4.6,-3.86zM12,6c3.86,0 7,3.14 7,7s-3.14,7 -7,7" +
+                " -7,-3.14 -7,-7 3.14,-7 7,-7m0,-2c-4.97,0 -9,4.03 -9,9s4.03,9 9,9 9,-4.03 9,-9 -4.03,-9 -9,-9z",
+        )
+    }
+
+    /** A drag handle (Settings → Rings). */
+    val DragHandle: ImageVector by lazy {
+        filled("DragHandle", "M20,9H4v2h16V9zM4,15h16v-2H4v2z")
+    }
+
     private fun filled(name: String, pathData: String): ImageVector =
         ImageVector.Builder(
             name = name,

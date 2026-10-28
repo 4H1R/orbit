@@ -7,10 +7,13 @@ import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonNames
+import dev.alializadeh.orbit.due.KeepInTouch
+import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.testing.FakePhotoStore
 import dev.alializadeh.orbit.testing.FakeUpcomingRepository
 import dev.alializadeh.orbit.testing.MainDispatcherRule
 import dev.alializadeh.orbit.testing.MutableClock
+import dev.alializadeh.orbit.testing.NeverDue
 import java.io.File
 import java.time.Clock
 import java.time.Duration
@@ -43,6 +46,7 @@ class UpcomingViewModelTest {
             ImportantDate(id = id, personId = id, type = ImportantDateType.Birthday, date = RecurringDate(Gregorian, month, day), position = 0),
         ),
         openGiftIdeas = emptyList(),
+        keepInTouch = NeverDue,
     )
 
     private suspend fun ReceiveTurbine<UpcomingUiState>.awaitLoaded(): UpcomingUiState.Loaded {
@@ -79,6 +83,33 @@ class UpcomingViewModelTest {
             val state = awaitLoaded()
             assertTrue(state.isEmpty)
             assertTrue(!state.feed.hasPeople)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun dueShowsFiveUntilShowAllThenShowFewer() = runTest {
+        val clock = Clock.fixed(Instant.parse("2026-10-28T09:00:00Z"), tehran)
+        val due = (1L..7L).map { id ->
+            person(id, 1, 1).copy(
+                importantDates = emptyList(),
+                keepInTouch = KeepInTouch(cadence = Cadence.days(30), addedOn = LocalDate.of(2026, 1, 1), lastInteraction = LocalDate.of(2026, 9, 1).minusDays(id)),
+            )
+        }
+        val viewModel = UpcomingViewModel(FakeUpcomingRepository(due), FakePhotoStore(), clock)
+
+        viewModel.uiState.test {
+            val folded = awaitLoaded()
+            assertEquals(7, folded.feed.due.size)
+            assertEquals(listOf(7L, 6L, 5L, 4L, 3L), folded.dueShown.map { it.person.id })
+            assertTrue(folded.dueHasMore)
+            assertTrue(!folded.isEmpty)
+
+            viewModel.showAllDue(true)
+            assertEquals(7, awaitLoaded().dueShown.size)
+
+            viewModel.showAllDue(false)
+            assertEquals(5, awaitLoaded().dueShown.size)
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -1,20 +1,5 @@
 package dev.alializadeh.orbit.person
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.RecurringDate
@@ -22,9 +7,10 @@ import dev.alializadeh.orbit.person.dates.ImportantDateSheetContent
 import dev.alializadeh.orbit.person.gifts.GiftIdeaSheetContent
 import dev.alializadeh.orbit.person.gifts.GivenDateSheetContent
 import dev.alializadeh.orbit.reminders.LeadTime
+import dev.alializadeh.orbit.testing.NoCloser
 import dev.alializadeh.orbit.testing.ScreenshotVariant
+import dev.alializadeh.orbit.testing.SheetFrame
 import dev.alializadeh.orbit.testing.captureScreen
-import dev.alializadeh.orbit.ui.expressive.SheetCloser
 import java.time.Instant
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -109,32 +95,5 @@ class DateAndGiftSheetsScreenshotTest(private val variant: ScreenshotVariant) {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
         fun variants(): List<ScreenshotVariant> = ScreenshotVariant.entries
-    }
-}
-
-private val NoCloser = SheetCloser { }
-
-/** A bottom sheet's look: a scrim, then the sheet with its handle at the bottom. */
-@Composable
-private fun SheetFrame(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)),
-        contentAlignment = Alignment.BottomCenter,
-    ) {
-        Surface(
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    Modifier
-                        .padding(vertical = 22.dp)
-                        .size(width = 32.dp, height = 4.dp)
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(2.dp)),
-                )
-                content()
-            }
-        }
     }
 }
