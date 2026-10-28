@@ -3,8 +3,8 @@ package dev.alializadeh.orbit.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -36,6 +36,12 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.about.AboutKey
+import dev.alializadeh.orbit.about.AboutRoute
+import dev.alializadeh.orbit.about.LicenceTextKey
+import dev.alializadeh.orbit.about.LicenceTextRoute
+import dev.alializadeh.orbit.about.LicencesKey
+import dev.alializadeh.orbit.about.LicencesScreen
 import dev.alializadeh.orbit.backup.BackupHost
 import dev.alializadeh.orbit.backup.BackupSettingsKey
 import dev.alializadeh.orbit.backup.BackupSettingsRoute
@@ -44,20 +50,20 @@ import dev.alializadeh.orbit.backup.ChangePassphraseKey
 import dev.alializadeh.orbit.backup.ChangePassphraseRoute
 import dev.alializadeh.orbit.backup.RestoreKey
 import dev.alializadeh.orbit.backup.RestoreRoute
-import dev.alializadeh.orbit.orbitview.OrbitViewKey
-import dev.alializadeh.orbit.orbitview.OrbitViewRoute
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.interaction.AllInteractionsKey
+import dev.alializadeh.orbit.interaction.AllInteractionsRoute
 import dev.alializadeh.orbit.lock.AppLockSettingsKey
 import dev.alializadeh.orbit.lock.AppLockSettingsRoute
-import dev.alializadeh.orbit.interaction.AllInteractionsRoute
+import dev.alializadeh.orbit.orbitview.OrbitViewKey
+import dev.alializadeh.orbit.orbitview.OrbitViewRoute
 import dev.alializadeh.orbit.person.AddPersonKey
 import dev.alializadeh.orbit.person.EditPersonKey
 import dev.alializadeh.orbit.person.PeopleKey
 import dev.alializadeh.orbit.person.PersonDetailKey
-import dev.alializadeh.orbit.person.edit.PersonFormRoute
 import dev.alializadeh.orbit.person.detail.PersonDetailRoute
+import dev.alializadeh.orbit.person.edit.PersonFormRoute
 import dev.alializadeh.orbit.person.list.PeopleRoute
 import dev.alializadeh.orbit.reminders.NotificationEntry
 import dev.alializadeh.orbit.reminders.NotificationEntryViewModel
@@ -73,10 +79,10 @@ import dev.alializadeh.orbit.settings.LanguageDatesRoute
 import dev.alializadeh.orbit.settings.LanguageDatesSettingsKey
 import dev.alializadeh.orbit.settings.RingsRoute
 import dev.alializadeh.orbit.settings.RingsSettingsKey
-import dev.alializadeh.orbit.settings.TagsRoute
-import dev.alializadeh.orbit.settings.TagsSettingsKey
 import dev.alializadeh.orbit.settings.SettingsKey
 import dev.alializadeh.orbit.settings.SettingsRoute
+import dev.alializadeh.orbit.settings.TagsRoute
+import dev.alializadeh.orbit.settings.TagsSettingsKey
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.rememberOrbitSnackbars
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
@@ -121,7 +127,7 @@ fun OrbitApp(
         navigator.resetToRoots()
         snackbars.hostState.currentSnackbarData?.dismiss()
         snackbars.hostState.showSnackbar(
-            resources.getString(R.string.restored_snackbar, numbers.format(people)),
+            resources.getQuantityString(R.plurals.restored_snackbar, people, numbers.format(people)),
         )
         backup.consumeRestored()
     }
@@ -215,6 +221,9 @@ fun OrbitApp(
                 )
             }
             entry<ChangePassphraseKey> { ChangePassphraseRoute(onClose = navigator::goBack) }
+            entry<AboutKey> { AboutRoute(onBack = navigator::goBack, onOpenLicences = { navigator.navigate(LicencesKey) }) }
+            entry<LicencesKey> { LicencesScreen(onBack = navigator::goBack, onOpen = navigator::navigate) }
+            entry<LicenceTextKey> { key -> LicenceTextRoute(key = key, onBack = navigator::goBack) }
             entry<RestoreKey> { key ->
                 RestoreRoute(
                     uri = key.uri,

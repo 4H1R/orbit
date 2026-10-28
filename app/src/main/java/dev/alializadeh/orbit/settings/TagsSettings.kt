@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -246,7 +248,7 @@ internal fun TagSheetContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(tag.tag.name, style = MaterialTheme.typography.titleLarge)
+        Text(tag.tag.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         Text(peopleCountText(tag.peopleCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             state = name,

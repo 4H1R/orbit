@@ -3,6 +3,7 @@ package dev.alializadeh.orbit.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.AppVersion
 import dev.alializadeh.orbit.backup.BackupStatusRepository
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.data.BackedUpPreferences
@@ -41,6 +42,8 @@ data class SettingsUiState(
     val appLock: AppLockSettings = AppLockSettings(),
     /** App lock is on but the phone has no screen lock. */
     val appLockPaused: Boolean = false,
+    /** Orbit's version: the About row's summary. */
+    val version: AppVersion = AppVersion("", 0),
 )
 
 @HiltViewModel
@@ -51,6 +54,7 @@ class SettingsViewModel @Inject constructor(
     backupStatusRepository: BackupStatusRepository,
     private val screenLock: ScreenLockStatus,
     clock: Clock,
+    version: AppVersion,
 ) : ViewModel() {
 
     private val hasScreenLock = MutableStateFlow(screenLock.hasSecureScreenLock())
@@ -75,8 +79,9 @@ class SettingsViewModel @Inject constructor(
                 defaultLeadTimes = preferences.defaultLeadTimes,
                 appLock = device.appLock,
                 appLockPaused = device.appLock.enabled && !screenLock,
+                version = version,
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(version = version))
 
     /** On every resume: the screen lock may have changed meanwhile. */
     fun refreshScreenLock() {

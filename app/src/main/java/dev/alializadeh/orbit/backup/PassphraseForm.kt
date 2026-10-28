@@ -39,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
@@ -159,7 +161,15 @@ fun PassphraseFormScreen(
                     label = stringResource(
                         if (form.mode == PassphraseFormMode.Change) R.string.passphrase_new_field else R.string.passphrase_field,
                     ),
-                    supportingText = stringResource(if (notAscii) R.string.passphrase_rule_ascii else R.string.passphrase_rule_length),
+                    supportingText = if (notAscii) {
+                        stringResource(R.string.passphrase_rule_ascii)
+                    } else {
+                        pluralStringResource(
+                            R.plurals.passphrase_rule_length,
+                            PassphraseRules.MIN_LENGTH,
+                            LocalOrbitFormats.current.numbers.format(PassphraseRules.MIN_LENGTH),
+                        )
+                    },
                     isError = notAscii,
                 )
                 PassphraseField(

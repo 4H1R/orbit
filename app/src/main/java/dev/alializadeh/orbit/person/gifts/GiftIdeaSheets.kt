@@ -30,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -94,6 +96,7 @@ internal fun GiftIdeaSheetContent(
         Text(
             text = stringResource(if (initial == null) R.string.gift_idea_sheet_new else R.string.gift_idea_sheet_edit),
             style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
         )
         OutlinedTextField(
             state = text,
@@ -201,7 +204,7 @@ internal fun GivenDateSheetContent(today: LocalDate, onConfirm: (LocalDate) -> U
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(stringResource(R.string.gift_idea_given_title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.gift_idea_given_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = !picking,

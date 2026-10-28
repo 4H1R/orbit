@@ -2,6 +2,14 @@ package dev.alializadeh.orbit.settings
 
 import androidx.compose.ui.graphics.Color
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import dev.alializadeh.orbit.AppVersion
+import dev.alializadeh.orbit.about.AboutScreen
+import dev.alializadeh.orbit.about.AboutUiState
+import dev.alializadeh.orbit.about.Licence
+import dev.alializadeh.orbit.about.LicenceTextKey
+import dev.alializadeh.orbit.about.LicenceTextScreen
+import dev.alializadeh.orbit.about.LicencesScreen
+import dev.alializadeh.orbit.about.reflowed
 import dev.alializadeh.orbit.firstrun.FirstRunUiState
 import dev.alializadeh.orbit.firstrun.WelcomeScreen
 import dev.alializadeh.orbit.language.OrbitLanguage
@@ -10,6 +18,7 @@ import dev.alializadeh.orbit.testing.captureScreen
 import dev.alializadeh.orbit.ui.theme.ColourSource
 import dev.alializadeh.orbit.ui.theme.OrbitAppearance
 import dev.alializadeh.orbit.ui.theme.ThemeMode
+import java.io.File
 import java.time.LocalDate
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,7 +26,7 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Welcome and the Settings screens of slice 1, in en/LTR and fa/RTL, light and dark. */
+/** Welcome, the Settings root and its slice 1 and slice 10 screens, in en/LTR and fa/RTL, light and dark. */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel7)
@@ -40,7 +49,7 @@ class SettingsScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun settings() = captureScreen("settings", variant) {
         SettingsScreen(
-            uiState = SettingsUiState(primaryCalendar = language.defaultCalendar),
+            uiState = SettingsUiState(primaryCalendar = language.defaultCalendar, version = AppVersion("1.0.0", 1)),
             onOpen = {},
         )
     }
@@ -89,6 +98,27 @@ class SettingsScreenshotTest(private val variant: ScreenshotVariant) {
             onPrimaryCalendarSelect = {},
             onUseLatinDigitsChange = {},
         )
+    }
+
+    @Test
+    fun about() = captureScreen("about", variant) {
+        AboutScreen(AboutUiState(AppVersion("1.0.0", 1), crashes = 0), onBack = {}, onOpenLicences = {}, onShareCrashLog = {}, onClearCrashLog = {})
+    }
+
+    @Test
+    fun aboutWithCrashes() = captureScreen("about_crashes", variant) {
+        AboutScreen(AboutUiState(AppVersion("1.0.0", 1), crashes = 2), onBack = {}, onOpenLicences = {}, onShareCrashLog = {}, onClearCrashLog = {})
+    }
+
+    @Test
+    fun licences() = captureScreen("licences", variant, tall = true) {
+        LicencesScreen(onBack = {}, onOpen = {})
+    }
+
+    @Test
+    fun licenceText() = captureScreen("licence_text", variant) {
+        val key = LicenceTextKey("Outfit", Licence.OflOutfit)
+        LicenceTextScreen(key, reflowed(File("src/main/assets/${key.licence.asset}").readText()), onBack = {})
     }
 
     companion object {

@@ -3,6 +3,7 @@ package dev.alializadeh.orbit
 import android.app.Application
 import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
+import dev.alializadeh.orbit.about.CrashLog
 import dev.alializadeh.orbit.backup.Restorer
 import dev.alializadeh.orbit.lock.AppLock
 import dev.alializadeh.orbit.reminders.ReminderTriggers
@@ -22,8 +23,12 @@ class OrbitApplication : Application() {
 
     @Inject lateinit var appLock: Provider<AppLock>
 
+    @Inject lateinit var crashLog: Provider<CrashLog>
+
     override fun onCreate() {
         super.onCreate()
+        // First, so a crash anywhere after this is recorded (Settings → About shares the log).
+        if (Build.FINGERPRINT != ROBOLECTRIC) crashLog.get().install()
         val startedAt = System.currentTimeMillis()
         // A Restore that a crash interrupted is finished (or its copied photos taken back) first.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

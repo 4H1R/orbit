@@ -1,6 +1,9 @@
 package dev.alializadeh.orbit.orbitview
 
 import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -52,6 +55,74 @@ class OrbitAnglesTest {
         val wedge = 0.5
         val angles = OrbitAngles.place((1L..200L).toList(), radius = 150f, wedgeHalfAngle = wedge)
         angles.values.forEach { assertFalse("angle $it", OrbitAngles.inWedge(it, wedge)) }
+    }
+
+    @Test
+    fun addingSomeoneToAnyRingMovesNobodyElse() {
+        val frame = OrbitFrame.fit(4, availableRadius = 198f)
+        val seats = (1L..60L).map { OrbitAngles.Seat(it, (it % 4).toInt()) }
+        val wedges = List(4) { 0.3 }
+        val before = OrbitAngles.place(seats, frame.radii, frame.gap / 2, wedges)
+        val after = OrbitAngles.place(seats + OrbitAngles.Seat(61, 1), frame.radii, frame.gap / 2, wedges)
+        before.forEach { (id, angle) -> assertEquals("person $id", angle, after.getValue(id), 0.0) }
+    }
+
+    /**
+     * About twenty People on four Rings in a phone-sized view, a few of them Due and drifting (the
+     * `orbit_few` screenshot): Rings there are closer together than an Avatar is wide, yet no two
+     * Avatars touch, on the same Ring or neighbouring ones.
+     */
+    @Test
+    fun aFewPeopleNeverOverlapAcrossRings() {
+        val frame = OrbitFrame.fit(4, availableRadius = 198f)
+        assertTrue(frame.gap < PersonSize.Avatar.diameter)
+        val drifts = mapOf(3L to 1f, 6L to 0.5f, 9L to 1f, 11L to 0.3f, 13L to 1f, 17L to 0.05f)
+        val seats = orbitFewSeats().map { it.copy(drift = drifts[it.id] ?: 0f) }
+        val angles = OrbitAngles.place(seats, frame.radii, frame.gap / 2, wedgeHalfAngles = List(4) { 0.35 })
+        assertNoAvatarsTouch(seats, angles, frame) { it.drift }
+    }
+
+    /** With room to spare, where People sit doesn't depend on who's drifting: none ever touch. */
+    @Test
+    fun withRoomToSpareNobodyTouchesWhoeverDrifts() {
+        val frame = OrbitFrame.fit(4, availableRadius = 198f)
+        var id = 0L
+        val seats = listOf(2, 3, 4, 2).flatMapIndexed { ring, count -> List(count) { OrbitAngles.Seat(++id, ring) } }
+        val angles = OrbitAngles.place(seats, frame.radii, frame.gap / 2, wedgeHalfAngles = List(4) { 0.35 })
+        val driftsNow = seats.map { it.copy(drift = 1f) }
+        assertEquals(angles, OrbitAngles.place(driftsNow, frame.radii, frame.gap / 2, wedgeHalfAngles = List(4) { 0.35 }))
+        for (drift in Drifts) assertNoAvatarsTouch(seats, angles, frame) { drift }
+    }
+
+    private fun orbitFewSeats(): List<OrbitAngles.Seat> {
+        var id = 0L
+        return listOf(4, 6, 7, 3).flatMapIndexed { ring, count -> List(count) { OrbitAngles.Seat(++id, ring) } }
+    }
+
+    private fun assertNoAvatarsTouch(seats: List<OrbitAngles.Seat>, angles: Map<Long, Double>, frame: OrbitFrame, drift: (OrbitAngles.Seat) -> Float) {
+        for (a in seats) for (b in seats) {
+            if (a.id >= b.id) continue
+            val ra = frame.personRadius(a.ring, drift(a))
+            val rb = frame.personRadius(b.ring, drift(b))
+            val ax = ra * sin(angles.getValue(a.id))
+            val ay = ra * cos(angles.getValue(a.id))
+            val bx = rb * sin(angles.getValue(b.id))
+            val by = rb * cos(angles.getValue(b.id))
+            val distance = hypot(ax - bx, ay - by)
+            assertTrue("${a.id} and ${b.id} are $distance dp apart", distance >= PersonSize.Avatar.diameter - 1e-6)
+        }
+    }
+
+    private companion object {
+        val Drifts = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
+    }
+
+    @Test
+    fun ringsFarEnoughApartDontLimitEachOther() {
+        val radii = listOf(50f, 150f)
+        assertEquals(0.0, OrbitAngles.separation(0, 1, radii, maxDrift = 20f, room = 42.0), 0.0)
+        assertTrue(OrbitAngles.separation(0, 1, listOf(100f, 130f), maxDrift = 15f, room = 42.0) > 0.0)
+        assertEquals(42.0 / 100, OrbitAngles.separation(0, 0, listOf(100f, 130f), maxDrift = 15f, room = 42.0), 1e-12)
     }
 
     @Test

@@ -49,11 +49,14 @@ fun ContactType.displayName(): String = stringResource(nameRes)
 @ReadOnlyComposable
 fun ContactActionKind.label(): String = stringResource(labelRes)
 
-/** "every 30 days", "every week", "No cadence" (copy deck). */
+/**
+ * "every 30 days", "every week", "No cadence" (copy deck); "no cadence" when [inline], inside a
+ * sentence. At the start of a line, pass the result through `sentenceStart`.
+ */
 @Composable
 @ReadOnlyComposable
-fun cadenceText(cadence: Cadence?): String {
-    if (cadence == null) return stringResource(R.string.cadence_none)
+fun cadenceText(cadence: Cadence?, inline: Boolean = false): String {
+    if (cadence == null) return stringResource(if (inline) R.string.cadence_none_inline else R.string.cadence_none)
     val resources = LocalResources.current
     val count = LocalOrbitFormats.current.numbers.format(cadence.count)
     return when (cadence.unit) {

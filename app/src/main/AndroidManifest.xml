@@ -58,6 +58,17 @@
             android:name=".reminders.NotificationActionReceiver"
             android:exported="false" />
 
+        <!-- Settings → About → Share crash log: the log file, read-only, to whatever the user picks. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.crashlog"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/crash_log_paths" />
+        </provider>
+
         <!-- Per-app language on API 31–32: AppCompat stores the choice itself (API 33+ uses the
              framework's LocaleManager). -->
         <service

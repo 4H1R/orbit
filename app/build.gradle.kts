@@ -112,7 +112,33 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configu
     exclude(group = "androidx.sqlite", module = "sqlite-bundled-android")
 }
 
+// The third-party modules the release APK ships (group:name, one per line), for LicencesTest:
+// Settings → About → Open-source licences must cover every one of them.
+val releaseRuntimeModules = layout.buildDirectory.file("orbit/release-runtime-modules.txt")
+val writeReleaseRuntimeModules = tasks.register("writeReleaseRuntimeModules") {
+    val modules = configurations.named("releaseRuntimeClasspath").flatMap { classpath ->
+        classpath.incoming.resolutionResult.rootComponent.map { root ->
+            val found = sortedSetOf<String>()
+            val seen = HashSet<ResolvedComponentResult>()
+            fun walk(component: ResolvedComponentResult) {
+                if (!seen.add(component)) return
+                (component.id as? ModuleComponentIdentifier)?.let { found += "${it.group}:${it.module}" }
+                component.dependencies.filterIsInstance<ResolvedDependencyResult>().forEach { walk(it.selected) }
+            }
+            walk(root)
+            found.joinToString("\n")
+        }
+    }
+    inputs.property("modules", modules)
+    val output = releaseRuntimeModules
+    outputs.file(output)
+    doLast { output.get().asFile.writeText(modules.get() + "\n") }
+}
+
 tasks.withType<Test>().configureEach {
+    dependsOn(writeReleaseRuntimeModules)
+    inputs.file(releaseRuntimeModules).withPropertyName("releaseRuntimeModules").withPathSensitivity(PathSensitivity.NONE)
+    systemProperty("orbit.releaseRuntimeModules", releaseRuntimeModules.get().asFile.absolutePath)
     // Robolectric 4.17 at SDK 37 reaches into FileDescriptor internals (ApplicationSharedMemory),
     // which JDK 17+ hides unless exported.
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")

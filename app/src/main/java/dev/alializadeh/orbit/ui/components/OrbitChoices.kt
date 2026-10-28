@@ -3,8 +3,8 @@ package dev.alializadeh.orbit.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,19 +20,25 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
  * A single choice between a few short options as a connected button group (Expressive): the
- * Theme, the language, the Calendar. Announced as radio buttons.
+ * Theme, the language, the Calendar. Announced as radio buttons. When a label doesn't fit its
+ * button (a large font size, a long translation), the same choice is shown as wrapping chips
+ * instead of a clipped label.
  */
 @Composable
 fun <T> OrbitConnectedChoice(
@@ -42,23 +48,50 @@ fun <T> OrbitConnectedChoice(
     label: @Composable (T) -> String,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth().selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-    ) {
-        options.forEachIndexed { index, option ->
-            ToggleButton(
-                checked = option == selected,
-                onCheckedChange = { onSelect(option) },
-                modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
-                shapes = when (index) {
-                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                },
+    val labels = options.map { label(it) }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val fontScale = LocalDensity.current.fontScale
+        var clipped by remember(labels, maxWidth, fontScale) { mutableStateOf(false) }
+        if (clipped) {
+            ChoiceChips(options, selected, onSelect) { labels[options.indexOf(it)] }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
             ) {
-                Text(label(option), maxLines = 1)
+                options.forEachIndexed { index, option ->
+                    ToggleButton(
+                        checked = option == selected,
+                        onCheckedChange = { onSelect(option) },
+                        modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                        shapes = when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                        },
+                    ) {
+                        Text(labels[index], maxLines = 1, onTextLayout = { if (it.hasVisualOverflow) clipped = true })
+                    }
+                }
             }
+        }
+    }
+}
+
+/** Single-select chips that wrap onto more lines, announced as radio buttons. */
+@Composable
+private fun <T> ChoiceChips(options: List<T>, selected: T?, onSelect: (T) -> Unit, label: (T) -> String) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { option ->
+            FilterChip(
+                selected = option == selected,
+                onClick = { onSelect(option) },
+                label = { Text(label(option)) },
+                modifier = Modifier.semantics { role = Role.RadioButton },
+            )
         }
     }
 }
@@ -87,19 +120,7 @@ fun <T> OrbitAdaptiveChoice(
         if (selected != null && widest + ConnectedChoicePadding <= share) {
             OrbitConnectedChoice(options = options, selected = selected, onSelect = onSelect, label = { label(it) })
         } else {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                options.forEach { option ->
-                    FilterChip(
-                        selected = option == selected,
-                        onClick = { onSelect(option) },
-                        label = { Text(label(option)) },
-                        modifier = Modifier.semantics { role = Role.RadioButton },
-                    )
-                }
-            }
+            ChoiceChips(options, selected, onSelect, label)
         }
     }
 }
@@ -134,11 +155,13 @@ fun OrbitListGroupScope.NavigationRow(
     count: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     SegmentedListItem(
         onClick = onClick,
         shapes = ListItemDefaults.segmentedShapes(index, count),
         modifier = modifier,
+        enabled = enabled,
         supportingContent = summary?.let { { Text(it, maxLines = 1) } },
     ) {
         Text(title)

@@ -69,6 +69,7 @@
         <item quantity="other">هر %1$s ماه</item>
     </plurals>
     <string name="cadence_none">بدون فاصلهٔ ارتباط</string>
+    <string name="cadence_none_inline">بدون فاصلهٔ ارتباط</string>
 
     <!-- Seed Rings (copy deck) -->
     <string name="seed_ring_inner">صمیمی</string>
@@ -112,7 +113,7 @@
     <string name="language_dates_language">زبان</string>
     <string name="language_dates_primary_calendar">تقویم اصلی</string>
     <string name="language_dates_latin_digits">استفاده از ارقام لاتین</string>
-    <string name="language_dates_latin_digits_summary">نمایش اعداد به صورت 123 به جای ۱۲۳</string>
+    <string name="language_dates_latin_digits_summary">نمایش اعداد به‌صورت 123 به‌جای ۱۲۳</string>
 
     <!-- Date picker -->
     <string name="date_picker_calendar">تقویم</string>
@@ -184,7 +185,7 @@
     <string name="person_form_contact_remove">حذف راه ارتباطی</string>
     <string name="person_form_more_details">جزئیات بیشتر</string>
     <string name="person_form_tag_add">افزودن برچسب</string>
-    <string name="person_form_tag_create">ساختن برچسب %1$s</string>
+    <string name="person_form_tag_create">ساختن برچسب «%1$s»</string>
     <string name="person_form_item_add">افزودن…</string>
     <string name="cadence_sheet_use_ring">پیش‌فرض حلقه</string>
     <string name="cadence_sheet_count">تعداد</string>
@@ -264,7 +265,10 @@
     <string name="reminder_title_anniversary_today">امروز سالگرد %1$s است</string>
     <string name="reminder_title_custom_today">امروز %2$s %1$s است</string>
     <string name="reminder_gift_ideas">ایده‌های هدیه: %1$s</string>
-    <string name="list_and_more">%1$s و %2$s مورد دیگر</string>
+    <plurals name="list_and_more">
+        <item quantity="one">%1$s و %2$s مورد دیگر</item>
+        <item quantity="other">%1$s و %2$s مورد دیگر</item>
+    </plurals>
     <string name="list_separator">"، "</string>
 
     <!-- Gift ideas -->
@@ -309,13 +313,14 @@
     <string name="interaction_people">افراد</string>
     <string name="interaction_people_add">افزودن</string>
     <string name="interaction_people_title">افزودن افراد</string>
-    <string name="interaction_people_search">جستجوی افراد</string>
+    <string name="interaction_people_search">جست‌وجوی افراد</string>
     <string name="search_no_matches">کسی پیدا نشد</string>
     <string name="interaction_note">یادداشت (اختیاری)</string>
     <string name="interaction_with">با %1$s</string>
     <string name="interactions_all">همهٔ ارتباط‌ها (%1$s)</string>
     <string name="interactions_all_title">ارتباط‌ها با %1$s</string>
     <string name="no_interactions_yet">هنوز ارتباطی ثبت نشده</string>
+    <string name="no_interactions_yet_inline">هنوز ارتباطی ثبت نشده</string>
     <string name="last_interaction">آخرین ارتباط: %1$s</string>
     <string name="last_interaction_inline">آخرین ارتباط: %1$s</string>
 
@@ -346,10 +351,11 @@
         <item quantity="other">%1$s نفر</item>
     </plurals>
     <string name="people_count_none">هنوز کسی نیست</string>
+    <string name="people_count_none_inline">هنوز کسی نیست</string>
 
     <!-- People list: search, filters, sort (slice 8) -->
-    <string name="people_search_hint">جستجوی افراد</string>
-    <string name="people_search_clear">پاک کردن جستجو</string>
+    <string name="people_search_hint">جست‌وجوی افراد</string>
+    <string name="people_search_clear">پاک کردن جست‌وجو</string>
     <string name="people_sort_description">ترتیب: %1$s</string>
     <string name="people_sort_name">نام</string>
     <string name="people_sort_ring">حلقه</string>
@@ -392,7 +398,10 @@
     <string name="settings_rings_title">حلقه‌ها</string>
     <string name="rings_hint">درونی‌ترین حلقه اول است. برای جابه‌جایی بکشید.</string>
     <string name="rings_add">افزودن حلقه</string>
-    <string name="rings_max">حداکثر %1$s حلقه</string>
+    <plurals name="rings_max">
+        <item quantity="one">حداکثر %1$s حلقه</item>
+        <item quantity="other">حداکثر %1$s حلقه</item>
+    </plurals>
     <string name="rings_reorder">جابه‌جا کردن %1$s</string>
     <string name="rings_move_inward">انتقال به داخل</string>
     <string name="rings_move_outward">انتقال به بیرون</string>
@@ -457,7 +466,10 @@
     <string name="passphrase_current_field">عبارت عبور فعلی</string>
     <string name="passphrase_new_field">عبارت عبور جدید</string>
     <string name="passphrase_repeat_field">تکرار عبارت عبور</string>
-    <string name="passphrase_rule_length">دست‌کم ۱۲ نویسه</string>
+    <plurals name="passphrase_rule_length">
+        <item quantity="one">دست‌کم %1$s نویسه</item>
+        <item quantity="other">دست‌کم %1$s نویسه</item>
+    </plurals>
     <string name="passphrase_rule_ascii">فقط حروف انگلیسی، عدد و نماد</string>
     <string name="passphrase_mismatch">دو عبارت عبور یکی نیستند</string>
     <string name="passphrase_current_wrong">این عبارت عبور فعلی شما نیست</string>
@@ -482,7 +494,14 @@
     <string name="backup_progress_writing">در حال پشتیبان‌گیری…</string>
     <string name="backup_progress_verifying">در حال بررسی پشتیبان…</string>
     <string name="backup_result_title">پشتیبان ذخیره و بررسی شد</string>
-    <string name="backed_up_result">از %1$s نفر و %2$s عکس پشتیبان گرفته شد</string>
+    <plurals name="backed_up_result">
+        <item quantity="one">از %1$s نفر و %2$s پشتیبان گرفته شد</item>
+        <item quantity="other">از %1$s نفر و %2$s پشتیبان گرفته شد</item>
+    </plurals>
+    <plurals name="backup_result_photos">
+        <item quantity="one">%1$s عکس</item>
+        <item quantity="other">%1$s عکس</item>
+    </plurals>
     <string name="backup_result_body">آن را جایی جز این گوشی نگه دارید، مثلاً روی رایانه یا فضای ابری.</string>
     <string name="backup_failed_title">پشتیبان‌گیری ناموفق بود</string>
     <string name="backup_failed_body">Orbit نتوانست پشتیبان را آن‌جا ذخیره کند، برای همین فایل نیمه‌کاره حذف شد. دوباره امتحان کنید یا جای دیگری را انتخاب کنید.</string>
@@ -512,13 +531,19 @@
     </plurals>
     <string name="restore_summary_body">هرچه در آن است جای داده‌های فعلی Orbit را می‌گیرد: افراد، عکس‌ها، تنظیمات و زبان.</string>
     <string name="restore_replace_title">همه‌چیز در Orbit جایگزین شود؟</string>
-    <string name="restore_replace_body">%1$s فرد فعلی، عکس‌هایشان و تنظیمات شما با این پشتیبانِ %2$s (%3$s نفر) جایگزین می‌شوند. این کار برگشت‌پذیر نیست.</string>
+    <plurals name="restore_replace_body">
+        <item quantity="one">%1$s فرد فعلی، عکس‌هایشان و تنظیمات شما با این پشتیبانِ %2$s (%3$s) جایگزین می‌شوند. این کار برگشت‌پذیر نیست.</item>
+        <item quantity="other">%1$s فرد فعلی، عکس‌هایشان و تنظیمات شما با این پشتیبانِ %2$s (%3$s) جایگزین می‌شوند. این کار برگشت‌پذیر نیست.</item>
+    </plurals>
     <string name="restore_replace_confirm">جایگزینی</string>
     <string name="restore_back_up_first">اول از داده‌های فعلی پشتیبان بگیرید</string>
     <string name="restore_confirm">بازیابی</string>
     <string name="restore_progress">در حال بازیابی…</string>
     <string name="restore_failed">Orbit نتوانست این پشتیبان را بازیابی کند. چیزی روی این گوشی تغییر نکرده است.</string>
-    <string name="restored_snackbar">%1$s نفر بازیابی شدند</string>
+    <plurals name="restored_snackbar">
+        <item quantity="one">%1$s نفر بازیابی شدند</item>
+        <item quantity="other">%1$s نفر بازیابی شدند</item>
+    </plurals>
 
     <!-- Reminders and notifications (slice 6) -->
     <string name="reminder_title_birthday">تولد %1$s، %2$s</string>
@@ -540,8 +565,14 @@
     <string name="digest_body_one_never">%1$s اضافه شد، هنوز ارتباطی ثبت نشده</string>
     <string name="names_two">%1$s و %2$s</string>
     <string name="names_three">%1$s، %2$s و %3$s</string>
-    <string name="names_more">%1$s، %2$s و %3$s نفر دیگر</string>
-    <string name="digest_body_several">موعد ارتباط با %1$s نفر رسیده است</string>
+    <plurals name="names_more">
+        <item quantity="one">%1$s، %2$s و %3$s نفر دیگر</item>
+        <item quantity="other">%1$s، %2$s و %3$s نفر دیگر</item>
+    </plurals>
+    <plurals name="digest_body_several">
+        <item quantity="one">موعد ارتباط با %1$s نفر رسیده است</item>
+        <item quantity="other">موعد ارتباط با %1$s نفر رسیده است</item>
+    </plurals>
     <string name="discreet_birthday_soon">تولدی در پیش است، %1$s</string>
     <string name="discreet_anniversary_soon">سالگردی در پیش است، %1$s</string>
     <string name="discreet_date_soon">تاریخ مهمی در پیش است، %1$s</string>
@@ -549,7 +580,10 @@
     <string name="discreet_anniversary_today">امروز سالگرد یک نفر است</string>
     <string name="discreet_date_today">امروز یک تاریخ مهم دارید</string>
     <string name="discreet_digest_one">وقت احوال‌پرسی از یک نفر است</string>
-    <string name="discreet_digest_several">وقت احوال‌پرسی از %1$s نفر است</string>
+    <plurals name="discreet_digest_several">
+        <item quantity="one">وقت احوال‌پرسی از %1$s نفر است</item>
+        <item quantity="other">وقت احوال‌پرسی از %1$s نفر است</item>
+    </plurals>
 
     <!-- Settings → Reminders -->
     <string name="settings_reminders_title">یادآوری‌ها</string>
@@ -649,7 +683,10 @@
     <string name="orbit_legend_title">راهنمای مدار</string>
     <string name="orbit_legend_rings">شما در مرکزید. هر دایره یک حلقه است و نزدیک‌ترین افراد در درونی‌ترین حلقه‌اند.</string>
     <string name="orbit_legend_drift">فردی که می‌درخشد و به بیرون می‌لغزد، موعد ارتباطش رسیده است. هرچه دورتر، مدت بیشتری گذشته.</string>
-    <string name="orbit_legend_badge">تاریخ مهمی در ۳۰ روز آینده. توپُر یعنی امروز.</string>
+    <plurals name="orbit_legend_badge">
+        <item quantity="one">تاریخ مهمی در %1$s روز آینده. توپُر یعنی امروز.</item>
+        <item quantity="other">تاریخ مهمی در %1$s روز آینده. توپُر یعنی امروز.</item>
+    </plurals>
     <string name="orbit_legend_angle">جای هر فرد روی دایره معنای خاصی ندارد.</string>
     <string name="orbit_center_you">شما</string>
     <string name="orbit_ring_count">%1$s، %2$s</string>
@@ -662,4 +699,23 @@
     <string name="orbit_a11y_date_anniversary">سالگرد %1$s</string>
     <string name="orbit_a11y_date_custom">%1$s %2$s</string>
     <string name="orbit_empty">افرادی که اضافه کنید این‌جا روی حلقهٔ خودشان دیده می‌شوند</string>
+    <!-- تنظیمات ← درباره (برش ۱۰) -->
+    <string name="settings_about_title">درباره</string>
+    <string name="about_version">نسخه</string>
+    <string name="about_version_value">%1$s (%2$s)</string>
+    <string name="about_licences">مجوزهای متن‌باز</string>
+    <string name="about_licences_summary">قلم‌ها و کتابخانه‌هایی که Orbit با آن‌ها ساخته شده است</string>
+    <string name="about_licences_fonts">قلم‌ها</string>
+    <string name="about_licences_libraries">کتابخانه‌ها</string>
+    <string name="about_crash_log_title">گزارش خطا</string>
+    <string name="about_crash_log_share">هم‌رسانی گزارش خطا</string>
+    <string name="about_crash_log_none">خطایی ثبت نشده است</string>
+    <plurals name="about_crash_log_count">
+        <item quantity="one">%1$s خطا ثبت شده است</item>
+        <item quantity="other">%1$s خطا ثبت شده است</item>
+    </plurals>
+    <string name="about_crash_log_clear">پاک کردن گزارش خطا</string>
+    <string name="about_crash_log_cleared">گزارش خطا پاک شد</string>
+    <string name="about_crash_log_footer">اگر Orbit ناگهان بسته شود، شرح خطا را روی همین گوشی می‌نویسد، بی‌آن‌که چیزی از افراد یا یادداشت‌های شما در آن باشد. تا خودتان آن را نفرستید، به جایی فرستاده نمی‌شود.</string>
+    <string name="about_crash_log_subject">گزارش خطای Orbit</string>
 </resources>

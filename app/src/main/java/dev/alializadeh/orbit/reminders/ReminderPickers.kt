@@ -27,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
@@ -106,7 +108,7 @@ internal fun ReminderTimeSheetContent(initial: LocalTime, onDone: (LocalTime) ->
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(stringResource(R.string.reminders_time), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.reminders_time), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         // A time reads hours then minutes left to right in Persian too.
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

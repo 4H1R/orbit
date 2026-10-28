@@ -95,7 +95,7 @@ class NotificationTexts(private val resources: Resources, private val formats: O
         val body = if (people.size == 1) {
             singleDigestBody(people.single(), digest.today)
         } else {
-            resources.getString(R.string.digest_body_several, numbers.format(people.size))
+            resources.getQuantityString(R.plurals.digest_body_several, people.size, numbers.format(people.size))
         }
         return NotificationText(title, listOf(body))
     }
@@ -105,7 +105,7 @@ class NotificationTexts(private val resources: Resources, private val formats: O
         if (digest.people.size == 1) {
             resources.getString(R.string.discreet_digest_one)
         } else {
-            resources.getString(R.string.discreet_digest_several, numbers.format(digest.people.size))
+            resources.getQuantityString(R.plurals.discreet_digest_several, digest.people.size, numbers.format(digest.people.size))
         },
     )
 
@@ -124,7 +124,7 @@ class NotificationTexts(private val resources: Resources, private val formats: O
         1 -> names[0]
         2 -> resources.getString(R.string.names_two, names[0], names[1])
         3 -> resources.getString(R.string.names_three, names[0], names[1], names[2])
-        else -> resources.getString(R.string.names_more, names[0], names[1], numbers.format(names.size - 2))
+        else -> resources.getQuantityString(R.plurals.names_more, names.size - 2, names[0], names[1], numbers.format(names.size - 2))
     }
 
     /** "tomorrow", "in 7 days" / «فردا», «۷ روز دیگر». */

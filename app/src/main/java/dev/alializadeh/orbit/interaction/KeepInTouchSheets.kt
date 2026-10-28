@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -66,10 +67,10 @@ import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.dates.WheelDatePickerStateSaver
 import dev.alializadeh.orbit.person.sortByDisplayName
-import dev.alializadeh.orbit.search.SearchText
 import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
+import dev.alializadeh.orbit.search.SearchText
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePicker
@@ -173,6 +174,7 @@ internal fun LogInteractionSheetContent(
         Text(
             text = stringResource(if (state.interactionId == null) R.string.interaction_log else R.string.interaction_sheet_edit),
             style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
         )
         val typeLabel = stringResource(R.string.interaction_type_label)
         OrbitConnectedChoice(
@@ -322,7 +324,7 @@ internal fun PeoplePickerContent(candidates: List<PickablePerson>, onPick: (Long
         Text(
             text = stringResource(R.string.interaction_people_title),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp).semantics { heading() },
         )
         OutlinedTextField(
             state = query,
@@ -377,7 +379,7 @@ internal fun SnoozeSheetContent(state: SnoozeSheetState, onPick: (SnoozeDuration
         Text(
             text = stringResource(R.string.snooze_title, bidiIsolate(name)),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp),
+            modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp).semantics { heading() },
         )
         Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
             SnoozeDuration.entries.forEachIndexed { index, duration ->

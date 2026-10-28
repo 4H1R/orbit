@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
@@ -108,6 +110,7 @@ internal fun PersonHeader(
             text = displayName,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
         )
         val subtitle = profile.names.subtitleParts(language)
         if (subtitle.isNotEmpty()) {

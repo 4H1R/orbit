@@ -34,3 +34,9 @@
 -keep class org.bouncycastle.crypto.engines.ChaCha7539Engine { *; }
 -keep class org.bouncycastle.crypto.modes.ChaCha20Poly1305 { *; }
 -dontwarn org.bouncycastle.**
+
+# --- Crash log (Settings → About) --------------------------------------------------------------
+# Keep line numbers in stack traces so a shared crash log can be retraced with the release build's
+# mapping file (app/build/outputs/mapping/release/mapping.txt; keep it with each release you install).
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

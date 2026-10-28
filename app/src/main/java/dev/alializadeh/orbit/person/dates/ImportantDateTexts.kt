@@ -172,7 +172,7 @@ fun giftIdeasLine(resources: Resources, numbers: OrbitNumberFormatter, ideas: Li
     if (ideas.isEmpty()) return null
     val named = ideas.take(NAMED_IDEAS).joinToString(resources.getString(R.string.list_separator)) { bidiIsolate(it) }
     val rest = ideas.size - NAMED_IDEAS
-    val list = if (rest > 0) resources.getString(R.string.list_and_more, named, numbers.format(rest)) else named
+    val list = if (rest > 0) resources.getQuantityString(R.plurals.list_and_more, rest, named, numbers.format(rest)) else named
     return resources.getString(R.string.reminder_gift_ideas, list)
 }
 

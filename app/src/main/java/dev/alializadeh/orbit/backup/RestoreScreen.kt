@@ -185,11 +185,12 @@ private fun SummaryStep(uiState: RestoreUiState.Summary, zone: ZoneId) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.restore_replace_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = stringResource(
-                            R.string.restore_replace_body,
+                        text = pluralStringResource(
+                            R.plurals.restore_replace_body,
+                            uiState.devicePeople,
                             numbers.format(uiState.devicePeople),
                             date,
-                            numbers.format(summary.people),
+                            pluralStringResource(R.plurals.restore_summary_people, summary.people, numbers.format(summary.people)),
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                     )

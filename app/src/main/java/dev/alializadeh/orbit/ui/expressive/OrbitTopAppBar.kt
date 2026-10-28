@@ -10,9 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import dev.alializadeh.orbit.R
 
 /**
@@ -38,7 +41,7 @@ fun OrbitTopAppBar(
             navigationIconContentColor = contentColor.takeOrElse { defaults.navigationIconContentColor },
             actionIconContentColor = contentColor.takeOrElse { defaults.actionIconContentColor },
         ),
-        title = { if (title != null) Text(title) },
+        title = { if (title != null) Text(title, modifier = Modifier.semantics { heading() }) },
         navigationIcon = {
             when {
                 navigationIcon != null -> navigationIcon()

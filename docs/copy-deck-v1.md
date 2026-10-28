@@ -10,6 +10,7 @@ Domain vocabulary, with each term's Persian UI word, is in the [glossary](../GLO
 
 - Android string resources: `values/strings.xml` (English) and `values-fa/strings.xml` (Persian). Counts use `<plurals>`.
 - Persian's plural categories are `one` (which includes 0) and `other`. Both are usually the same text, because Persian nouns stay singular after a number (۳ روز). A count of 0 gets its own string, never a plural.
+- Every count is a plural, even one that is always 2 or more. A sentence with two counts is a plural on the first, and takes the second already formatted as its own plural ("Backed up 84 people · 41 photos" = `backed_up_result` with `backup_result_photos` as `%2$s`). Numbers written into a sentence (12 characters, 30 days) are placeholders too, so the digit setting applies.
 - Keys are `screen_element_purpose`, e.g. `person_detail_delete_confirm_title`. The keys below are the resource names.
 - **Numbers are never formatted with `%d`.** They go through `OrbitNumberFormatter` and are passed as `%s`, so "Use Latin digits" holds everywhere.
 - **Every user-supplied value is bidi-isolated** when it's placed in a sentence: names, Tags, Ring names, custom date labels, Contact values.
@@ -34,6 +35,7 @@ Domain vocabulary, with each term's Persian UI word, is in the [glossary](../GLO
   - The user is addressed as **شما**.
   - Buttons are short verbs or nouns («ذخیره»، «لغو»، «افزودن»).
   - Warmth comes from word choice («احوال‌پرسی»), not slang.
+  - Spelling: a half-space (ZWNJ) in prefixes, suffixes and compounds («می‌شود», «برچسب‌ها», «یک‌شنبه», «به‌صورت»), and «جست‌وجو» for search.
   - **Never attach a suffix to a placeholder**, because the name's ending is unknown. Write «امروز تولد %s است», never a contraction like «…ست».
 
 ### Separator
@@ -214,11 +216,14 @@ The language picker shows each language in its own script: English / فارسی.
 | `tag_merge_body` | Everyone tagged %1$s will be tagged %2$s. | همهٔ افراد دارای برچسب %1$s برچسب %2$s می‌گیرند. |
 | `tag_merge_confirm` | Merge | ادغام |
 | `restore_replace_title` | Replace everything in Orbit? | همه‌چیز در Orbit جایگزین شود؟ |
-| `restore_replace_body` | Your %1$s people, their photos and your settings will be replaced by this backup from %2$s (%3$s people). This can't be undone. | %1$s فرد فعلی، عکس‌هایشان و تنظیمات شما با این پشتیبانِ %2$s (%3$s نفر) جایگزین می‌شوند. این کار برگشت‌پذیر نیست. |
+| `restore_replace_body` | Your %1$s people, their photos and your settings will be replaced by this backup from %2$s (%3$s). This can't be undone. | %1$s فرد فعلی، عکس‌هایشان و تنظیمات شما با این پشتیبانِ %2$s (%3$s) جایگزین می‌شوند. این کار برگشت‌پذیر نیست. |
 | `restore_replace_confirm` | Replace | جایگزینی |
 | `restore_back_up_first` | Back up current data first | اول از داده‌های فعلی پشتیبان بگیرید |
 | `restored_snackbar` | Restored %1$s people | %1$s نفر بازیابی شدند |
-| `backed_up_result` | Backed up %1$s people · %2$s photos | از %1$s نفر و %2$s عکس پشتیبان گرفته شد |
+| `backed_up_result` | Backed up %1$s people · %2$s | از %1$s نفر و %2$s پشتیبان گرفته شد |
+| `backup_result_photos` | %1$s photos | %1$s عکس |
+
+`restore_replace_body`'s `%3$s` is `restore_summary_people` ("84 people" / «۸۴ نفر»).
 
 `snoozed_snackbar` takes a duration: "3 days" / «۳ روز», "1 week" / «یک هفته», "1 month" / «یک ماه».
 
@@ -228,7 +233,7 @@ The language picker shows each language in its own script: English / فارسی.
 |---|---|---|
 | `passphrase_warning` | If you forget this passphrase, no one can open your backups, not even Orbit. | اگر این عبارت عبور را فراموش کنید، هیچ‌کس نمی‌تواند پشتیبان‌هایتان را باز کند، حتی Orbit. |
 | `passphrase_warning_ack` | I understand | متوجه هستم |
-| `passphrase_rule_length` | At least 12 characters | دست‌کم ۱۲ نویسه |
+| `passphrase_rule_length` | At least %1$s characters | دست‌کم %1$s نویسه |
 | `passphrase_rule_ascii` | Only English letters, numbers and symbols | فقط حروف انگلیسی، عدد و نماد |
 | `passphrase_check_body` | Type your backup passphrase to check you still remember it | عبارت عبور پشتیبان را وارد کنید تا مطمئن شویم هنوز آن را به خاطر دارید |
 | `restore_wrong_passphrase` | That passphrase doesn't open this backup | این عبارت عبور این پشتیبان را باز نمی‌کند |
@@ -246,7 +251,7 @@ The nudge card's dismiss button is `common_not_now`.
 | `orbit_legend_title` | Reading your orbit | راهنمای مدار |
 | `orbit_legend_rings` | You're in the centre. Each circle is a ring, closest people innermost. | شما در مرکزید. هر دایره یک حلقه است و نزدیک‌ترین افراد در درونی‌ترین حلقه‌اند. |
 | `orbit_legend_drift` | A glowing person drifting outward is due. The further out, the longer it's been. | فردی که می‌درخشد و به بیرون می‌لغزد، موعد ارتباطش رسیده است. هرچه دورتر، مدت بیشتری گذشته. |
-| `orbit_legend_badge` | An important date in the next 30 days. Filled means today. | تاریخ مهمی در ۳۰ روز آینده. توپُر یعنی امروز. |
+| `orbit_legend_badge` | An important date in the next %1$s days. Filled means today. | تاریخ مهمی در %1$s روز آینده. توپُر یعنی امروز. |
 | `orbit_legend_angle` | Where someone sits around the circle doesn't mean anything. | جای هر فرد روی دایره معنای خاصی ندارد. |
 | `orbit_center_you` | You | شما |
 | `orbit_ring_count` | %1$s · %2$s | %1$s، %2$s |

@@ -231,8 +231,9 @@ private fun OrbitCanvas(
         return RingLook(sizes, counted)
     }
 
-    // Angles: stable, from each Person's id, nudged apart, with each label's wedge at the top kept
-    // free (sized for the label and the People's size at fit).
+    // Angles: stable, from each Person's id, nudged apart (from their own and the neighbouring
+    // Rings' People, allowing for drift), with each label's wedge at the top kept free (sized for
+    // the label and the People's size at fit).
     val fitLook = remember(frame, ringLabels) { evenLook(1f) }
     val wedges = remember(frame, fitLook) {
         rings.indices.map { i ->
@@ -242,17 +243,11 @@ private fun OrbitCanvas(
             ((pillWidth(label) / 2 + 3f + person / 2) / frame.radii[i]).toDouble()
         }
     }
-    val placementKey = remember(people) { people.map { it.id to it.ringIndex } }
-    val angles = remember(placementKey, frame, wedges) {
-        val result = HashMap<Long, Double>()
-        placementKey.groupBy({ it.second }, { it.first }).forEach { (ring, ids) ->
-            result.putAll(OrbitAngles.place(ids, frame.radii[ring], wedges[ring]))
-        }
-        result
-    }
+    val placementKey = remember(people) { people.map { OrbitAngles.Seat(it.id, it.ringIndex, it.drift) } }
+    val angles = remember(placementKey, frame, wedges) { OrbitAngles.place(placementKey, frame.radii, frame.gap / 2, wedges) }
     // The closest two neighbours on each Ring (dp at 1×) decide its size at any zoom.
     val ringGaps = remember(angles, frame) {
-        val byRing = placementKey.groupBy({ it.second }, { angles.getValue(it.first) })
+        val byRing = placementKey.groupBy({ it.ring }, { angles.getValue(it.id) })
         FloatArray(rings.size) { i -> (OrbitAngles.minGap(byRing[i].orEmpty()) * frame.radii[i]).toFloat() }
     }
 

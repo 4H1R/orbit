@@ -18,11 +18,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.format.LocalOrbitFormats
+import dev.alializadeh.orbit.person.DateSoon
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.SheetCloser
 import dev.alializadeh.orbit.ui.theme.isDarkScheme
@@ -49,7 +52,10 @@ fun OrbitLegendSheetContent(sheet: SheetCloser) {
         )
         LegendRow(stringResource(R.string.orbit_legend_rings)) { drawRingsExample(it) }
         LegendRow(stringResource(R.string.orbit_legend_drift)) { drawDriftExample(it) }
-        LegendRow(stringResource(R.string.orbit_legend_badge)) { drawBadgeExample(it) }
+        val soon = DateSoon.DATE_SOON_DAYS
+        LegendRow(pluralStringResource(R.plurals.orbit_legend_badge, soon, LocalOrbitFormats.current.numbers.format(soon))) {
+            drawBadgeExample(it)
+        }
         LegendRow(stringResource(R.string.orbit_legend_angle)) { drawAngleExample(it) }
         TextButton(onClick = { sheet.close {} }, modifier = Modifier.align(Alignment.End).padding(end = 16.dp)) {
             Text(stringResource(R.string.common_done))

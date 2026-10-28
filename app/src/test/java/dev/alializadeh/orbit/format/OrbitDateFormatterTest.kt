@@ -79,7 +79,7 @@ class OrbitDateFormatterTest {
         )
         // Upcoming, Persian, Primary calendar Solar Hijri, a Gregorian date: Sunday 8 March 2026.
         assertEquals(
-            listOf("یکشنبه ۱۷ اسفند", "۸ مارس"),
+            listOf("یک‌شنبه ۱۷ اسفند", "۸ مارس"),
             persian.occurrenceParts(
                 LocalDate.of(2026, 3, 8),
                 ownCalendar = Gregorian,

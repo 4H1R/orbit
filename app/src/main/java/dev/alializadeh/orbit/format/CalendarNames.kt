@@ -38,7 +38,7 @@ internal object CalendarNames {
     // Monday first, as java.time.DayOfWeek numbers them.
     private val ENGLISH_WEEKDAYS_SHORT = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     private val PERSIAN_WEEKDAYS = listOf(
-        "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه",
+        "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یک‌شنبه",
     )
 
     /**

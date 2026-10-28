@@ -13,10 +13,12 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.about.AboutKey
 import dev.alializadeh.orbit.backup.BackupSettingsKey
 import dev.alializadeh.orbit.backup.lastBackupLine
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.format.bidiIsolateLtr
 import dev.alializadeh.orbit.lock.AppLockSettingsKey
 import dev.alializadeh.orbit.lock.relockAfterName
 import dev.alializadeh.orbit.person.dates.leadTimesText
@@ -45,7 +47,7 @@ fun SettingsRoute(
 
 /**
  * Settings: a grouped list where each row shows a one-line summary and opens a sub-screen pushed
- * on the Settings tab. A later slice adds About.
+ * on the Settings tab.
  */
 @Composable
 fun SettingsScreen(
@@ -135,6 +137,20 @@ fun SettingsScreen(
                 index = 0,
                 count = 1,
                 onClick = { onOpen(BackupSettingsKey) },
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        OrbitListGroup(title = null) {
+            NavigationRow(
+                title = stringResource(R.string.settings_about_title),
+                summary = stringResource(
+                    R.string.about_version_value,
+                    bidiIsolateLtr(uiState.version.name),
+                    bidiIsolateLtr(uiState.version.code.toString()),
+                ),
+                index = 0,
+                count = 1,
+                onClick = { onOpen(AboutKey) },
             )
         }
     }

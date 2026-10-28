@@ -79,6 +79,8 @@
         <item quantity="other">every %1$s months</item>
     </plurals>
     <string name="cadence_none">No cadence</string>
+    <!-- Inside a sentence: "Cadence: no cadence (from ring)" -->
+    <string name="cadence_none_inline">no cadence</string>
 
     <!-- Seed Rings: written once, in the language chosen on Welcome (copy deck) -->
     <string name="seed_ring_inner">Inner</string>
@@ -196,7 +198,7 @@
     <string name="person_form_contact_remove">Remove contact method</string>
     <string name="person_form_more_details">More details</string>
     <string name="person_form_tag_add">Add tag</string>
-    <string name="person_form_tag_create">Create \"%1$s\"</string>
+    <string name="person_form_tag_create">Create “%1$s”</string>
     <string name="person_form_item_add">Add…</string>
     <string name="cadence_sheet_use_ring">Use ring default</string>
     <string name="cadence_sheet_count">Number</string>
@@ -283,7 +285,10 @@
     <string name="reminder_title_custom_today">Today is %1$s\'s %2$s</string>
     <!-- Names two ideas, then list_and_more -->
     <string name="reminder_gift_ideas">Gift ideas: %1$s</string>
-    <string name="list_and_more">%1$s and %2$s more</string>
+    <plurals name="list_and_more">
+        <item quantity="one">%1$s and %2$s more</item>
+        <item quantity="other">%1$s and %2$s more</item>
+    </plurals>
     <!-- Joins the items of a list inside a line (copy deck: Separator) -->
     <string name="list_separator">", "</string>
 
@@ -339,6 +344,8 @@
     <string name="interactions_all">All interactions (%1$s)</string>
     <string name="interactions_all_title">Interactions with %1$s</string>
     <string name="no_interactions_yet">No interactions yet</string>
+    <!-- After a separator or a comma: "Close · no interactions yet" -->
+    <string name="no_interactions_yet_inline">no interactions yet</string>
     <!-- %1$s is relative time: "Last talked 34 days ago", "Last talked yesterday" -->
     <string name="last_interaction">Last talked %1$s</string>
     <!-- After a separator: "Close · last talked 34 days ago" -->
@@ -372,6 +379,8 @@
         <item quantity="other">%1$s people</item>
     </plurals>
     <string name="people_count_none">No one yet</string>
+    <!-- After a separator: "every 14 days · no one yet" -->
+    <string name="people_count_none_inline">no one yet</string>
 
     <!-- People list: search, filters, sort (slice 8) -->
     <string name="people_search_hint">Search people</string>
@@ -418,7 +427,10 @@
     <string name="settings_rings_title">Rings</string>
     <string name="rings_hint">Innermost first. Drag to reorder.</string>
     <string name="rings_add">Add ring</string>
-    <string name="rings_max">At most %1$s rings</string>
+    <plurals name="rings_max">
+        <item quantity="one">At most %1$s ring</item>
+        <item quantity="other">At most %1$s rings</item>
+    </plurals>
     <string name="rings_reorder">Reorder %1$s</string>
     <string name="rings_move_inward">Move inward</string>
     <string name="rings_move_outward">Move outward</string>
@@ -483,7 +495,10 @@
     <string name="passphrase_current_field">Current passphrase</string>
     <string name="passphrase_new_field">New passphrase</string>
     <string name="passphrase_repeat_field">Repeat passphrase</string>
-    <string name="passphrase_rule_length">At least 12 characters</string>
+    <plurals name="passphrase_rule_length">
+        <item quantity="one">At least %1$s character</item>
+        <item quantity="other">At least %1$s characters</item>
+    </plurals>
     <string name="passphrase_rule_ascii">Only English letters, numbers and symbols</string>
     <string name="passphrase_mismatch">The passphrases don\'t match</string>
     <string name="passphrase_current_wrong">That isn\'t your current passphrase</string>
@@ -508,7 +523,15 @@
     <string name="backup_progress_writing">Backing up…</string>
     <string name="backup_progress_verifying">Checking the backup…</string>
     <string name="backup_result_title">Backup saved and checked</string>
-    <string name="backed_up_result">Backed up %1$s people · %2$s photos</string>
+    <!-- %2$s is backup_result_photos: "Backed up 84 people · 41 photos" -->
+    <plurals name="backed_up_result">
+        <item quantity="one">Backed up %1$s person · %2$s</item>
+        <item quantity="other">Backed up %1$s people · %2$s</item>
+    </plurals>
+    <plurals name="backup_result_photos">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
     <string name="backup_result_body">Keep it somewhere other than this phone, such as a computer or cloud storage.</string>
     <string name="backup_failed_title">Backup failed</string>
     <string name="backup_failed_body">Orbit couldn\'t save the backup there, so the unfinished file was deleted. Try again, or choose another place.</string>
@@ -538,13 +561,20 @@
     </plurals>
     <string name="restore_summary_body">Everything in it replaces what\'s in Orbit now: people, photos, settings and the language.</string>
     <string name="restore_replace_title">Replace everything in Orbit?</string>
-    <string name="restore_replace_body">Your %1$s people, their photos and your settings will be replaced by this backup from %2$s (%3$s people). This can\'t be undone.</string>
+    <!-- %3$s is restore_summary_people: "(84 people)" -->
+    <plurals name="restore_replace_body">
+        <item quantity="one">Your %1$s person, their photos and your settings will be replaced by this backup from %2$s (%3$s). This can\'t be undone.</item>
+        <item quantity="other">Your %1$s people, their photos and your settings will be replaced by this backup from %2$s (%3$s). This can\'t be undone.</item>
+    </plurals>
     <string name="restore_replace_confirm">Replace</string>
     <string name="restore_back_up_first">Back up current data first</string>
     <string name="restore_confirm">Restore</string>
     <string name="restore_progress">Restoring…</string>
     <string name="restore_failed">Orbit couldn\'t restore this backup. Nothing on this phone has changed.</string>
-    <string name="restored_snackbar">Restored %1$s people</string>
+    <plurals name="restored_snackbar">
+        <item quantity="one">Restored %1$s person</item>
+        <item quantity="other">Restored %1$s people</item>
+    </plurals>
 
     <!-- Reminders and notifications (slice 6). Notification texts are from the copy deck. -->
     <!-- %2$s (%3$s for custom) is when: "in 7 days" or "tomorrow" -->
@@ -570,8 +600,14 @@
     <string name="names_two">%1$s and %2$s</string>
     <string name="names_three">%1$s, %2$s and %3$s</string>
     <!-- Two names, then how many others (always 2 or more) -->
-    <string name="names_more">%1$s, %2$s and %3$s others</string>
-    <string name="digest_body_several">%1$s people are due</string>
+    <plurals name="names_more">
+        <item quantity="one">%1$s, %2$s and %3$s other</item>
+        <item quantity="other">%1$s, %2$s and %3$s others</item>
+    </plurals>
+    <plurals name="digest_body_several">
+        <item quantity="one">%1$s person is due</item>
+        <item quantity="other">%1$s people are due</item>
+    </plurals>
     <!-- Discreet: no names, photos, gift ideas or custom labels. Also every notification's lock-screen version. -->
     <string name="discreet_birthday_soon">A birthday is coming up · %1$s</string>
     <string name="discreet_anniversary_soon">An anniversary is coming up · %1$s</string>
@@ -580,7 +616,10 @@
     <string name="discreet_anniversary_today">There\'s an anniversary today</string>
     <string name="discreet_date_today">There\'s an important date today</string>
     <string name="discreet_digest_one">Time to catch up with someone</string>
-    <string name="discreet_digest_several">Time to catch up with %1$s people</string>
+    <plurals name="discreet_digest_several">
+        <item quantity="one">Time to catch up with %1$s person</item>
+        <item quantity="other">Time to catch up with %1$s people</item>
+    </plurals>
 
     <!-- Settings → Reminders -->
     <string name="settings_reminders_title">Reminders</string>
@@ -683,7 +722,10 @@
     <string name="orbit_legend_title">Reading your orbit</string>
     <string name="orbit_legend_rings">You\'re in the centre. Each circle is a ring, closest people innermost.</string>
     <string name="orbit_legend_drift">A glowing person drifting outward is due. The further out, the longer it\'s been.</string>
-    <string name="orbit_legend_badge">An important date in the next 30 days. Filled means today.</string>
+    <plurals name="orbit_legend_badge">
+        <item quantity="one">An important date in the next %1$s day. Filled means today.</item>
+        <item quantity="other">An important date in the next %1$s days. Filled means today.</item>
+    </plurals>
     <string name="orbit_legend_angle">Where someone sits around the circle doesn\'t mean anything.</string>
     <string name="orbit_center_you">You</string>
     <!-- A ring drawn as dots shows how many people it has: "Acquaintances · 212" -->
@@ -701,4 +743,25 @@
     <!-- %1$s is the custom date's own label, %2$s when -->
     <string name="orbit_a11y_date_custom">%1$s %2$s</string>
     <string name="orbit_empty">People you add appear here, on their ring</string>
+    <!-- Settings → About (slice 10) -->
+    <string name="settings_about_title">About</string>
+    <string name="about_version">Version</string>
+    <!-- The version name, then its code: "0.1.0 (1)" -->
+    <string name="about_version_value">%1$s (%2$s)</string>
+    <string name="about_licences">Open-source licences</string>
+    <string name="about_licences_summary">The fonts and libraries Orbit is built with</string>
+    <string name="about_licences_fonts">Fonts</string>
+    <string name="about_licences_libraries">Libraries</string>
+    <string name="about_crash_log_title">Crash log</string>
+    <string name="about_crash_log_share">Share crash log</string>
+    <string name="about_crash_log_none">No crashes recorded</string>
+    <plurals name="about_crash_log_count">
+        <item quantity="one">%1$s crash recorded</item>
+        <item quantity="other">%1$s crashes recorded</item>
+    </plurals>
+    <string name="about_crash_log_clear">Clear crash log</string>
+    <string name="about_crash_log_cleared">Crash log cleared</string>
+    <string name="about_crash_log_footer">If Orbit stops unexpectedly, it writes down what went wrong on this phone, without any of your people or notes. Nothing is sent anywhere unless you share it.</string>
+    <!-- The subject line when the log is shared (e.g. by email) -->
+    <string name="about_crash_log_subject">Orbit crash log</string>
 </resources>

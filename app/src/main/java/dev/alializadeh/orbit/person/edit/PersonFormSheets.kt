@@ -21,6 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
@@ -78,12 +80,12 @@ internal fun CadenceSheet(
         Text(
             text = stringResource(R.string.person_field_cadence),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).semantics { heading() },
         )
         OrbitListGroup(title = null, modifier = Modifier.padding(horizontal = 16.dp)) {
             ChoiceRow(
                 title = stringResource(R.string.cadence_sheet_use_ring),
-                summary = cadenceText(ringCadence),
+                summary = sentenceStart(cadenceText(ringCadence)),
                 selected = choice == CadenceChoice.Ring,
                 index = 0,
                 count = 3,

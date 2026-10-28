@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the crash-log FileProvider may share: only filesDir/crash (CrashLog.DIRECTORY). -->
+<paths>
+    <files-path name="crash" path="crash/" />
+</paths>

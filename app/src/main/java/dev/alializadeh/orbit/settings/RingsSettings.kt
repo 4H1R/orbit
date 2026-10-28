@@ -42,10 +42,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -185,7 +187,7 @@ fun RingsScreen(
         }
         if (!loaded.canAdd) {
             Text(
-                text = stringResource(R.string.rings_max, LocalOrbitFormats.current.numbers.format(Ring.MAX_COUNT)),
+                text = pluralStringResource(R.plurals.rings_max, Ring.MAX_COUNT, LocalOrbitFormats.current.numbers.format(Ring.MAX_COUNT)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
@@ -303,11 +305,13 @@ private fun RingRow(
     count: Int,
     dragged: Boolean,
     onClick: () -> Unit,
-    handle: Modifier,
     modifier: Modifier = Modifier,
+    /** The drag handle's own gestures and TalkBack label. */
+    handle: Modifier,
 ) {
     val separator = stringResource(R.string.separator)
-    val summary = listOf(cadenceText(row.ring.cadence), peopleCountText(row.peopleCount)).joinToString(separator)
+    val summary = listOf(sentenceStart(cadenceText(row.ring.cadence)), peopleCountText(row.peopleCount, inline = true))
+        .joinToString(separator)
     Surface(
         onClick = onClick,
         shape = ListItemDefaults.segmentedShapes(index, count).shape,
@@ -332,9 +336,9 @@ private fun RingRow(
 
 /** "6 people", "1 person", or "No one yet". */
 @Composable
-fun peopleCountText(count: Int): String =
+fun peopleCountText(count: Int, inline: Boolean = false): String =
     if (count == 0) {
-        stringResource(R.string.people_count_none)
+        stringResource(if (inline) R.string.people_count_none_inline else R.string.people_count_none)
     } else {
         LocalResources.current.getQuantityString(R.plurals.people_count, count, LocalOrbitFormats.current.numbers.format(count))
     }
@@ -373,6 +377,7 @@ internal fun RingSheetContent(
         Text(
             text = stringResource(if (ring == null) R.string.ring_sheet_new else R.string.ring_sheet_edit),
             style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
         )
         OutlinedTextField(
             state = name,

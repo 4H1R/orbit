@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -124,6 +125,7 @@ internal fun ImportantDateSheetContent(
         Text(
             text = stringResource(if (initial == null) R.string.important_date_sheet_new else R.string.important_date_sheet_edit),
             style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
         )
         val typeLabel = stringResource(R.string.important_date_type)
         OrbitConnectedChoice(

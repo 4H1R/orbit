@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.LocaleList
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.LocaleManagerCompat
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -93,6 +94,16 @@ class AndroidReminderNotifier @Inject constructor(
             )
         }
 
+        /**
+         * Orbit's chosen language as BCP 47 tags, empty when it follows the phone: AppCompat's
+         * in-memory choice when an activity has set it in this process, else the stored one
+         * (`LocaleManagerCompat` reads the framework's on 13+ and AppCompat's file before).
+         */
+        fun appLanguageTags(context: Context): String =
+            AppCompatDelegate.getApplicationLocales().toLanguageTags().ifEmpty {
+                LocaleManagerCompat.getApplicationLocales(context).toLanguageTags()
+            }
+
         /** Whether a notification would show at all (permission granted and not turned off). */
         fun canPost(context: Context): Boolean {
             // Before Android 13 there's no runtime permission: notifications are on unless turned off.
@@ -104,11 +115,13 @@ class AndroidReminderNotifier @Inject constructor(
 
         /**
          * [context] in Orbit's own UI language. On Android 13+ the system already applies the
-         * per-app language to the whole process; on 12/12L AppCompat knows it once an activity has
-         * run, else the phone's language is used.
+         * per-app language to the whole process. On 12/12L it doesn't, and AppCompat only knows the
+         * language once an activity has run, so a notification built by the alarm (or after a
+         * reboot) would use the phone's language: there the choice AppCompat stored when it was
+         * made (`autoStoreLocales`) is read instead.
          */
         fun localizedContext(context: Context): Context {
-            val tags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            val tags = appLanguageTags(context)
             if (tags.isEmpty()) return context
             val configuration = Configuration(context.resources.configuration).apply {
                 setLocales(LocaleList.forLanguageTags(tags))

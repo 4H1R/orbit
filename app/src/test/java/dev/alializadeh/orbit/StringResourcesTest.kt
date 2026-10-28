@@ -63,6 +63,28 @@ class StringResourcesTest {
         assertTrue(bad.joinToString("\n"), bad.isEmpty())
     }
 
+    /**
+     * A count must come through `<plurals>` ("1 person", "2 people"): a plain string with a
+     * placeholder right before a counted noun ("Restored %1$s people") reads wrong for 1. Checked on
+     * the English nouns and their Persian counters.
+     */
+    @Test
+    fun countsArePlurals() {
+        val bad = listOf(english to ENGLISH_COUNTED, persian to PERSIAN_COUNTED).flatMap { (resources, counted) ->
+            resources.values.filter { it.text != null && counted.containsMatchIn(it.text) }.map { "${it.key}: ${it.text}" }
+        }
+        assertTrue("Make these <plurals>:\n" + bad.joinToString("\n"), bad.isEmpty())
+    }
+
+    @Test
+    fun theCountCheckCatchesACountedNoun() {
+        assertTrue(ENGLISH_COUNTED.containsMatchIn("Restored %1\$s people"))
+        assertTrue(ENGLISH_COUNTED.containsMatchIn("%2\$s photos"))
+        assertTrue(PERSIAN_COUNTED.containsMatchIn("از %1\$s نفر"))
+        assertTrue(!ENGLISH_COUNTED.containsMatchIn("See the steps for %1\$s phones."))
+        assertTrue(!ENGLISH_COUNTED.containsMatchIn("Snoozed %1\$s for %2\$s"))
+    }
+
     private data class StringResource(
         val key: String,
         val text: String? = null,
@@ -75,6 +97,15 @@ class StringResourcesTest {
     private companion object {
         val PLACEHOLDER = Regex("""%(\d+[$])?[-#+ 0,(<]*\d*(\.\d+)?[a-zA-Z]""")
         val POSITIONAL_STRING = Regex("""%\d+[$]s""")
+
+        /** A placeholder followed by a noun that only follows a number ("%1$s people"). */
+        val ENGLISH_COUNTED = Regex(
+            """%\d+[$]s (people|persons?|photos?|rings?|tags?|others?|days?|weeks?|months?|years?|""" +
+                """interactions?|ideas?|characters?|things?|minutes?|crash(es)?|items?)\b""",
+        )
+
+        /** The same in Persian: the counters «نفر», «عکس», «روز»… after a placeholder (not «برچسب», which follows Tag names). */
+        val PERSIAN_COUNTED = Regex("""%\d+[$]s (نفر|فرد|عکس|روز|هفته|ماه|سال|نویسه|مورد|دقیقه|خطا)(?=[\s،.)]|$)""")
 
         fun placeholdersIn(text: String): List<String> =
             PLACEHOLDER.findAll(text.replace("%%", "")).map { it.value }.toList()

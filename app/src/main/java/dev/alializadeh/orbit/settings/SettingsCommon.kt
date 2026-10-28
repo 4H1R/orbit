@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.language.OrbitLanguage
+import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
 import dev.alializadeh.orbit.ui.theme.ColourSource
 import dev.alializadeh.orbit.ui.theme.ThemeMode
@@ -39,6 +40,7 @@ fun OrbitSettingsScaffold(
         modifier = modifier,
         containerColor = background,
         topBar = { OrbitTopAppBar(title = title, onBack = onBack, containerColor = background) },
+        snackbarHost = { OrbitSnackbarHost() },
     ) { innerPadding ->
         OrbitSettingsColumn(innerPadding, content)
     }

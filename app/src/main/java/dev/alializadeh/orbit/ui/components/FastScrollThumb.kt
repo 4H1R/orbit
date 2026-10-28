@@ -106,7 +106,11 @@ fun FastScrollThumb(
                 .clip(RoundedCornerShape(50))
                 .background(if (dragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
         )
-        val label = if (dragging) currentLabelAt(listState.firstVisibleItemIndex) else null
+        // Recomposes only when the bubble's letter changes, not on every scrolled item.
+        val bubble by remember(listState) {
+            derivedStateOf { if (dragging) currentLabelAt(listState.firstVisibleItemIndex) else null }
+        }
+        val label = bubble
         if (label != null) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,

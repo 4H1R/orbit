@@ -51,13 +51,13 @@ fun SnoozeDuration.text(): String = when (this) {
 }
 
 /**
- * "Last talked 34 days ago" ("last talked…" when [inline], after a separator), or "No interactions
- * yet".
+ * "Last talked 34 days ago", or "No interactions yet" ("last talked…" and "no interactions yet"
+ * when [inline], after a separator or a comma).
  */
 @Composable
 @ReadOnlyComposable
 fun lastTalkedText(lastInteraction: LocalDate?, today: LocalDate, inline: Boolean = false): String {
-    if (lastInteraction == null) return stringResource(R.string.no_interactions_yet)
+    if (lastInteraction == null) return stringResource(if (inline) R.string.no_interactions_yet_inline else R.string.no_interactions_yet)
     val ago = RelativeDays.ago(lastInteraction, today).text()
     return stringResource(if (inline) R.string.last_interaction_inline else R.string.last_interaction, ago)
 }

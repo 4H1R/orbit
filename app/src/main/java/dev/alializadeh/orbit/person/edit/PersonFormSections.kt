@@ -124,8 +124,8 @@ internal fun RingSection(uiState: PersonFormUiState, onSelect: (Long) -> Unit, o
         )
         val cadence = when (val setting = uiState.cadence) {
             CadenceSetting.FromRing ->
-                stringResource(R.string.person_form_cadence_from_ring, cadenceText(uiState.selectedRing?.cadence))
-            is CadenceSetting.Own -> cadenceText(setting.cadence)
+                stringResource(R.string.person_form_cadence_from_ring, cadenceText(uiState.selectedRing?.cadence, inline = true))
+            is CadenceSetting.Own -> cadenceText(setting.cadence, inline = true)
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
             Text(

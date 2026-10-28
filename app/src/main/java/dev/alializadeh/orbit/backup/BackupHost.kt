@@ -25,7 +25,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -222,9 +225,14 @@ fun BackupResultContent(outcome: BackupOutcome, onDone: () -> Unit) {
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(48.dp),
         )
-        Text(stringResource(R.string.backup_result_title), style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.backup_result_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
         Text(
-            text = stringResource(R.string.backed_up_result, numbers.format(outcome.people), numbers.format(outcome.photos)),
+            text = pluralStringResource(
+                R.plurals.backed_up_result,
+                outcome.people,
+                numbers.format(outcome.people),
+                pluralStringResource(R.plurals.backup_result_photos, outcome.photos, numbers.format(outcome.photos)),
+            ),
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
