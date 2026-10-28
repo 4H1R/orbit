@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -27,35 +28,61 @@ import kotlinx.coroutines.withTimeout
  * [ReminderAlarm] on AlarmManager: one `setExactAndAllowWhileIdle(RTC_WAKEUP)` alarm, replaced
  * each time (same PendingIntent). Exact alarms are checked before every alarm: without them (only
  * possible on Android 12/12L) it falls back to an inexact one, and Reminder health says so.
+ *
+ * Android 12/12L only: SCHEDULE_EXACT_ALARM can be revoked, and revoking it removes the app's
+ * exact alarms (those with no window) and kills the app, with no broadcast (the state-changed one
+ * comes only on a grant): AOSP `AlarmManagerService.removeExactAlarmsOnPermissionRevokedLocked`,
+ * android12L-release. So there a second, inexact `setAndAllowWhileIdle` alarm for the same time
+ * stands by: it survives a revocation, and since 12 an inexact one-off alarm's window ends at most
+ * an hour after its time (`maxTriggerTime`). Its run sees exact alarms gone, falls back and shows
+ * it in Reminder health. 13+ use USE_EXACT_ALARM, which can't be revoked: just the one alarm.
  */
 class AndroidReminderAlarm @Inject constructor(@ApplicationContext private val context: Context) : ReminderAlarm {
 
     override fun set(at: Instant?) {
         val manager = context.getSystemService(AlarmManager::class.java)
-        val intent = PendingIntent.getBroadcast(
-            context,
-            0,
-            Intent(context, ReminderAlarmReceiver::class.java).setAction(ACTION_ALARM),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
+        val intent = alarmIntent(MAIN_REQUEST, PendingIntent.FLAG_UPDATE_CURRENT)!!
         if (at == null) {
             manager.cancel(intent)
+            cancelStandby(manager)
             return
         }
         val millis = at.toEpochMilli()
-        try {
-            if (manager.canScheduleExactAlarms()) {
-                manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, intent)
-                return
+        val exact = try {
+            manager.canScheduleExactAlarms().also { allowed ->
+                if (allowed) manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, intent)
             }
         } catch (_: SecurityException) {
-            // Revoked between the check and the call.
+            false // Revoked between the check and the call.
         }
-        manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, intent)
+        if (!exact) {
+            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, intent)
+            cancelStandby(manager)
+        } else if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            val standby = alarmIntent(STANDBY_REQUEST, PendingIntent.FLAG_UPDATE_CURRENT)!!
+            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, standby)
+        } else {
+            cancelStandby(manager)
+        }
     }
+
+    private fun cancelStandby(manager: AlarmManager) {
+        alarmIntent(STANDBY_REQUEST, PendingIntent.FLAG_NO_CREATE)?.let(manager::cancel)
+    }
+
+    private fun alarmIntent(request: Int, flags: Int): PendingIntent? = PendingIntent.getBroadcast(
+        context,
+        request,
+        Intent(context, ReminderAlarmReceiver::class.java).setAction(ACTION_ALARM),
+        PendingIntent.FLAG_IMMUTABLE or flags,
+    )
 
     companion object {
         const val ACTION_ALARM = "dev.alializadeh.orbit.action.REMINDER_ALARM"
+        private const val MAIN_REQUEST = 0
+
+        /** Android 12/12L's inexact stand-by for the exact alarm. */
+        private const val STANDBY_REQUEST = 1
     }
 }
 

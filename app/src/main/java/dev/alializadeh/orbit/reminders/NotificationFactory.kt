@@ -43,7 +43,8 @@ class NotificationFactory(
 
     private fun reminder(reminder: PlannedReminder, rendering: NotificationRendering, now: Instant): Notification {
         val discreet = texts.discreetReminder(reminder)
-        val builder = base(ReminderChannel.ImportantDates, discreet, silent = false)
+        // A re-post (new day, an edit, App lock) replaces one that's showing without alerting again.
+        val builder = base(ReminderChannel.ImportantDates, discreet, silent = reminder.silent)
             .setContentIntent(intents.open(NotificationEntry.PersonDetail(reminder.person.id)))
             // Expires at the end of the date's day, even if Orbit doesn't run then.
             .setTimeoutAfter(Duration.between(now, reminder.expiresAt).toMillis().coerceAtLeast(1))

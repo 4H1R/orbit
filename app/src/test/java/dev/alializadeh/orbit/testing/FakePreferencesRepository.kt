@@ -36,7 +36,11 @@ class FakePreferencesRepository(
         backedUp.value = transform(backedUp.value)
     }
 
+    /** When set, writing the device state fails (a full disk, say). */
+    var failDeviceStateWrites = false
+
     override suspend fun updateDeviceState(transform: (DeviceState) -> DeviceState) {
+        check(!failDeviceStateWrites) { "Device state can't be written" }
         device.value = transform(device.value)
     }
 }

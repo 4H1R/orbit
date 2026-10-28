@@ -21,6 +21,14 @@ import java.time.temporal.ChronoUnit
  * - A Snooze only pushes back when they're next Due: until [snoozedUntil] they aren't Due, and
  *   they're Due again on that day if they're still behind. It isn't an Interaction.
  * - Archived People are never Due.
+ * - A Due period starts the day after their latest Interaction (or the day they were added), or
+ *   when a Snooze that held them back ends. They're notified once per period
+ *   ([DueState.notifiedThisPeriod]): a Cadence or Ring change alone doesn't start a new one, so
+ *   lengthening the Cadence of someone who stays Due doesn't notify them again. When a change makes
+ *   them stop being Due, `reconcile()` clears [lastNotifiedDueOn] (as it does for every Person who
+ *   isn't Due), so becoming Due again later is a new time they "become Due" and is notified once,
+ *   like a Snooze ending. That also covers an Interaction logged with an earlier date after the
+ *   digest named them.
  */
 data class KeepInTouch(
     /** Their Cadence, own or from the Ring; null is "No Cadence". */
@@ -30,7 +38,7 @@ data class KeepInTouch(
     /** Their latest Interaction's date, of any type. */
     val lastInteraction: LocalDate?,
     val snoozedUntil: LocalDate? = null,
-    /** Slice 6's "last notified as Due" marker. */
+    /** Slice 6's "last notified as Due" marker (cleared by `reconcile()` while they aren't Due). */
     val lastNotifiedDueOn: LocalDate? = null,
     val isArchived: Boolean = false,
 ) {
@@ -48,6 +56,17 @@ data class KeepInTouch(
             return maxOf(due, snooze)
         }
 
+    /**
+     * The first day of the Due period they're in: the day a Snooze that held them back ended, else
+     * the day after their latest Interaction (or the day they were added). Null when never Due.
+     */
+    val periodStart: LocalDate?
+        get() {
+            val cadenceDue = cadenceDueOn ?: return null
+            val snooze = snoozedUntil
+            return if (snooze != null && snooze.isAfter(cadenceDue)) snooze else lastContact.plusDays(1)
+        }
+
     /** Where they stand on [today]. */
     fun on(today: LocalDate): DueState {
         val dueOn = dueOn
@@ -56,6 +75,7 @@ data class KeepInTouch(
         // A Snooze shows only while it's what keeps them from being Due.
         val activeSnooze = snoozedUntil?.takeIf { cadenceDueOn != null && it.isAfter(today) && it.isAfter(cadenceDueOn) }
         val since = ChronoUnit.DAYS.between(lastContact, today).toInt().coerceAtLeast(0)
+        val start = periodStart
         val period = cadenceDueOn?.let { ChronoUnit.DAYS.between(lastContact, it).toInt() }
         return DueState(
             cadence = if (isArchived) null else cadence,
@@ -65,7 +85,7 @@ data class KeepInTouch(
             dueOn = dueOn,
             daysOverdue = if (isDue) ChronoUnit.DAYS.between(dueOn, today).toInt() else 0,
             snoozedUntil = activeSnooze,
-            notifiedThisPeriod = isDue && lastNotifiedDueOn != null && !lastNotifiedDueOn.isBefore(dueOn),
+            notifiedThisPeriod = isDue && start != null && lastNotifiedDueOn != null && !lastNotifiedDueOn.isBefore(start),
             progress = if (period == null || period <= 0) 0f else (since.toFloat() / period).coerceIn(0f, 1f),
         )
     }
@@ -86,7 +106,7 @@ data class DueState(
     val daysOverdue: Int,
     /** The day a Snooze ends while it's what holds them back; null when not Snoozed. */
     val snoozedUntil: LocalDate?,
-    /** Slice 6: the digest already named them for this Due period. */
+    /** Slice 6: the digest already named them (or left them out for an on-the-day Reminder) this Due period. */
     val notifiedThisPeriod: Boolean = false,
     /** How far through their Cadence they are, 0 to 1 (Person detail's wavy progress). */
     val progress: Float = 0f,

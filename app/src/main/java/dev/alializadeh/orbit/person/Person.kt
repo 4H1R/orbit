@@ -59,7 +59,8 @@ data class Person(
     val snoozedUntil: LocalDate? = null,
     /**
      * The day the Cadence digest last named them as Due (slice 6): they're notified once per Due
-     * period, so a marker on or after the period's start means "already notified".
+     * period, so a marker on or after the period's start means "already notified". `reconcile()`
+     * clears it while they aren't Due, so the next time they become Due is a new period.
      */
     val lastNotifiedDueOn: LocalDate? = null,
 ) {

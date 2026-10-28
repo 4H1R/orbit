@@ -164,6 +164,26 @@ class KeepInTouchTest {
         assertFalse(afterSnooze.on(today).notifiedThisPeriod)
     }
 
+    @Test
+    fun aCadenceChangeAloneDoesntStartANewDuePeriod() {
+        // Every 30 days, last talked 60 days ago: Due since 30 days ago, and notified then.
+        val notified = facts(lastInteraction = today.minusDays(60), lastNotifiedDueOn = today.minusDays(30))
+        assertTrue(notified.on(today).notifiedThisPeriod)
+        assertEquals(today.minusDays(59), notified.periodStart)
+        // Lengthened to every 45 days: Due since 15 days ago, but still the same period.
+        val longer = notified.copy(cadence = Cadence.days(45))
+        assertEquals(today.minusDays(15), longer.on(today).dueOn)
+        assertTrue(longer.on(today).notifiedThisPeriod)
+        assertTrue(notified.copy(cadence = Cadence.days(20)).on(today).notifiedThisPeriod)
+        // An Interaction after it (even on the day they were notified) starts a new period.
+        val contacted = notified.copy(cadence = Cadence.days(20), lastInteraction = today.minusDays(30))
+        assertTrue(contacted.on(today).isDue)
+        assertFalse(contacted.on(today).notifiedThisPeriod)
+        // A Snooze that ended starts one too; one that never held them back doesn't.
+        assertFalse(notified.copy(snoozedUntil = today.minusDays(2)).on(today).notifiedThisPeriod)
+        assertTrue(notified.copy(snoozedUntil = today.minusDays(40)).on(today).notifiedThisPeriod)
+    }
+
     // From a Person and their Ring
 
     private val friends = Ring(id = 1, name = "Friends", position = 2, cadence = Cadence.days(90))

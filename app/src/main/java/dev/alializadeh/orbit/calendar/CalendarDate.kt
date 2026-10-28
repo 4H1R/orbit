@@ -19,6 +19,16 @@ data class CalendarDate(
         CalendarSystem.SolarHijri -> SolarHijriRules.toLocalDate(year, month, day)
     }
 
+    /**
+     * The same day of the month before, in this date's own [calendar]: 1 Farvardin → 1 Esfand of
+     * the year before. A day that month doesn't have falls on its last day (31 Farvardin → 29 or 30
+     * Esfand, 31 March → 28 or 29 February).
+     */
+    fun monthBefore(): CalendarDate {
+        val (previousYear, previousMonth) = if (month == 1) year - 1 to CalendarSystem.MONTHS_PER_YEAR else year to month - 1
+        return CalendarDate(calendar, previousYear, previousMonth, minOf(day, calendar.monthLength(previousYear, previousMonth)))
+    }
+
     companion object {
         /** [date] labelled in [calendar]. */
         fun of(date: LocalDate, calendar: CalendarSystem): CalendarDate = when (calendar) {

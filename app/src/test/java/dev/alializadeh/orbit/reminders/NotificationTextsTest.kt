@@ -214,6 +214,22 @@ class NotificationTextsTest {
 
     @Test
     @Config(qualifiers = "en")
+    fun aQuietlyRepostedReminderDoesntAlertAgain() {
+        val first = build(reminder(7))
+        assertEquals(0, first.flags and Notification.FLAG_ONLY_ALERT_ONCE)
+        assertEquals(Notification.GROUP_ALERT_ALL, first.groupAlertBehavior)
+        // A new day, an edit or App lock re-posts it: no sound or vibration, like the digest's.
+        for (again in listOf(build(reminder(6).copy(silent = true)), build(reminder(0).copy(silent = true), NotificationRendering(NotificationDetail.Discreet)))) {
+            assertTrue((again.flags and Notification.FLAG_ONLY_ALERT_ONCE) != 0)
+            assertEquals(Notification.GROUP_ALERT_SUMMARY, again.groupAlertBehavior)
+            assertNull(again.sound)
+        }
+        val digest = build(digest(person()).copy(silent = true))
+        assertTrue((digest.flags and Notification.FLAG_ONLY_ALERT_ONCE) != 0)
+    }
+
+    @Test
+    @Config(qualifiers = "en")
     fun earlierRemindersHaveNoActionsAndNoPrimaryMeansNoContactAction() {
         assertNull(build(reminder(7, person = person(primary = phone))).actions)
         assertEquals(listOf("Mark as contacted"), build(reminder(0)).actions.map { it.title.toString() })

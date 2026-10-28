@@ -9,6 +9,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.security.MessageDigest
 import java.time.temporal.ChronoUnit
 
 /** Everything the planner decides from: a snapshot of the data, the time, and what's been notified. */
@@ -36,18 +37,57 @@ data class ReminderPlan(
     val today: LocalDate,
     val post: List<PlannedNotification>,
     val cancel: List<NotificationKey>,
-    /** People to record as "last notified as Due" today (named in the digest, or left out of it). */
+    /**
+     * People to record as "last notified as Due" today (named in the digest, or left out of it).
+     * Recorded only once the new digest, if there is one, is posted ([canMarkAfter]).
+     */
     val markNotified: Set<Long>,
-    /** The one alarm: the next moment something may be posted; null when nothing ever will. */
+    /** The one alarm: the next moment something may be posted or change; null when nothing ever will. */
     val nextAlarm: Instant?,
+    /** The state once everything in [post] is posted; [stateAfter] when only some of it was. */
     val state: NotificationState,
-)
+    /**
+     * People with a "last notified as Due" marker who aren't Due now: it's cleared, so the next time
+     * they become Due is a new Due period (`KeepInTouch`).
+     */
+    val clearNotified: Set<Long> = emptySet(),
+    /** The state this was planned from: what [stateAfter] keeps for whatever wasn't posted. */
+    val previous: NotificationState = NotificationState(),
+) {
+    /** Whether [markNotified] may be recorded once [done] are posted: there's no new digest, or it's among them. */
+    fun canMarkAfter(done: Set<NotificationKey>): Boolean =
+        post.none { it is PlannedDigest && !it.silent } || NotificationKey.Digest in done
+
+    /**
+     * The state to store when only [done] of [post] were posted (a run that failed, timed out or
+     * ran out of its pacing budget part way): what wasn't posted stays as it was in [previous], so
+     * the next run posts it then, and what was is never posted (or alerts) again.
+     */
+    fun stateAfter(done: Set<NotificationKey>): NotificationState {
+        val missed = post.filter { it.key !in done }
+        if (missed.isEmpty()) return state
+        val missedDates = missed.mapNotNull { (it.key as? NotificationKey.DateReminder)?.dateId }.toSet()
+        val missedDigest = missed.filterIsInstance<PlannedDigest>().singleOrNull()
+        val postedBefore = previous.postedReminders.toSet()
+        return state.copy(
+            postedReminders = state.postedReminders.filter { it.dateId !in missedDates || it in postedBefore },
+            showingReminders = state.showingReminders.filter { it.dateId !in missedDates } +
+                previous.showingReminders.filter { it.dateId in missedDates },
+            lastDigestEpochDay = if (missedDigest?.silent == false) previous.lastDigestEpochDay else state.lastDigestEpochDay,
+            digestPersonIds = if (missedDigest != null) previous.digestPersonIds else state.digestPersonIds,
+            renderedAs = if (missedDigest != null) previous.renderedAs else state.renderedAs,
+        )
+    }
+}
 
 /** A notification to post now. */
 sealed interface PlannedNotification {
     val key: NotificationKey
 
-    /** Replaces one that's showing without alerting again (the digest after someone left it). */
+    /**
+     * Replaces one that's showing without alerting again (the digest after someone left it, a
+     * Reminder whose text changed, either after App lock changed how they render).
+     */
     val silent: Boolean
 }
 
@@ -61,7 +101,7 @@ data class PlannedReminder(
     val daysAway: Int,
     /** The end of the occurrence's day: the Reminder expires then. */
     val expiresAt: Instant,
-    /** Re-posted as it is (rendered another way), without alerting again. */
+    /** Re-posted (rendered another way, or its text changed) without alerting again. */
     override val silent: Boolean = false,
 ) : PlannedNotification {
     override val key: NotificationKey get() = NotificationKey.DateReminder(date.id)
@@ -93,12 +133,19 @@ data class PlannedDigest(
  * - Each date has one notification slot; a later Reminder replaces the earlier one. It's cancelled
  *   when the date is edited or deleted, its Person archived or deleted, and at the end of the
  *   date's day (expiry).
+ * - A showing Reminder is quietly re-posted when what it shows would change
+ *   ([ShowingReminder.content]): the days left ("in 7 days" the next day), the Person's names or
+ *   photo, their open Gift ideas, the years count, or how it renders. While one shows for a later
+ *   day, the alarm also wakes at the next midnight so "in 7 days" becomes "in 6 days".
  *
  * **Cadence digest**
- * - At most one a day, at the Reminder time; a missed one goes out on the next run.
+ * - At most one a day, by the local day it ran on: at the Reminder time, or earlier in the day
+ *   when the last one ran before yesterday (a missed slot caught up). A day's catch-up run is that
+ *   day's digest: People who become Due later that day wait for the next day's.
  * - Names the People who are Due and haven't been notified for this Due period
- *   (`DueState.notifiedThisPeriod`: became Due since they were last notified). Snooze ending
- *   starts a new period.
+ *   (`DueState.notifiedThisPeriod`). An Interaction or a Snooze ending starts a new period; a
+ *   Cadence or Ring change alone doesn't. The marker of anyone not Due is cleared
+ *   ([ReminderPlan.clearNotified]), so becoming Due again later is notified once more.
  * - A Person with an on-the-day Reminder today is left out, and counts as notified.
  * - Once a named Person stops being Due (Interaction, Snooze, Archive, delete), they leave the
  *   digest: it's cancelled when nobody's left, else quietly re-posted with the rest.
@@ -107,8 +154,9 @@ data class PlannedDigest(
  * same day for Reminders).
  *
  * **Rendering** (App lock): when [PlannerInput.rendering] differs from how the showing
- * notifications were posted, each one still showing is quietly re-posted as it is, so turning App
- * lock on takes names off the shade at once.
+ * notifications were posted (each Reminder's [ShowingReminder.content], the digest's
+ * [NotificationState.renderedAs]), each one still showing is quietly re-posted as it is, so turning
+ * App lock on takes names off the shade at once.
  */
 object ReminderPlanner {
 
@@ -144,7 +192,7 @@ object ReminderPlanner {
                 val following = date.date.nextOccurrence(occurrence.date.plusDays(1))
                 if (canRemind && occurrence.date == today && LeadTime.OnTheDay in leadTimes) onTheDayToday += person.id
                 for (leadTime in leadTimes.sortedBy(LeadTime::ordinal)) {
-                    val day = leadTime.reminderDate(occurrence.date)
+                    val day = leadTime.reminderDate(occurrence.date, date.date.calendar)
                     val key = PostedReminder(date.id, occurrence.date.toEpochDay(), leadTime)
                     if (canRemind && day == today && timeHasCome && key !in posted) {
                         // The nearest lead time wins if two fall on one day; both count as posted.
@@ -161,7 +209,7 @@ object ReminderPlanner {
                         posted += key
                     }
                     consider(slot(day))
-                    consider(slot(leadTime.reminderDate(following.date)))
+                    consider(slot(leadTime.reminderDate(following.date, date.date.calendar)))
                 }
             }
         }
@@ -177,24 +225,29 @@ object ReminderPlanner {
                 cancel += NotificationKey.DateReminder(shown.dateId)
                 continue
             }
-            showing += shown
             val person = peopleById[shown.personId]
             val occurrence = date.date.nextOccurrence(today)
-            if (rerender && person != null && occurrence.date.toEpochDay() == shown.occurrenceEpochDay) {
-                // The nearest lead time posted for this occurrence is the one showing.
-                val leadTime = posted
-                    .filter { it.dateId == date.id && it.occurrenceEpochDay == shown.occurrenceEpochDay }
-                    .minByOrNull { it.leadTime.ordinal }?.leadTime ?: LeadTime.OnTheDay
-                post += PlannedReminder(
-                    person = person,
-                    date = date,
-                    occurrence = occurrence,
-                    leadTime = leadTime,
-                    daysAway = ChronoUnit.DAYS.between(today, occurrence.date).toInt(),
-                    expiresAt = occurrence.date.plusDays(1).atStartOfDay(zone).toInstant(),
-                    silent = true,
-                )
+            if (person == null || occurrence.date.toEpochDay() != shown.occurrenceEpochDay) {
+                showing += shown
+                continue
             }
+            // The nearest lead time posted for this occurrence is the one showing.
+            val leadTime = posted
+                .filter { it.dateId == date.id && it.occurrenceEpochDay == shown.occurrenceEpochDay }
+                .minByOrNull { it.leadTime.ordinal }?.leadTime ?: LeadTime.OnTheDay
+            val again = PlannedReminder(
+                person = person,
+                date = date,
+                occurrence = occurrence,
+                leadTime = leadTime,
+                daysAway = ChronoUnit.DAYS.between(today, occurrence.date).toInt(),
+                expiresAt = occurrence.date.plusDays(1).atStartOfDay(zone).toInstant(),
+                silent = true,
+            )
+            val content = content(again, input.rendering)
+            // What it shows would change (a new day, an edit, App lock): quietly re-posted.
+            if (content != shown.content) post += again
+            showing += shown.copy(content = content)
         }
         for (reminder in dueNow.values) {
             post += reminder
@@ -203,14 +256,24 @@ object ReminderPlanner {
                 personId = reminder.person.id,
                 occurrenceEpochDay = reminder.occurrence.date.toEpochDay(),
                 fingerprint = fingerprint(reminder.date),
+                content = content(reminder, input.rendering),
             )
         }
+        // "In 7 days" turns into "in 6 days" at midnight. On-the-day Reminders expire then by
+        // themselves (`setTimeoutAfter`), so only a later day's Reminder needs the wake.
+        if (showing.any { it.occurrenceEpochDay > today.toEpochDay() }) {
+            consider(today.plusDays(1).atStartOfDay(zone).toInstant())
+        }
 
-        // The Cadence digest.
+        // The Cadence digest: at most one per local day.
         val due = UpcomingFeed.of(input.people, today).due
-        val currentSlot = if (timeHasCome) today else today.minusDays(1)
         val lastDigest = input.state.lastDigestEpochDay?.let(LocalDate::ofEpochDay)
-        val digestDue = canDigest && if (lastDigest == null) timeHasCome else lastDigest.isBefore(currentSlot)
+        val digestDue = canDigest && when {
+            lastDigest == null -> timeHasCome
+            !lastDigest.isBefore(today) -> false
+            // Before the Reminder time only to catch up a slot missed on an earlier day.
+            else -> timeHasCome || lastDigest.isBefore(today.minusDays(1))
+        }
         val markNotified = mutableSetOf<Long>()
         var digestRanFor = lastDigest
         var digestIds = input.state.digestPersonIds
@@ -219,7 +282,7 @@ object ReminderPlanner {
             val becameDue = due.filterNot { it.state.notifiedThisPeriod }
             markNotified += becameDue.map { it.person.id }
             val named = becameDue.filterNot { it.person.id in onTheDayToday }
-            digestRanFor = currentSlot
+            digestRanFor = today
             if (named.isNotEmpty()) {
                 post += PlannedDigest(named, today)
                 digestIds = named.map { it.person.id }
@@ -240,7 +303,7 @@ object ReminderPlanner {
             }
         }
         if (canDigest) {
-            // The first slot still to come that the digest hasn't run for.
+            // The first slot still to come on a day the digest hasn't run on.
             val firstSlot = if (timeHasCome || (digestRanFor != null && !digestRanFor.isBefore(today))) {
                 today.plusDays(1)
             } else {
@@ -257,6 +320,12 @@ object ReminderPlanner {
             nextDigestDay?.let { consider(slot(it)) }
         }
 
+        // Not Due (any more): the next time they are is a new Due period.
+        val clearNotified = input.people
+            .filter { it.keepInTouch.lastNotifiedDueOn != null && !it.keepInTouch.on(today).isDue }
+            .map(UpcomingPerson::id)
+            .toSet()
+
         return ReminderPlan(
             today = today,
             post = post,
@@ -270,8 +339,34 @@ object ReminderPlanner {
                 digestPersonIds = digestIds,
                 renderedAs = input.rendering,
             ),
+            clearNotified = clearNotified,
+            previous = input.state,
         )
     }
+
+    /**
+     * What [reminder] shows when rendered as [rendering], as a short hash: the days left, the
+     * years count, the Person's names, photo, primary Contact method and open Gift ideas, and the
+     * rendering. A showing Reminder whose content changes is quietly re-posted. Hashed, so no
+     * names are copied into the device's notification state.
+     */
+    fun content(reminder: PlannedReminder, rendering: NotificationRendering): String {
+        val person = reminder.person
+        val parts = listOf(
+            reminder.daysAway,
+            reminder.occurrence.yearsCount,
+            person.names,
+            person.photoFileName,
+            person.primaryContactMethod?.let { "${it.type}:${it.value}" },
+            person.openGiftIdeas,
+            rendering,
+        ).joinToString(CONTENT_SEPARATOR)
+        val hash = MessageDigest.getInstance("SHA-256").digest(parts.toByteArray())
+        return hash.take(CONTENT_HASH_BYTES).joinToString("") { ((it.toInt() and 0xff) or 0x100).toString(16).substring(1) }
+    }
+
+    private const val CONTENT_SEPARATOR = "\u0000"
+    private const val CONTENT_HASH_BYTES = 8
 
     /** How long past its day a posted Reminder is remembered. */
     private const val POSTED_KEPT_DAYS = 7L

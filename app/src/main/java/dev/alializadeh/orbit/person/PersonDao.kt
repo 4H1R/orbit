@@ -84,6 +84,10 @@ interface PersonDao {
     @Query("UPDATE person SET lastNotifiedDueOn = :day WHERE id IN (:ids)")
     suspend fun setLastNotifiedDueOn(ids: List<Long>, day: LocalDate)
 
+    /** Forgets "last notified as Due" for [ids] (they aren't Due): like [setLastNotifiedDueOn], not a data change. */
+    @Query("UPDATE person SET lastNotifiedDueOn = NULL WHERE id IN (:ids)")
+    suspend fun clearLastNotifiedDueOn(ids: List<Long>)
+
     /** Every Person, Archived ones included. */
     @Query("SELECT * FROM person")
     fun observeAll(): Flow<List<Person>>

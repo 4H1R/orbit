@@ -21,17 +21,22 @@ import java.time.LocalDate
 import java.util.Collections
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import dev.alializadeh.orbit.ring.CadenceUnit
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 
@@ -53,13 +58,26 @@ class ReminderReconcilerTest {
     private lateinit var reconciler: ReminderReconciler
     private var ringId = 0L
 
+    /** The pacer's elapsed-time clock: it moves only while the pacer waits. */
+    private var elapsed = 0L
+
     @Before
     fun setUp() = runTest {
         database = TestDatabases.inMemory()
         people = RoomPersonRepository(database, database.personDao(), database.tagDao(), database.ringDao(), FakePhotoStore(), clock)
         interactions = RoomInteractionRepository(database, database.interactionDao(), clock)
         val upcoming = RoomUpcomingRepository(database.personDao(), database.ringDao(), database.interactionDao(), clock)
-        reconciler = ReminderReconciler(upcoming, preferences, database.personDao(), notifier, alarm, { rendering }, clock, database.backupStatusDao())
+        reconciler = ReminderReconciler(
+            upcoming,
+            preferences,
+            database.personDao(),
+            notifier,
+            alarm,
+            { rendering },
+            clock,
+            database.backupStatusDao(),
+            NotificationPacer({ elapsed }, { elapsed += it }),
+        )
         ringId = database.insertTestRing()
     }
 
@@ -310,6 +328,125 @@ class ReminderReconcilerTest {
         assertEquals(2, acted)
     }
 
+    // --- Pacing, partial runs, Due periods (review fixes) -------------------------------------------
+
+    @Test
+    fun postsAreSpacedAndARunStopsAtItsBudgetThenAFollowUpPostsTheRest() = runTest {
+        clock.instant = nine
+        repeat(30) { person("Person $it", birthday(10, 28)) }
+        val times = mutableListOf<Long>()
+        notifier.onPost = { times += elapsed }
+
+        reconciler.reconcile()
+
+        // At most 4 a second (Android sheds updates past 5), within the run's 5 s budget.
+        assertEquals(21, notifier.posted.size)
+        assertTrue(times.zipWithNext { a, b -> b - a }.all { it >= NotificationPacer.MIN_GAP_MILLIS })
+        assertTrue(times.last() - times.first() <= NotificationPacer.BUDGET_MILLIS)
+        // Only what was posted is recorded; a follow-up run comes 10 s later.
+        assertEquals(21, preferences.device.value.notifications.showingReminders.size)
+        assertEquals(nine.plusSeconds(10), alarm.at)
+
+        clock.instant = nine.plusSeconds(10)
+        reconciler.reconcile()
+        assertEquals(30, notifier.posted.size)
+        assertEquals(30, notifier.posted.map { it.first.key }.toSet().size)
+        assertTrue(notifier.posted.none { it.first.silent })
+        assertEquals(30, preferences.device.value.notifications.showingReminders.size)
+        // Next: the day they become Due (added today, every 30 days).
+        assertEquals(Instant.parse("2026-11-27T09:00:00Z"), alarm.at)
+    }
+
+    @Test
+    fun aFailedPostStillSetsAnAlarmAndKeepsWhatWasPosted() = runTest {
+        val (sara, reza, _) = seed()
+        notifier.beforePost = { if (it is PlannedDigest) error("NotificationManager failed") }
+
+        try {
+            reconciler.reconcile()
+            fail("The post failed")
+        } catch (_: IllegalStateException) {
+        }
+
+        // Sara's Reminder went out and is recorded; the digest didn't, so nobody's marked yet.
+        assertEquals(1, notifier.posted.size)
+        assertEquals(1, preferences.device.value.notifications.showingReminders.size)
+        assertNull(preferences.device.value.notifications.lastDigestEpochDay)
+        assertNull(database.personDao().get(reza)!!.lastNotifiedDueOn)
+        // Retried in 15 minutes.
+        assertEquals(nine.plus(Duration.ofMinutes(15)), alarm.at)
+
+        notifier.beforePost = {}
+        clock.instant = nine.plus(Duration.ofMinutes(15))
+        reconciler.reconcile()
+        // Only the digest now: the Reminder isn't posted (or heard) again.
+        assertEquals(listOf<NotificationKey>(NotificationKey.Digest), notifier.posted.drop(1).map { it.first.key })
+        assertEquals(today, database.personDao().get(reza)!!.lastNotifiedDueOn)
+        assertEquals(today, database.personDao().get(sara)!!.lastNotifiedDueOn)
+        assertEquals(Instant.parse("2026-11-27T09:00:00Z"), alarm.at)
+    }
+
+    @Test
+    fun aTimedOutRunStillSetsAnAlarmAndKeepsWhatWasPosted() = runTest {
+        seed()
+        notifier.beforePost = { if (it is PlannedDigest) awaitCancellation() }
+
+        try {
+            // Real time: Room works on its own threads, which virtual time would skip past.
+            withContext(Dispatchers.Default) { withTimeout(2_000) { reconciler.reconcile() } }
+            fail("It hangs")
+        } catch (_: TimeoutCancellationException) {
+        }
+
+        assertEquals(1, notifier.posted.size)
+        assertEquals(1, preferences.device.value.notifications.showingReminders.size)
+        assertEquals(nine.plus(Duration.ofMinutes(15)), alarm.at)
+        notifier.beforePost = {}
+        reconciler.reconcile()
+        assertEquals(listOf<NotificationKey>(NotificationKey.Digest), notifier.posted.drop(1).map { it.first.key })
+    }
+
+    @Test
+    fun aStoreThatCantBeWrittenStillLeavesAnAlarm() = runTest {
+        seed()
+        preferences.failDeviceStateWrites = true
+        try {
+            reconciler.reconcile()
+            fail("The store failed")
+        } catch (_: IllegalStateException) {
+        }
+        // Nothing was posted: the state couldn't record it, so it would be posted again with sound.
+        assertTrue(notifier.posted.isEmpty())
+        assertEquals(nine.plus(Duration.ofMinutes(15)), alarm.at)
+    }
+
+    @Test
+    fun aRunThatFailsBeforePlanningStillLeavesAnAlarm() = runTest {
+        seed()
+        notifier.unreadableThrows = true
+        try {
+            reconciler.reconcile()
+            fail("Reading the notifications failed")
+        } catch (_: IllegalStateException) {
+        }
+        assertEquals(nine.plus(Duration.ofMinutes(15)), alarm.at)
+    }
+
+    @Test
+    fun aRingCadenceThatEndsDueClearsTheMarkerWithoutADataChange() = runTest {
+        val (_, reza, _) = seed()
+        reconciler.reconcile()
+        assertEquals(today, database.personDao().get(reza)!!.lastNotifiedDueOn)
+
+        // Every 60 days now: Reza (added 40 days ago) isn't Due any more.
+        database.ringDao().update(ringId, "Friends", cadenceCount = 60, cadenceUnit = CadenceUnit.Days)
+        val version = database.backupStatusDao().dataVersion()
+        reconciler.reconcile()
+
+        assertNull(database.personDao().get(reza)!!.lastNotifiedDueOn)
+        assertEquals(version, database.backupStatusDao().dataVersion())
+    }
+
     private suspend fun dateIdOf(personId: Long): Long = database.personDao().getImportantDates(personId).single().id
 }
 
@@ -323,19 +460,33 @@ class FakeNotifier : ReminderNotifier {
     /** What shows can't be read (null from [showing]). */
     var unreadable = false
 
+    /** Reading what shows throws. */
+    var unreadableThrows = false
+
     /** Completed when a post starts; the post then waits for [gate], if set. */
     val posting = CompletableDeferred<Unit>()
     var gate: CompletableDeferred<Unit>? = null
 
-    override fun showing(): Set<NotificationKey>? = if (unreadable) null else showingKeys.toSet()
+    /** Runs before each post: a test makes it throw or hang. */
+    var beforePost: suspend (PlannedNotification) -> Unit = {}
+
+    /** Runs as each post completes. */
+    var onPost: (PlannedNotification) -> Unit = {}
+
+    override fun showing(): Set<NotificationKey>? {
+        check(!unreadableThrows) { "Can't read the notifications" }
+        return if (unreadable) null else showingKeys.toSet()
+    }
 
     override fun channelsOn(): Set<ReminderChannel> = channels
 
     override suspend fun post(notification: PlannedNotification, rendering: NotificationRendering, now: Instant) {
         posting.complete(Unit)
         gate?.await()
+        beforePost(notification)
         posted += notification to rendering
         showingKeys += notification.key
+        onPost(notification)
     }
 
     override fun cancel(key: NotificationKey) {

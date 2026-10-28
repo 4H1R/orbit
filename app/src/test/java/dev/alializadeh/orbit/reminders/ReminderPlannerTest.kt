@@ -1,12 +1,15 @@
 package dev.alializadeh.orbit.reminders
 
+import dev.alializadeh.orbit.calendar.CalendarDate
 import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
 import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
 import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.due.KeepInTouch
+import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonNames
+import dev.alializadeh.orbit.person.contact.ContactType
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.testing.NeverDue
 import dev.alializadeh.orbit.upcoming.UpcomingPerson
@@ -16,6 +19,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -124,7 +128,10 @@ class ReminderPlannerTest {
         assertEquals(LocalDate.of(2026, 11, 4), reminder.occurrence.date)
         // It expires at the end of the date's own day.
         assertEquals(at(LocalDate.of(2026, 11, 5), 0), reminder.expiresAt)
-        assertEquals(at(LocalDate.of(2026, 11, 4), 9), plan.nextAlarm)
+        // While it shows, the next midnight ("in 7 days" becomes "in 6 days"); without it, the day itself.
+        assertEquals(at(today.plusDays(1), 0), plan.nextAlarm)
+        val dismissed = plan(listOf(sara), now = at(today, 10), state = plan.state.retainShowing(emptySet()))
+        assertEquals(at(LocalDate.of(2026, 11, 4), 9), dismissed.nextAlarm)
     }
 
     @Test
@@ -164,7 +171,7 @@ class ReminderPlannerTest {
         val leads = LeadTime.entries.toSet()
         val graduation = date(RecurringDate(Gregorian, 12, 31), leadTimes = leads)
         val people = listOf(person(1, graduation))
-        val days = LeadTime.entries.map { it.reminderDate(LocalDate.of(2026, 12, 31)) }
+        val days = LeadTime.entries.map { it.reminderDate(LocalDate.of(2026, 12, 31), Gregorian) }
         assertEquals(
             listOf("2026-12-31", "2026-12-30", "2026-12-28", "2026-12-24", "2026-12-17", "2026-11-30").map(LocalDate::parse),
             days,
@@ -173,7 +180,7 @@ class ReminderPlannerTest {
         for (day in days.sorted()) {
             val plan = plan(people, now = at(day, 9), state = state)
             val reminder = plan.reminders.single()
-            assertEquals(day, reminder.leadTime.reminderDate(reminder.occurrence.date))
+            assertEquals(day, reminder.leadTime.reminderDate(reminder.occurrence.date, Gregorian))
             state = plan.state
         }
     }
@@ -197,8 +204,15 @@ class ReminderPlannerTest {
         )
         assertEquals(listOf(1L), plan.reminders.map { it.person.id })
         assertEquals(LeadTime.ThreeDays, plan.reminders.single().leadTime)
-        // Nothing more this year for either; next year's "3 days before" for the first.
-        assertEquals(at(LocalDate.of(2027, 10, 28), 9), plan.nextAlarm)
+        // Nothing more this year for either (once the showing one is gone, past midnight); next
+        // year's "3 days before" for the first.
+        val dismissed = plan(
+            listOf(withDefault, noReminders),
+            now = at(today, 10),
+            state = plan.state.retainShowing(emptySet()),
+            defaults = setOf(LeadTime.ThreeDays),
+        )
+        assertEquals(at(LocalDate.of(2027, 10, 28), 9), dismissed.nextAlarm)
     }
 
     @Test
@@ -229,7 +243,8 @@ class ReminderPlannerTest {
         val reminder = plan.reminders.single()
         assertEquals(LocalDate.of(2027, 4, 3), reminder.occurrence.date)
         assertEquals(36, reminder.occurrence.yearsCount)
-        assertEquals(at(LocalDate.of(2027, 4, 3), 9), plan.nextAlarm)
+        val dismissed = plan(listOf(nowruzBirthday), now = at(LocalDate.of(2027, 3, 27), 10), state = plan.state.retainShowing(emptySet()))
+        assertEquals(at(LocalDate.of(2027, 4, 3), 9), dismissed.nextAlarm)
     }
 
     @Test
@@ -238,7 +253,8 @@ class ReminderPlannerTest {
         val esfand = person(1, date(RecurringDate(SolarHijri, 12, 30)))
         val plan = plan(listOf(esfand), now = at(LocalDate.of(2027, 3, 13), 9))
         assertEquals(LocalDate.of(2027, 3, 20), plan.reminders.single().occurrence.date)
-        assertEquals(at(LocalDate.of(2027, 3, 20), 9), plan.nextAlarm)
+        val dismissed = plan(listOf(esfand), now = at(LocalDate.of(2027, 3, 13), 10), state = plan.state.retainShowing(emptySet()))
+        assertEquals(at(LocalDate.of(2027, 3, 20), 9), dismissed.nextAlarm)
     }
 
     // Reminders: who gets them, and cleanup
@@ -518,7 +534,10 @@ class ReminderPlannerTest {
         assertTrue(rerendered.cancel.isEmpty())
         assertTrue(rerendered.markNotified.isEmpty())
         assertEquals(discreet, rerendered.state.renderedAs)
-        assertEquals(posted.state.showingReminders, rerendered.state.showingReminders)
+        assertEquals(
+            posted.state.showingReminders.map { it.copy(content = "") },
+            rerendered.state.showingReminders.map { it.copy(content = "") },
+        )
 
         // Once re-rendered, nothing more until it changes again.
         assertTrue(plan(people, now = at(today, 11), state = rerendered.state, rendering = discreet).post.isEmpty())
@@ -592,5 +611,173 @@ class ReminderPlannerTest {
         // Already posted at 09:00, then the time moved later: not posted again.
         val posted = plan(listOf(sara), now = at(today, 9))
         assertTrue(plan(listOf(sara), now = at(today, 19), state = posted.state, time = LocalTime.of(18, 30)).post.isEmpty())
+    }
+
+    // Review fixes (reminders / Due / notifications)
+
+    @Test
+    fun aMonthBeforeCountsBackAMonthOfTheDatesOwnCalendar() {
+        fun sh(year: Int, month: Int, day: Int) = CalendarDate(SolarHijri, year, month, day).toLocalDate()
+        fun monthBefore(day: LocalDate) = LeadTime.OneMonth.reminderDate(day, SolarHijri)
+        assertTrue(SolarHijri.isLeapYear(1403))
+        assertFalse(SolarHijri.isLeapYear(1404))
+        // 1 Farvardin → 1 Esfand of the year before: 29 days back in 1405, not a Gregorian month.
+        assertEquals(sh(1405, 12, 1), monthBefore(sh(1406, 1, 1)))
+        // 31-day months: 31 Shahrivar → 31 Mordad, and 1 Mehr → 1 Shahrivar (31 days back).
+        assertEquals(sh(1405, 5, 31), monthBefore(sh(1405, 6, 31)))
+        assertEquals(sh(1405, 6, 1), monthBefore(sh(1405, 7, 1)))
+        // 30-day months: 30 Azar → 30 Aban.
+        assertEquals(sh(1405, 8, 30), monthBefore(sh(1405, 9, 30)))
+        // A day Esfand doesn't have falls on its last day: the 30th in a leap year, else the 29th.
+        assertEquals(sh(1403, 12, 30), monthBefore(sh(1404, 1, 31)))
+        assertEquals(sh(1404, 12, 29), monthBefore(sh(1405, 1, 31)))
+        assertEquals(sh(1404, 12, 29), monthBefore(sh(1405, 1, 30)))
+        // A leap Esfand's 30th → 30 Bahman.
+        assertEquals(sh(1403, 11, 30), monthBefore(sh(1403, 12, 30)))
+        // Gregorian dates still count Gregorian months.
+        assertEquals(LocalDate.of(2027, 2, 28), LeadTime.OneMonth.reminderDate(LocalDate.of(2027, 3, 30), Gregorian))
+
+        // Through the planner: 1 Farvardin 1406 (21 March 2027) reminds on 1 Esfand (20 February).
+        val nowruz = date(RecurringDate(SolarHijri, 1, 1), leadTimes = setOf(LeadTime.OneMonth))
+        val early = plan(listOf(person(1, nowruz)), now = at(LocalDate.of(2027, 2, 1), 9))
+        assertEquals(at(LocalDate.of(2027, 2, 20), 9), early.nextAlarm)
+        val reminder = plan(listOf(person(1, nowruz)), now = at(LocalDate.of(2027, 2, 20), 9)).reminders.single()
+        assertEquals(LocalDate.of(2027, 3, 21), reminder.occurrence.date)
+        assertEquals(29, reminder.daysAway)
+    }
+
+    @Test
+    fun lengtheningTheCadenceOfSomeoneDueDoesntNotifyThemAgain() {
+        // Due and named 10 days ago (every 30 days, added 40 days ago).
+        val reza = person(1, keepInTouch = dueSince(today.minusDays(10), notifiedOn = today.minusDays(10)))
+        // Now every 35 days: Due since 5 days ago, still the same Due period.
+        val longer = reza.copy(keepInTouch = reza.keepInTouch.copy(cadence = Cadence.days(35)))
+        assertEquals(today.minusDays(5), longer.keepInTouch.on(today).dueOn)
+        val plan = plan(listOf(longer), now = at(today, 9))
+        assertTrue(plan.post.isEmpty())
+        assertTrue(plan.markNotified.isEmpty())
+        assertTrue(plan.clearNotified.isEmpty())
+        assertNull(plan.nextAlarm)
+        // A shorter one doesn't either.
+        val shorter = reza.copy(keepInTouch = reza.keepInTouch.copy(cadence = Cadence.days(20)))
+        assertTrue(plan(listOf(shorter), now = at(today, 9)).post.isEmpty())
+    }
+
+    @Test
+    fun whenTheyStopBeingDueTheMarkerIsClearedSoBecomingDueAgainIsNotifiedOnce() {
+        val reza = person(1, keepInTouch = dueSince(today.minusDays(10), notifiedOn = today.minusDays(10)))
+        // Now every 45 days, with no Interaction: not Due until 5 days from now.
+        val longer = reza.copy(keepInTouch = reza.keepInTouch.copy(cadence = Cadence.days(45)))
+        val notDue = plan(listOf(longer), now = at(today, 9))
+        assertEquals(setOf(1L), notDue.clearNotified)
+        // Becoming Due again is a new time they "become Due" (like a Snooze ending): named once.
+        val cleared = longer.copy(keepInTouch = longer.keepInTouch.copy(lastNotifiedDueOn = null))
+        assertEquals(at(today.plusDays(5), 9), plan(listOf(cleared), now = at(today, 10), state = notDue.state).nextAlarm)
+        val dueAgain = plan(listOf(cleared), now = at(today.plusDays(5), 9), state = notDue.state)
+        assertEquals(listOf(1L), dueAgain.digests.single().people.map { it.person.id })
+        val again = listOf(cleared.copy(keepInTouch = cleared.keepInTouch.copy(lastNotifiedDueOn = today.plusDays(5))))
+        assertTrue(plan(again, now = at(today.plusDays(6), 9), state = dueAgain.state).digests.isEmpty())
+    }
+
+    @Test
+    fun anInteractionLoggedWithAnEarlierDateAfterTheDigestStartsANewPeriod() {
+        // Named today; then an Interaction dated 3 days ago is logged: not Due for 27 days.
+        val reza = person(1, keepInTouch = dueSince(today.minusDays(5), notifiedOn = today))
+        val logged = reza.copy(keepInTouch = reza.keepInTouch.copy(lastInteraction = today.minusDays(3)))
+        assertEquals(setOf(1L), plan(listOf(logged), now = at(today, 10)).clearNotified)
+        // Nobody Due keeps their marker; nobody without one is cleared.
+        assertTrue(plan(listOf(reza), now = at(today, 10)).clearNotified.isEmpty())
+        assertTrue(plan(listOf(person(2, keepInTouch = dueSince(today.plusDays(3)))), now = at(today, 10)).clearNotified.isEmpty())
+    }
+
+    @Test
+    fun anEarlyCatchUpIsThatDaysOnlyDigest() {
+        val reza = person(1, keepInTouch = dueSince(today.minusDays(4)))
+        // The last digest ran three days ago: at 08:00 the missed one catches up.
+        val catchUp = plan(listOf(reza), now = at(today, 8), state = NotificationState(lastDigestEpochDay = today.minusDays(3).toEpochDay()))
+        assertEquals(listOf(1L), catchUp.digests.single().people.map { it.person.id })
+        assertEquals(today.toEpochDay(), catchUp.state.lastDigestEpochDay)
+        // Mina becomes Due at 08:30 (her Cadence shortened): no second digest at 09:00.
+        val mina = person(2, keepInTouch = dueSince(today))
+        val people = catchUp.applyTo(listOf(reza)) + mina
+        val nine = plan(people, now = at(today, 9), state = catchUp.state)
+        assertTrue(nine.post.isEmpty())
+        assertTrue(nine.markNotified.isEmpty())
+        assertEquals(at(today.plusDays(1), 9), nine.nextAlarm)
+        // She's in the next day's, at the Reminder time (not earlier: yesterday's ran).
+        assertTrue(plan(people, now = at(today.plusDays(1), 7), state = nine.state).post.isEmpty())
+        val tomorrow = plan(people, now = at(today.plusDays(1), 9), state = nine.state)
+        assertEquals(listOf(2L), tomorrow.digests.single().people.map { it.person.id })
+    }
+
+    @Test
+    fun aShowingReminderIsQuietlyRepostedWhenWhatItShowsWouldChange() {
+        val sara = person(1, birthday(11, 4, year = 1991)) // 1 week before: today
+        val posted = plan(listOf(sara), now = at(today, 9))
+        assertEquals(7, posted.reminders.single().daysAway)
+        assertFalse(posted.reminders.single().silent)
+        // At midnight "in 7 days" becomes "in 6 days": the alarm wakes then, and it's re-posted quietly.
+        assertEquals(at(today.plusDays(1), 0), posted.nextAlarm)
+        val midnight = plan(listOf(sara), now = at(today.plusDays(1), 0), state = posted.state)
+        val again = midnight.reminders.single()
+        assertTrue(again.silent)
+        assertEquals(6, again.daysAway)
+        assertEquals(LeadTime.OneWeek, again.leadTime)
+        assertTrue(midnight.cancel.isEmpty())
+        assertEquals(at(today.plusDays(2), 0), midnight.nextAlarm)
+        // Nothing it shows changed since: nothing to re-post.
+        val later = at(today.plusDays(1), 10)
+        assertTrue(plan(listOf(sara), now = later, state = midnight.state).post.isEmpty())
+        // Its Person's name, photo, Gift ideas or primary contact: re-posted, quietly.
+        val edits = listOf(
+            sara.copy(names = PersonNames("Sara Ahmadi")),
+            sara.copy(photoFileName = "photo.jpg"),
+            sara.copy(openGiftIdeas = listOf("Book")),
+            sara.copy(primaryContactMethod = ContactMethod(personId = 1, type = ContactType.Phone, value = "123", isPrimary = true, position = 0)),
+        )
+        for (edited in edits) {
+            val reposted = plan(listOf(edited), now = later, state = midnight.state)
+            assertTrue(edited.toString(), reposted.reminders.single().silent)
+            assertTrue(plan(listOf(edited), now = later.plusSeconds(60), state = reposted.state).post.isEmpty())
+        }
+        // What it doesn't show (being Due) changes nothing.
+        val due = sara.copy(keepInTouch = dueSince(today))
+        assertTrue(plan(listOf(due), now = later, state = midnight.state).reminders.isEmpty())
+    }
+
+    @Test
+    fun onlyALaterDaysReminderWakesTheAlarmAtMidnight() {
+        // On the day it expires at midnight by itself: the next wake is next year's.
+        val sara = person(1, birthday(10, 28))
+        assertEquals(at(LocalDate.of(2027, 10, 21), 9), plan(listOf(sara), now = at(today, 9)).nextAlarm)
+    }
+
+    @Test
+    fun aPartlyPostedPlanKeepsWhatWasntPostedForTheNextRun() {
+        val sara = person(1, birthday(10, 28)) // on the day: today
+        val mina = person(2, birthday(11, 4)) // 1 week before: today
+        val reza = person(3, keepInTouch = dueSince(today.minusDays(2)))
+        val people = listOf(sara, mina, reza)
+        val plan = plan(people, now = at(today, 9))
+        assertEquals(3, plan.post.size)
+        val first = plan.post.first().key
+
+        // Only the first was posted (the run failed or timed out after it).
+        val partial = plan.stateAfter(setOf(first))
+        assertFalse(plan.canMarkAfter(setOf(first)))
+        assertEquals(listOf((first as NotificationKey.DateReminder).dateId), partial.showingReminders.map { it.dateId })
+        assertNull(partial.lastDigestEpochDay)
+        assertTrue(partial.digestPersonIds.isEmpty())
+        // The next run posts only the rest, with sound, and the digest.
+        val next = plan(people, now = at(today, 9, 5), state = partial)
+        assertEquals(plan.post.drop(1).map { it.key }, next.post.map { it.key })
+        assertTrue(next.post.none { it.silent })
+        assertEquals(plan.state.showingReminders, next.state.showingReminders)
+        assertEquals(plan.state.postedReminders.toSet(), next.state.postedReminders.toSet())
+        assertEquals(plan.state.lastDigestEpochDay, next.state.lastDigestEpochDay)
+        assertEquals(plan.state.digestPersonIds, next.state.digestPersonIds)
+        // Everything posted: the full state.
+        assertEquals(plan.state, plan.stateAfter(plan.post.map { it.key }.toSet()))
+        assertTrue(plan.canMarkAfter(plan.post.map { it.key }.toSet()))
     }
 }

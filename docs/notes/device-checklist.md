@@ -21,6 +21,8 @@ The rule ([ADR 0004](../adr/0004-backups-are-age-files.md)): Backups stay at **l
 - [ ] Reboot the phone and don't open Orbit: the next Reminder still arrives (the alarm is set again on boot).
 - [ ] Change the time zone in system settings and back: the next Reminder keeps its local time.
 - [ ] A Person whose Cadence has run out (a Ring with "every 1 day" and an Interaction logged 2 days ago) appears in the next day's "Keep in touch" digest, once.
+- [ ] With a "… · in 7 days" Reminder showing, look at it the next morning (before opening Orbit): it says "in 6 days", and it didn't sound again.
+- [ ] Only on an Android 12/12L phone: with a Reminder due in a few minutes, turn off Alarms & reminders for Orbit (this kills Orbit and removes its exact alarm) and don't open Orbit. The Reminder still arrives, up to an hour late (Orbit's inexact stand-by alarm), and Reminder health then shows the problem. Turn it back on.
 
 ## 3. Notifications on the lock screen
 

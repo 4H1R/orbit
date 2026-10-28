@@ -19,13 +19,16 @@ data class NotificationState(
     /** The Reminder each Important date's notification shows now, at most one per date. */
     val showingReminders: List<ShowingReminder> = emptyList(),
     /**
-     * The Reminder-time slot (epoch day) the Cadence digest last ran for, whether or not it named
-     * anyone; null before the first.
+     * The local day (epoch day) the Cadence digest last ran on, whether or not it named anyone:
+     * at most one runs a day. Null before the first.
      */
     val lastDigestEpochDay: Long? = null,
     /** The People the digest that's showing names, in its order; empty when none shows. */
     val digestPersonIds: List<Long> = emptyList(),
-    /** How the showing notifications were rendered; null (before App lock) is the default. */
+    /**
+     * How the showing digest was rendered; null (before App lock) is the default. Each Reminder
+     * keeps its own ([ShowingReminder.content]).
+     */
     val renderedAs: NotificationRendering? = null,
     /**
      * The database's restore token (`DataVersion.RESTORE_TOKEN_ROW_ID`) this state was written
@@ -59,8 +62,9 @@ data class PostedReminder(
 )
 
 /**
- * A Reminder notification on screen: which date and occurrence it's for, and the date as it was
- * then ([fingerprint]), so an edit to the date cancels it.
+ * A Reminder notification on screen: which date and occurrence it's for, the date as it was then
+ * ([fingerprint]), so an edit to the date cancels it, and what it shows ([content]), so a change
+ * to that re-posts it quietly.
  */
 @Serializable
 data class ShowingReminder(
@@ -68,6 +72,8 @@ data class ShowingReminder(
     val personId: Long,
     val occurrenceEpochDay: Long,
     val fingerprint: String,
+    /** `ReminderPlanner.content` of the Reminder as posted; empty (state from before it) re-posts once. */
+    val content: String = "",
 )
 
 /** Where one of Orbit's notifications sits: its tag (with the one notification id, [ID]). */
