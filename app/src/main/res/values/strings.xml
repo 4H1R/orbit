@@ -679,4 +679,26 @@
     <string name="app_lock_show_details">Show details in notifications</string>
     <string name="app_lock_show_details_summary">Actions ask for your screen lock first</string>
     <string name="app_lock_show_details_footer">When this is off, notifications only say what\'s coming up, without names, photos or gift ideas.</string>
+    <!-- Orbit view (copy deck: Orbit view). The legend never names a colour. -->
+    <string name="orbit_legend_title">Reading your orbit</string>
+    <string name="orbit_legend_rings">You\'re in the centre. Each circle is a ring, closest people innermost.</string>
+    <string name="orbit_legend_drift">A glowing person drifting outward is due. The further out, the longer it\'s been.</string>
+    <string name="orbit_legend_badge">An important date in the next 30 days. Filled means today.</string>
+    <string name="orbit_legend_angle">Where someone sits around the circle doesn\'t mean anything.</string>
+    <string name="orbit_center_you">You</string>
+    <!-- A ring drawn as dots shows how many people it has: "Acquaintances · 212" -->
+    <string name="orbit_ring_count">%1$s · %2$s</string>
+    <!-- TalkBack heading of a ring: "Inner, 6 people, 2 due" (only people the filters leave in) -->
+    <plurals name="orbit_a11y_ring">
+        <item quantity="one">%1$s, %2$s person, %3$s due</item>
+        <item quantity="other">%1$s, %2$s people, %3$s due</item>
+    </plurals>
+    <!-- TalkBack parts of a person, joined with list_separator: "Sara Ahmadi, due, last talked 34 days ago, birthday in 5 days" -->
+    <string name="orbit_a11y_person_due">due</string>
+    <!-- %1$s is when: "today", "tomorrow", "in 5 days" -->
+    <string name="orbit_a11y_date_birthday">birthday %1$s</string>
+    <string name="orbit_a11y_date_anniversary">anniversary %1$s</string>
+    <!-- %1$s is the custom date's own label, %2$s when -->
+    <string name="orbit_a11y_date_custom">%1$s %2$s</string>
+    <string name="orbit_empty">People you add appear here, on their ring</string>
 </resources>

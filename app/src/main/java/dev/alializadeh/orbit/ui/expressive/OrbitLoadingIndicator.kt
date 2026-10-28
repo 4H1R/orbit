@@ -14,9 +14,9 @@ import dev.alializadeh.orbit.R
 // only through this package, so churn in the material3 1.5 betas stays in one place.
 
 /**
- * True draws endless animations as a still frame. Screenshot tests set it: Roborazzi waits for
- * Compose to go idle, which an endless animation never does. Slice 9's "Remove animations" can
- * drive it too.
+ * True draws endless animations as a still frame and turns off the Orbit view's motion. `MainActivity`
+ * sets it while the system's "Remove animations" is on; screenshot tests set it because Roborazzi
+ * waits for Compose to go idle, which an endless animation never does.
  */
 val LocalStillMotion = staticCompositionLocalOf { false }
 

@@ -115,4 +115,21 @@ class OrbitNavigatorTest {
         assertEquals(listOf(PeopleKey), navigator.backStack(TopLevelTab.People).toList())
         assertEquals(listOf(SettingsKey, TagsSettingsKey), navigator.backStack(TopLevelTab.Settings).toList())
     }
+
+    @Test
+    fun everyPickOfATabIsCountedSoTheOrbitViewReopensAtFit() {
+        assertEquals(0, navigator.selections(TopLevelTab.Orbit))
+
+        navigator.selectTab(TopLevelTab.Orbit)
+        navigator.navigate(PersonDetailKey(1))
+        navigator.goBack()
+        assertEquals(1, navigator.selections(TopLevelTab.Orbit))
+
+        // Re-selecting it counts too; other tabs and Back don't.
+        navigator.selectTab(TopLevelTab.Orbit)
+        navigator.selectTab(TopLevelTab.People)
+        navigator.goBack()
+        assertEquals(2, navigator.selections(TopLevelTab.Orbit))
+        assertEquals(1, navigator.selections(TopLevelTab.People))
+    }
 }

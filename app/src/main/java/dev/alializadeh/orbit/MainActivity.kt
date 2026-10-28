@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -28,6 +29,8 @@ import dev.alializadeh.orbit.lock.OwnActivityHost
 import dev.alializadeh.orbit.reminders.NotificationEntries
 import dev.alializadeh.orbit.reminders.NotificationEntry
 import dev.alializadeh.orbit.reminders.ReminderTriggers
+import dev.alializadeh.orbit.ui.components.rememberAnimationsRemoved
+import dev.alializadeh.orbit.ui.expressive.LocalStillMotion
 import dev.alializadeh.orbit.ui.navigation.OrbitApp
 import dev.alializadeh.orbit.ui.theme.OrbitTheme
 import dev.alializadeh.orbit.ui.theme.isDark
@@ -86,12 +89,15 @@ class MainActivity : AppCompatActivity(), OwnActivityHost {
                 // First run shows dates (if any) in the calendar it's offering.
                 primaryCalendar = ready.primaryCalendar.takeIf { ready.firstRunFinished },
             ) {
-                if (lock.state == AppLockState.Locked) {
-                    LockedRoute(appLock, lock.arrival)
-                } else {
-                    behindTheGate.SaveableStateProvider(GATED_CONTENT) {
-                        // A notification tap waits in NotificationEntries until OrbitApp takes it.
-                        if (ready.firstRunFinished) OrbitApp() else FirstRunRoute()
+                // "Remove animations" stills every endless animation (and the Orbit view's motion).
+                CompositionLocalProvider(LocalStillMotion provides rememberAnimationsRemoved()) {
+                    if (lock.state == AppLockState.Locked) {
+                        LockedRoute(appLock, lock.arrival)
+                    } else {
+                        behindTheGate.SaveableStateProvider(GATED_CONTENT) {
+                            // A notification tap waits in NotificationEntries until OrbitApp takes it.
+                            if (ready.firstRunFinished) OrbitApp() else FirstRunRoute()
+                        }
                     }
                 }
             }

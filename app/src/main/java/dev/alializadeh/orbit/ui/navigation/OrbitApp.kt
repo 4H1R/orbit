@@ -45,7 +45,7 @@ import dev.alializadeh.orbit.backup.ChangePassphraseRoute
 import dev.alializadeh.orbit.backup.RestoreKey
 import dev.alializadeh.orbit.backup.RestoreRoute
 import dev.alializadeh.orbit.orbitview.OrbitViewKey
-import dev.alializadeh.orbit.orbitview.OrbitViewScreen
+import dev.alializadeh.orbit.orbitview.OrbitViewRoute
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.interaction.AllInteractionsKey
@@ -181,7 +181,13 @@ fun OrbitApp(
                 )
             }
             entry<AllInteractionsKey> { key -> AllInteractionsRoute(key = key, onBack = navigator::goBack) }
-            entry<OrbitViewKey> { OrbitViewScreen() }
+            entry<OrbitViewKey> {
+                OrbitViewRoute(
+                    opening = navigator.selections(TopLevelTab.Orbit),
+                    onPersonClick = { id -> navigator.navigate(PersonDetailKey(id)) },
+                    onAddPerson = { navigator.navigate(AddPersonKey) },
+                )
+            }
             entry<SettingsKey> { SettingsRoute(onOpen = navigator::navigate) }
             entry<AppearanceSettingsKey> { AppearanceRoute(onBack = navigator::goBack) }
             entry<LanguageDatesSettingsKey> { LanguageDatesRoute(onBack = navigator::goBack) }

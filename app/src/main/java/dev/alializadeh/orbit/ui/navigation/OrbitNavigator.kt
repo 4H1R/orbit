@@ -30,9 +30,16 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 class OrbitNavigator(
     private val backStacks: Map<TopLevelTab, NavBackStack<NavKey>>,
     currentTab: MutableState<TopLevelTab> = mutableStateOf(TopLevelTab.Upcoming),
+    private val selections: MutableState<IntArray> = mutableStateOf(IntArray(TopLevelTab.entries.size)),
 ) {
     var currentTab: TopLevelTab by currentTab
         private set
+
+    /**
+     * How many times [tab] has been picked in the navigation bar (switched to or re-selected): the
+     * Orbit view goes back to fit, and plays its entrance, each time it changes.
+     */
+    fun selections(tab: TopLevelTab): Int = selections.value[tab.ordinal]
 
     /** The tabs whose entries are on screen, bottom first. Upcoming always sits underneath. */
     val tabsInUse: List<TopLevelTab>
@@ -48,6 +55,7 @@ class OrbitNavigator(
     fun backStack(tab: TopLevelTab): NavBackStack<NavKey> = backStacks.getValue(tab)
 
     fun selectTab(tab: TopLevelTab) {
+        selections.value = selections.value.copyOf().also { it[tab.ordinal]++ }
         if (tab == currentTab) {
             backStack(tab).popToRoot()
         } else {
@@ -117,7 +125,8 @@ fun rememberOrbitNavigator(): OrbitNavigator {
         key(tab) { rememberNavBackStack(tab.rootKey) }
     }
     val currentTab = rememberSaveable { mutableStateOf(TopLevelTab.Upcoming) }
-    return remember(backStacks, currentTab) { OrbitNavigator(backStacks, currentTab) }
+    val selections = rememberSaveable { mutableStateOf(IntArray(TopLevelTab.entries.size)) }
+    return remember(backStacks, currentTab, selections) { OrbitNavigator(backStacks, currentTab, selections) }
 }
 
 /**

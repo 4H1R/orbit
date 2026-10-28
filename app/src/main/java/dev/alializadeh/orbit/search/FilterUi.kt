@@ -113,9 +113,12 @@ private fun ToggleFilterChip(label: String, selected: Boolean, onClick: () -> Un
     )
 }
 
-/** "Filtered · Clear", between the chips and the list while any filter is on. */
+/**
+ * "Filtered · Clear", between the chips and the list while any filter is on. The Orbit view says
+ * [label] "No one matches" when the filters leave nobody in.
+ */
 @Composable
-fun FilteredBar(onClear: () -> Unit, modifier: Modifier = Modifier) {
+fun FilteredBar(onClear: () -> Unit, modifier: Modifier = Modifier, label: String = stringResource(R.string.filter_bar_filtered)) {
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -127,7 +130,7 @@ fun FilteredBar(onClear: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(start = 16.dp, end = 4.dp),
         ) {
             Text(
-                text = stringResource(R.string.filter_bar_filtered),
+                text = label,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.weight(1f),
             )

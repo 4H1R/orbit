@@ -645,4 +645,21 @@
     <string name="app_lock_show_details">نمایش جزئیات در اعلان‌ها</string>
     <string name="app_lock_show_details_summary">دکمه‌های اعلان اول قفل صفحه را می‌خواهند</string>
     <string name="app_lock_show_details_footer">وقتی این خاموش است، اعلان‌ها فقط می‌گویند چه چیزی در پیش است، بدون نام، عکس یا ایده‌های هدیه.</string>
+    <!-- Orbit view -->
+    <string name="orbit_legend_title">راهنمای مدار</string>
+    <string name="orbit_legend_rings">شما در مرکزید. هر دایره یک حلقه است و نزدیک‌ترین افراد در درونی‌ترین حلقه‌اند.</string>
+    <string name="orbit_legend_drift">فردی که می‌درخشد و به بیرون می‌لغزد، موعد ارتباطش رسیده است. هرچه دورتر، مدت بیشتری گذشته.</string>
+    <string name="orbit_legend_badge">تاریخ مهمی در ۳۰ روز آینده. توپُر یعنی امروز.</string>
+    <string name="orbit_legend_angle">جای هر فرد روی دایره معنای خاصی ندارد.</string>
+    <string name="orbit_center_you">شما</string>
+    <string name="orbit_ring_count">%1$s، %2$s</string>
+    <plurals name="orbit_a11y_ring">
+        <item quantity="one">%1$s، %2$s نفر، %3$s نفر در موعد ارتباط</item>
+        <item quantity="other">%1$s، %2$s نفر، %3$s نفر در موعد ارتباط</item>
+    </plurals>
+    <string name="orbit_a11y_person_due">در موعد ارتباط</string>
+    <string name="orbit_a11y_date_birthday">تولد %1$s</string>
+    <string name="orbit_a11y_date_anniversary">سالگرد %1$s</string>
+    <string name="orbit_a11y_date_custom">%1$s %2$s</string>
+    <string name="orbit_empty">افرادی که اضافه کنید این‌جا روی حلقهٔ خودشان دیده می‌شوند</string>
 </resources>
