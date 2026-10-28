@@ -6,7 +6,6 @@ import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStoreFile
 import androidx.room3.Room
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -18,23 +17,17 @@ import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.person.TagDao
 import dev.alializadeh.orbit.ring.RingDao
 import javax.inject.Singleton
-import kotlinx.coroutines.Dispatchers
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    /**
-     * Room 3 on the bundled SQLite driver: the same SQLite (with `VACUUM INTO`) on every phone and
-     * in the JVM tests.
-     */
+    /** See [orbitSetup]: the same setup on every phone and in the JVM tests. */
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): OrbitDatabase =
         Room.databaseBuilder<OrbitDatabase>(context, OrbitDatabase.FILE_NAME)
-            .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .addCallback(OrbitDatabase.SeedCallback)
+            .orbitSetup()
             .build()
 
     @Provides

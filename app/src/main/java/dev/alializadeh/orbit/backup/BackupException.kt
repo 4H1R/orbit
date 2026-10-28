@@ -13,6 +13,13 @@ sealed class BackupException(message: String, cause: Throwable? = null) : Except
     /** Made by a newer Orbit (copy deck: `restore_newer_version`). */
     class NewerVersion(message: String) : BackupException(message)
 
+    /**
+     * Its scrypt cost needs more memory than this phone gives Orbit (a Backup written at logN 18,
+     * age's own default, on a 192 MiB heap).
+     */
+    class NeedsMoreMemory(cause: Throwable? = null) :
+        BackupException("Not enough memory to open this backup", cause)
+
     /** An Orbit Backup that's damaged: truncated, tampered with, or failing its hashes. */
     class Corrupt(message: String, cause: Throwable? = null) : BackupException(message, cause)
 }

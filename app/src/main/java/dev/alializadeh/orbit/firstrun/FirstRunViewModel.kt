@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 
 /**
  * The first-run steps, in order. Finishing the last one finishes first run. Slice 7 adds the App
- * lock offer after Welcome; slice 5 adds Restore as a branch from Welcome.
+ * lock offer after Welcome. Restore is a branch from Welcome ([FirstRunUiState.restoreUri]); once
+ * it succeeds, first run carries on from the step after Welcome.
  */
 enum class FirstRunStep {
     Welcome,
@@ -30,6 +31,8 @@ data class FirstRunUiState(
     val primaryCalendar: CalendarSystem = language.defaultCalendar,
     val useLatinDigits: Boolean = false,
     val isFinishing: Boolean = false,
+    /** Restoring from the Backup at this URI (picked on Welcome) instead of the Welcome choices. */
+    val restoreUri: String? = null,
 ) {
     /** "Use Latin digits" is offered in Persian only. */
     val showsLatinDigits: Boolean get() = language == OrbitLanguage.Persian
@@ -54,16 +57,25 @@ class FirstRunViewModel @Inject constructor(
     private val chosenCalendar = savedState.getStateFlow<CalendarSystem?>(KEY_CALENDAR, null)
     private val useLatinDigits = savedState.getStateFlow(KEY_LATIN_DIGITS, false)
     private val isFinishing = MutableStateFlow(false)
+    private val restoreUri = savedState.getStateFlow<String?>(KEY_RESTORE_URI, null)
+
+    /** A Restore replaced the Welcome choices: finishing only marks first run finished. */
+    private var restored = false
 
     val uiState: StateFlow<FirstRunUiState> =
-        combine(step, language, chosenCalendar, useLatinDigits, isFinishing) {
-                step, language, calendar, latinDigits, finishing ->
+        combine(
+            combine(step, language, chosenCalendar, ::Triple),
+            useLatinDigits,
+            isFinishing,
+            restoreUri,
+        ) { (step, language, calendar), latinDigits, finishing, restoring ->
             FirstRunUiState(
                 step = step,
                 language = language,
                 primaryCalendar = calendar ?: language.defaultCalendar,
                 useLatinDigits = latinDigits,
                 isFinishing = finishing,
+                restoreUri = restoring,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FirstRunUiState(language = language.value))
 
@@ -81,6 +93,27 @@ class FirstRunViewModel @Inject constructor(
         savedState[KEY_LATIN_DIGITS] = useLatinDigits
     }
 
+    /** Restore from a backup: the Open picker returned [uri]. */
+    fun startRestore(uri: String) {
+        savedState[KEY_RESTORE_URI] = uri
+    }
+
+    /** Back out of the Restore, to Welcome. */
+    fun cancelRestore() {
+        savedState[KEY_RESTORE_URI] = null
+    }
+
+    /**
+     * The Restore succeeded: its language, Primary calendar and Rings replace the Welcome choices
+     * and the seed Rings. First run carries on after Welcome.
+     */
+    fun onRestored() {
+        if (restored) return
+        restored = true
+        savedState[KEY_RESTORE_URI] = null
+        continueFromStep()
+    }
+
     /** Moves to the next step, or finishes first run after the last one. */
     fun continueFromStep() {
         val next = FirstRunStep.entries.getOrNull(step.value.ordinal + 1)
@@ -91,18 +124,23 @@ class FirstRunViewModel @Inject constructor(
         if (isFinishing.value) return
         isFinishing.value = true
         viewModelScope.launch {
-            firstRunRepository.finish(
-                WelcomeChoices(
-                    language = language.value,
-                    primaryCalendar = chosenCalendar.value ?: language.value.defaultCalendar,
-                    useLatinDigits = useLatinDigits.value && language.value == OrbitLanguage.Persian,
-                ),
-            )
+            if (restored) {
+                firstRunRepository.finishAfterRestore()
+            } else {
+                firstRunRepository.finish(
+                    WelcomeChoices(
+                        language = language.value,
+                        primaryCalendar = chosenCalendar.value ?: language.value.defaultCalendar,
+                        useLatinDigits = useLatinDigits.value && language.value == OrbitLanguage.Persian,
+                    ),
+                )
+            }
         }
     }
 
     private companion object {
         const val KEY_CALENDAR = "primaryCalendar"
         const val KEY_LATIN_DIGITS = "useLatinDigits"
+        const val KEY_RESTORE_URI = "restoreUri"
     }
 }

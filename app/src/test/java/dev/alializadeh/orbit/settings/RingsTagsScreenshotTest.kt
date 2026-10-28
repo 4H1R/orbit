@@ -39,7 +39,6 @@ class RingsTagsScreenshotTest(private val variant: ScreenshotVariant) {
                 tagCount = tags.size,
             ),
             onOpen = {},
-            onBackupSpikeClick = {},
         )
     }
 

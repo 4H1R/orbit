@@ -73,6 +73,12 @@ class OrbitNavigator(
         }
     }
 
+    /** Every tab back at its root, on Upcoming: after a Restore replaced the data under them. */
+    fun resetToRoots() {
+        TopLevelTab.entries.forEach { backStack(it).popToRoot() }
+        currentTab = TopLevelTab.Upcoming
+    }
+
     private fun NavBackStack<NavKey>.popToRoot() {
         while (size > 1) removeAt(lastIndex)
     }

@@ -50,6 +50,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.backup.BackupNudgeCard
+import dev.alializadeh.orbit.backup.BackupNudgeUi
+import dev.alializadeh.orbit.backup.BackupNudgeViewModel
 import dev.alializadeh.orbit.calendar.inCalendar
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.OrbitDateFormatter
@@ -94,7 +97,7 @@ enum class UpcomingSection {
     /** Slices 6 and 7: a critical Reminder health problem, App lock paused. */
     Warnings,
 
-    /** Slice 5: the Backup nudge card. */
+    /** The Backup nudge card. */
     BackupNudge,
     Today,
     Due,
@@ -105,13 +108,17 @@ enum class UpcomingSection {
 fun UpcomingRoute(
     onNewPerson: () -> Unit,
     onPersonClick: (personId: Long) -> Unit,
+    onBackUpNow: () -> Unit,
     viewModel: UpcomingViewModel = hiltViewModel(),
     keepInTouch: KeepInTouchViewModel = hiltViewModel(),
+    backupNudge: BackupNudgeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val nudge by backupNudge.nudge.collectAsStateWithLifecycle()
     // Back from the background: it may be another day.
     LifecycleResumeEffect(viewModel) {
         viewModel.checkDate()
+        backupNudge.checkDate()
         onPauseOrDispose {}
     }
     val context = LocalContext.current
@@ -132,6 +139,9 @@ fun UpcomingRoute(
         onLogInteraction = keepInTouch::logInteraction,
         onSnooze = keepInTouch::openSnooze,
         onShowAllDue = viewModel::showAllDue,
+        backupNudge = nudge,
+        onBackUpNow = onBackUpNow,
+        onNudgeNotNow = backupNudge::notNow,
     )
 }
 
@@ -146,8 +156,15 @@ fun UpcomingScreen(
     onSnooze: (personId: Long) -> Unit,
     onShowAllDue: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /** Slice 5's Backup nudge, or null when it isn't shown. */
+    backupNudge: BackupNudgeUi? = null,
+    onBackUpNow: () -> Unit = {},
+    onNudgeNotNow: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    val nudgeCard: (@Composable (Modifier) -> Unit)? = backupNudge?.let { nudge ->
+        { cardModifier -> BackupNudgeCard(nudge, onBackUpNow = onBackUpNow, onNotNow = onNudgeNotNow, modifier = cardModifier) }
+    }
     Scaffold(
         modifier = modifier,
         topBar = { OrbitTopAppBar(title = stringResource(R.string.nav_tab_upcoming)) },
@@ -166,12 +183,14 @@ fun UpcomingScreen(
                 title = stringResource(R.string.empty_no_people_title),
                 body = stringResource(R.string.empty_no_people_body),
                 modifier = Modifier.padding(innerPadding),
+                card = nudgeCard,
             )
 
             uiState.isEmpty -> EmptyState(
                 title = stringResource(R.string.upcoming_all_caught_up),
                 body = uiState.feed.next?.let { nextLine(it, uiState.today) },
                 modifier = Modifier.padding(innerPadding),
+                card = nudgeCard,
             )
 
             else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -188,7 +207,10 @@ fun UpcomingScreen(
                 ) {
                     UpcomingSection.entries.forEach { section ->
                         when (section) {
-                            UpcomingSection.Warnings, UpcomingSection.BackupNudge -> Unit
+                            UpcomingSection.Warnings -> Unit
+                            UpcomingSection.BackupNudge -> if (nudgeCard != null) {
+                                item(key = "backup_nudge") { nudgeCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
+                            }
                             UpcomingSection.Today -> todaySection(uiState, onPersonClick, onContactAction, onLogInteraction)
                             UpcomingSection.Due ->
                                 dueSection(uiState, onPersonClick, onContactAction, onLogInteraction, onSnooze, onShowAllDue)
@@ -552,8 +574,21 @@ private fun nextLine(date: UpcomingDate, today: LocalDate): String {
     return stringResource(R.string.upcoming_next, what + stringResource(R.string.separator) + whenText)
 }
 
+/** An empty state, under the Backup nudge [card] when it shows. */
 @Composable
-private fun EmptyState(title: String, body: String?, modifier: Modifier = Modifier) {
+private fun EmptyState(
+    title: String,
+    body: String?,
+    modifier: Modifier = Modifier,
+    card: (@Composable (Modifier) -> Unit)? = null,
+) {
+    if (card != null) {
+        Column(modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+            card(Modifier.widthIn(max = MaxContentWidth).padding(16.dp))
+            EmptyState(title, body, Modifier.weight(1f))
+        }
+        return
+    }
     Column(
         modifier = modifier.fillMaxSize().padding(horizontal = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),

@@ -1,7 +1,9 @@
 package dev.alializadeh.orbit.ui.navigation
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -18,17 +20,30 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.backup.BackupHost
+import dev.alializadeh.orbit.backup.BackupSettingsKey
+import dev.alializadeh.orbit.backup.BackupSettingsRoute
+import dev.alializadeh.orbit.backup.BackupViewModel
+import dev.alializadeh.orbit.backup.ChangePassphraseKey
+import dev.alializadeh.orbit.backup.ChangePassphraseRoute
+import dev.alializadeh.orbit.backup.RestoreKey
+import dev.alializadeh.orbit.backup.RestoreRoute
 import dev.alializadeh.orbit.orbitview.OrbitViewKey
 import dev.alializadeh.orbit.orbitview.OrbitViewScreen
+import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.interaction.AllInteractionsKey
 import dev.alializadeh.orbit.interaction.AllInteractionsRoute
@@ -55,17 +70,38 @@ import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.UpcomingKey
 import dev.alializadeh.orbit.upcoming.UpcomingRoute
 
-/** The app shell: four bottom tabs over a single [NavDisplay]. */
+/**
+ * The app shell: four bottom tabs over a single [NavDisplay], with Back up now ([BackupHost])
+ * drawn above everything.
+ */
 @Composable
-fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
+fun OrbitApp(
+    navigator: OrbitNavigator = rememberOrbitNavigator(),
+    backup: BackupViewModel = hiltViewModel(),
+) {
     val snackbars = rememberOrbitSnackbars()
     val resources = LocalResources.current
+    val numbers = LocalOrbitFormats.current.numbers
+    val restoredPeople by backup.restoredPeople.collectAsStateWithLifecycle()
+    // After a Restore: every tab back to its root (the old screens' data is gone), Upcoming, and
+    // "Restored 84 people". Consumed only once shown, so an activity recreation (the Backup's
+    // language) shows it again rather than losing it.
+    LaunchedEffect(restoredPeople) {
+        val people = restoredPeople ?: return@LaunchedEffect
+        navigator.resetToRoots()
+        snackbars.hostState.currentSnackbarData?.dismiss()
+        snackbars.hostState.showSnackbar(
+            resources.getString(R.string.restored_snackbar, numbers.format(people)),
+        )
+        backup.consumeRestored()
+    }
     val entries = navigator.rememberEntries(
         entryProvider {
             entry<UpcomingKey> {
                 UpcomingRoute(
                     onNewPerson = { navigator.navigate(AddPersonKey) },
                     onPersonClick = { id -> navigator.navigate(PersonDetailKey(id)) },
+                    onBackUpNow = backup::start,
                 )
             }
             entry<PeopleKey> {
@@ -114,11 +150,32 @@ fun OrbitApp(navigator: OrbitNavigator = rememberOrbitNavigator()) {
             entry<LanguageDatesSettingsKey> { LanguageDatesRoute(onBack = navigator::goBack) }
             entry<RingsSettingsKey> { RingsRoute(onBack = navigator::goBack) }
             entry<TagsSettingsKey> { TagsRoute(onBack = navigator::goBack) }
+            entry<BackupSettingsKey> {
+                BackupSettingsRoute(
+                    onBack = navigator::goBack,
+                    onBackUpNow = backup::start,
+                    onRestore = { uri -> navigator.navigate(RestoreKey(uri)) },
+                    onChangePassphrase = { navigator.navigate(ChangePassphraseKey) },
+                )
+            }
+            entry<ChangePassphraseKey> { ChangePassphraseRoute(onClose = navigator::goBack) }
+            entry<RestoreKey> { key ->
+                RestoreRoute(
+                    uri = key.uri,
+                    onClose = navigator::goBack,
+                    // The shell moves on when RestoreNotices announces it (above).
+                    onRestored = {},
+                    onBackUpFirst = backup::start,
+                )
+            }
         },
     )
 
     CompositionLocalProvider(LocalOrbitSnackbars provides snackbars) {
-        OrbitShell(navigator, entries)
+        Box(Modifier.fillMaxSize()) {
+            OrbitShell(navigator, entries)
+            BackupHost(backup)
+        }
     }
 }
 

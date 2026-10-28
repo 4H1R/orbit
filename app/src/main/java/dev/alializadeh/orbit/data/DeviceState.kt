@@ -11,8 +11,8 @@ import kotlinx.serialization.json.Json
 
 /**
  * Device-bound state (ADR 0006): what belongs to this phone and never travels in a Backup. Kept in
- * a typed DataStore as JSON. Later slices add App lock settings, the wrapped Backup passphrase, the
- * "last Backup" date and notification state as fields with defaults.
+ * a typed DataStore as JSON. Later slices add App lock settings and notification state as fields
+ * with defaults.
  */
 @Serializable
 data class DeviceState(
@@ -20,6 +20,29 @@ data class DeviceState(
     val firstRunFinished: Boolean = false,
     /** The type last chosen on the Log interaction sheet, its default next time. */
     val lastInteractionType: InteractionType = InteractionType.Call,
+    /**
+     * The Backup passphrase, encrypted with this phone's Android Keystore key (see
+     * `PassphraseCipher`); null until the first Backup sets one up.
+     */
+    val wrappedBackupPassphrase: String? = null,
+    /** The last Backup made (or restored) on this device; null when there has never been one. */
+    val lastBackup: LastBackup? = null,
+    /** Backups made on this device; every third one asks for the passphrase first. */
+    val backupCount: Int = 0,
+    /** [backupCount] when the passphrase was last typed (setup, check, change or Restore). */
+    val passphraseTypedAtBackupCount: Int = 0,
+    /** "Not now" on the Backup nudge hides it until this day (epoch day). */
+    val backupNudgeHiddenUntilEpochDay: Long? = null,
+)
+
+/**
+ * When the last Backup was made, and the database's data version (`DataVersion`) it holds: the data
+ * has changed since when the live version differs.
+ */
+@Serializable
+data class LastBackup(
+    val createdAtEpochMillis: Long,
+    val dataVersion: Long,
 )
 
 object DeviceStateSerializer : Serializer<DeviceState> {

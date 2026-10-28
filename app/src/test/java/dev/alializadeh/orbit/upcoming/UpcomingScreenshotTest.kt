@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.upcoming
 
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import dev.alializadeh.orbit.backup.BackupNudgeUi
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
 import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
@@ -68,9 +69,22 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
         Screen(loaded(people.filter { it.id == 5L }))
     }
 
+    /** The Backup nudge, above Today: the last Backup is 40 days old and the data changed since. */
+    @Test
+    fun upcomingBackupNudge() = captureScreen("upcoming_backup_nudge", variant) {
+        Screen(loaded(people), BackupNudgeUi(lastBackup = today.minusDays(40), today = today))
+    }
+
+    /** Never backed up, nothing else to show: the nudge above "All caught up". */
+    @Test
+    fun upcomingBackupNudgeNever() = captureScreen("upcoming_backup_nudge_never", variant) {
+        Screen(loaded(people.filter { it.id == 5L }), BackupNudgeUi(lastBackup = null, today = today))
+    }
+
     @androidx.compose.runtime.Composable
-    private fun Screen(uiState: UpcomingUiState) {
+    private fun Screen(uiState: UpcomingUiState, nudge: BackupNudgeUi? = null) {
         UpcomingScreen(
+            backupNudge = nudge,
             uiState = uiState,
             onNewPerson = {},
             onPersonClick = {},

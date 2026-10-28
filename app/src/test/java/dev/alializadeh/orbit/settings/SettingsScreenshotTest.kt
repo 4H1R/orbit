@@ -33,6 +33,7 @@ class SettingsScreenshotTest(private val variant: ScreenshotVariant) {
             onPrimaryCalendarSelect = {},
             onUseLatinDigitsChange = {},
             onContinue = {},
+            onRestore = {},
         )
     }
 
@@ -41,7 +42,6 @@ class SettingsScreenshotTest(private val variant: ScreenshotVariant) {
         SettingsScreen(
             uiState = SettingsUiState(primaryCalendar = language.defaultCalendar),
             onOpen = {},
-            onBackupSpikeClick = {},
         )
     }
 

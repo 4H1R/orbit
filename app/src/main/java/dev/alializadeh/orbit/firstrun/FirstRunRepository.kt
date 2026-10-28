@@ -77,6 +77,14 @@ class FirstRunRepository @Inject constructor(
         }
         preferencesRepository.updateDeviceState { it.copy(firstRunFinished = true) }
     }
+
+    /**
+     * Finishing first run after a Restore on Welcome: the Backup brought its own preferences and
+     * Rings, so only this device's flag is set (no Welcome choices, no seed Rings).
+     */
+    suspend fun finishAfterRestore() {
+        preferencesRepository.updateDeviceState { it.copy(firstRunFinished = true) }
+    }
 }
 
 @Module

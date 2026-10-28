@@ -3,6 +3,8 @@ package dev.alializadeh.orbit.ui.expressive
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,4 +37,22 @@ fun OrbitBottomSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state) {
         content(closer)
     }
+}
+
+/**
+ * A modal bottom sheet the user can't swipe, tap or back away: for blocking progress (a Backup
+ * being written). It goes when the caller stops showing it; offer a Cancel button inside.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrbitBlockingSheet(content: @Composable ColumnScope.() -> Unit) {
+    val state = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden })
+    ModalBottomSheet(
+        onDismissRequest = {},
+        sheetState = state,
+        sheetGesturesEnabled = false,
+        dragHandle = null,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false),
+        content = content,
+    )
 }

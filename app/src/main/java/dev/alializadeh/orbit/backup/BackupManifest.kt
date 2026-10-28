@@ -21,8 +21,15 @@ data class BackupManifest(
     val appVersionCode: Long,
     @Serializable(with = InstantIso8601Serializer::class)
     val createdAt: Instant,
-    /** AppCompat per-app locale tags, or null when Orbit followed the system language. */
+    /**
+     * AppCompat per-app locale tags, or null when Orbit followed the system language. Language
+     * isn't in the database (ADR 0006), so a Restore applies it from here.
+     */
     val locale: String?,
+    /** How many People (Archived ones included), Interactions and photos it holds, for the summary. */
+    val people: Int = 0,
+    val interactions: Int = 0,
+    val photos: Int = 0,
     /** Every file in the ZIP except the manifest itself. */
     val entries: List<BackupEntry>,
 )

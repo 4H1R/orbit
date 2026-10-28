@@ -93,6 +93,7 @@
     <string name="welcome_primary_calendar">Primary calendar</string>
     <string name="welcome_latin_digits">Use Latin digits</string>
     <string name="welcome_continue">Continue</string>
+    <string name="welcome_restore">Restore from a backup</string>
 
     <!-- Settings -->
     <string name="settings_appearance_title">Appearance</string>
@@ -415,13 +416,94 @@
     <string name="tag_merge_confirm">Merge</string>
     <string name="tag_show_people">Show people</string>
 
-    <!--
-        TEMPORARY: slice 0 backup-format spike. Slice 5 replaces this row and these strings with
-        the real Back up now flow (copy deck: backup_now, backed_up_result).
-    -->
-    <string name="settings_spike_backup_title">Back up now (spike)</string>
-    <string name="settings_spike_backup_body">Temporary test: saves an encrypted backup with the fixed passphrase %1$s, then reopens it to check it.</string>
-    <string name="settings_spike_backup_running">Backing up…</string>
-    <string name="settings_spike_backup_verified">Backup saved and checked</string>
-    <string name="settings_spike_backup_failed">Backup failed: %1$s</string>
+    <!-- Settings → Backup, Back up now, the passphrase, Restore (slice 5) -->
+    <string name="common_not_now">Not now</string>
+    <string name="settings_backup_title">Backup</string>
+    <string name="settings_backup_never">No backup yet</string>
+    <string name="backup_now">Back up now</string>
+    <string name="backup_nudge_last">Last backup %1$s</string>
+    <string name="backup_nudge_never">You haven\'t made a backup yet</string>
+    <string name="backup_nudge_body">Save an encrypted copy of your people, photos and settings somewhere safe.</string>
+    <string name="backup_settings_restore">Restore</string>
+    <string name="backup_settings_restore_summary">Replace everything in Orbit with a backup</string>
+    <string name="backup_settings_change_passphrase">Change passphrase</string>
+    <string name="backup_settings_nudge_title">Remind me to back up</string>
+    <string name="backup_settings_nudge_footer">A card on Upcoming, once your data has changed since the last backup.</string>
+    <plurals name="backup_nudge_interval_days">
+        <item quantity="one">After %1$s day</item>
+        <item quantity="other">After %1$s days</item>
+    </plurals>
+    <string name="backup_nudge_interval_off">Off</string>
+
+    <string name="passphrase_setup_title">Choose a backup passphrase</string>
+    <string name="passphrase_setup_body">Every backup is encrypted with this passphrase. Orbit remembers it on this phone, so you won\'t type it for each backup, but you\'ll need it to restore on another phone.</string>
+    <string name="passphrase_new_title">Set a new passphrase</string>
+    <string name="passphrase_change_title">Change passphrase</string>
+    <string name="passphrase_change_body">Only future backups use the new passphrase. Backups you\'ve already made still open with the old one.</string>
+    <string name="passphrase_field">Passphrase</string>
+    <string name="passphrase_current_field">Current passphrase</string>
+    <string name="passphrase_new_field">New passphrase</string>
+    <string name="passphrase_repeat_field">Repeat passphrase</string>
+    <string name="passphrase_rule_length">At least 12 characters</string>
+    <string name="passphrase_rule_ascii">Only English letters, numbers and symbols</string>
+    <string name="passphrase_mismatch">The passphrases don\'t match</string>
+    <string name="passphrase_current_wrong">That isn\'t your current passphrase</string>
+    <string name="passphrase_warning">If you forget this passphrase, no one can open your backups, not even Orbit.</string>
+    <string name="passphrase_warning_ack">I understand</string>
+    <string name="passphrase_save">Save passphrase</string>
+    <string name="passphrase_show">Show passphrase</string>
+    <string name="passphrase_hide">Hide passphrase</string>
+    <string name="passphrase_changed_snackbar">Passphrase changed</string>
+
+    <string name="passphrase_check_title">Check your passphrase</string>
+    <string name="passphrase_check_body">Type your backup passphrase to check you still remember it</string>
+    <string name="passphrase_check_confirm">Check</string>
+    <string name="passphrase_check_wrong">That isn\'t the passphrase Orbit remembers. Your backup will still be made with it.</string>
+    <string name="passphrase_check_show">Show passphrase</string>
+    <string name="passphrase_check_set_new">Set a new one</string>
+    <string name="passphrase_check_back_up_anyway">Back up anyway</string>
+    <string name="passphrase_check_revealed">Your backup passphrase</string>
+    <string name="passphrase_unlock_show">Unlock to see your backup passphrase</string>
+    <string name="passphrase_unlock_new">Unlock to set a new backup passphrase</string>
+
+    <string name="backup_progress_writing">Backing up…</string>
+    <string name="backup_progress_verifying">Checking the backup…</string>
+    <string name="backup_result_title">Backup saved and checked</string>
+    <string name="backed_up_result">Backed up %1$s people · %2$s photos</string>
+    <string name="backup_result_body">Keep it somewhere other than this phone, such as a computer or cloud storage.</string>
+    <string name="backup_failed_title">Backup failed</string>
+    <string name="backup_failed_body">Orbit couldn\'t save the backup there, so the unfinished file was deleted. Try again, or choose another place.</string>
+
+    <string name="restore_title">Restore from a backup</string>
+    <string name="restore_passphrase_body">Type the passphrase this backup was made with.</string>
+    <string name="restore_open">Open backup</string>
+    <string name="restore_checking">Opening the backup…</string>
+    <string name="restore_wrong_passphrase">That passphrase doesn\'t open this backup</string>
+    <string name="restore_not_a_backup">This file isn\'t an Orbit backup. Choose the file Orbit saved, ending in .age.</string>
+    <string name="restore_damaged">This backup is damaged and can\'t be restored</string>
+    <string name="restore_newer_version">This backup was made by a newer version of Orbit. Update Orbit to restore it.</string>
+    <string name="restore_needs_memory">This backup needs more memory than this phone gives Orbit, so it can\'t be restored here.</string>
+    <string name="restore_unreadable">Orbit can\'t read this file</string>
+    <string name="restore_summary_title">Backup from %1$s</string>
+    <plurals name="restore_summary_people">
+        <item quantity="one">%1$s person</item>
+        <item quantity="other">%1$s people</item>
+    </plurals>
+    <plurals name="restore_summary_interactions">
+        <item quantity="one">%1$s interaction</item>
+        <item quantity="other">%1$s interactions</item>
+    </plurals>
+    <plurals name="restore_summary_photos">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
+    <string name="restore_summary_body">Everything in it replaces what\'s in Orbit now: people, photos, settings and the language.</string>
+    <string name="restore_replace_title">Replace everything in Orbit?</string>
+    <string name="restore_replace_body">Your %1$s people, their photos and your settings will be replaced by this backup from %2$s (%3$s people). This can\'t be undone.</string>
+    <string name="restore_replace_confirm">Replace</string>
+    <string name="restore_back_up_first">Back up current data first</string>
+    <string name="restore_confirm">Restore</string>
+    <string name="restore_progress">Restoring…</string>
+    <string name="restore_failed">Orbit couldn\'t restore this backup. Nothing on this phone has changed.</string>
+    <string name="restored_snackbar">Restored %1$s people</string>
 </resources>

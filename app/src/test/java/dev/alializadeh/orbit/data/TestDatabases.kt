@@ -1,11 +1,9 @@
 package dev.alializadeh.orbit.data
 
 import androidx.room3.Room
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.ring.Ring
 import java.io.File
-import kotlinx.coroutines.Dispatchers
 
 /**
  * Room on the plain JVM (no Robolectric, no emulator): the bundled SQLite driver's JVM artifact
@@ -24,10 +22,7 @@ object TestDatabases {
             .configured()
             .build()
 
-    private fun androidx.room3.RoomDatabase.Builder<OrbitDatabase>.configured() =
-        setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .addCallback(OrbitDatabase.SeedCallback)
+    private fun androidx.room3.RoomDatabase.Builder<OrbitDatabase>.configured() = orbitSetup()
 }
 
 /** A Ring for tests that only need People to have one (every Person sits in a Ring). */

@@ -119,6 +119,8 @@ tasks.withType<Test>().configureEach {
     // The age CLI interop test runs only when the CLI is available; make that an input so a run
     // with ORBIT_AGE_CLI set is never skipped as up to date after a run without it.
     inputs.property("orbitAgeCli", providers.environmentVariable("ORBIT_AGE_CLI").orElse(""))
+    // DatabaseMigrationTest reads the exported Room schemas.
+    inputs.dir(layout.projectDirectory.dir("schemas")).withPropertyName("roomSchemas").withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
@@ -156,9 +158,8 @@ dependencies {
 
     // Device-bound state (ADR 0006): a typed DataStore with a kotlinx-serialization JSON serializer.
     implementation(libs.androidx.datastore)
-    // Locked by ticket 11 for later slices (biometric: App lock; Coil: photos, with no network
-    // artifact). Declared now so the whole locked stack resolves together and the merged-manifest
-    // check (no INTERNET permission) covers them. R8 strips them until they're used.
+    // The phone's screen lock as the system prompt (lock/ScreenLock: the Backup passphrase now,
+    // App lock in slice 7), and Coil for photos (no network artifact).
     implementation(libs.androidx.biometric)
     implementation(libs.coil.compose)
 

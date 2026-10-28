@@ -1,8 +1,10 @@
 package dev.alializadeh.orbit.testing
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.ui.expressive.LocalStillMotion
 import dev.alializadeh.orbit.ui.theme.OrbitAppearance
 import dev.alializadeh.orbit.ui.theme.OrbitTheme
 import org.robolectric.RuntimeEnvironment
@@ -33,7 +35,10 @@ fun captureScreen(
     val qualifiers = if (tall) variant.qualifiers.replace(NIGHT_QUALIFIER, "-h1600dp$1") else variant.qualifiers
     RuntimeEnvironment.setQualifiers(qualifiers)
     captureRoboImage("src/test/screenshots/${screen}_${variant.id}.png") {
-        OrbitTheme(appearance = appearance, useLatinDigits = useLatinDigits, primaryCalendar = primaryCalendar) { content() }
+        OrbitTheme(appearance = appearance, useLatinDigits = useLatinDigits, primaryCalendar = primaryCalendar) {
+            // Endless animations as still frames, or the capture never goes idle.
+            CompositionLocalProvider(LocalStillMotion provides true) { content() }
+        }
     }
 }
 

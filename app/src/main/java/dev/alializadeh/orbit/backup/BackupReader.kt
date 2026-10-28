@@ -6,6 +6,7 @@ import java.io.OutputStream
 import java.security.MessageDigest
 import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
+import kage.Identity
 import kage.crypto.scrypt.ScryptIdentity
 import kage.errors.IncorrectIdentityException
 import kage.errors.InvalidIdentityException
@@ -17,7 +18,13 @@ import kotlinx.serialization.SerializationException
  * checks the manifest, the entry names, sizes and SHA-256 hashes, and refuses Backups from a newer
  * Orbit.
  */
-class BackupReader(private val currentDbSchemaVersion: Int) {
+class BackupReader(
+    private val currentDbSchemaVersion: Int,
+    /** How a typed passphrase becomes an age identity; tests swap it to simulate failures. */
+    private val identityFor: (passphrase: String) -> Identity = { passphrase ->
+        ScryptIdentity(passphrase.toByteArray(Charsets.UTF_8), BACKUP_MAX_READ_WORK_FACTOR)
+    },
+) {
 
     /**
      * Verifies the Backup in [input] with [passphrase] and returns its manifest. With [extractTo]
@@ -26,7 +33,7 @@ class BackupReader(private val currentDbSchemaVersion: Int) {
      * @throws BackupException if the Backup can't be opened or fails verification.
      */
     fun read(input: InputStream, passphrase: String, extractTo: File? = null): BackupManifest {
-        val identity = ScryptIdentity(passphrase.toByteArray(Charsets.UTF_8), BACKUP_MAX_READ_WORK_FACTOR)
+        val identity = identityFor(passphrase)
         try {
             AgeDecryptingInputStream(listOf(identity), input).use { plaintext ->
                 val manifest = readZip(ZipInputStream(plaintext), extractTo)
@@ -41,6 +48,8 @@ class BackupReader(private val currentDbSchemaVersion: Int) {
             throw e.cause.toBackupException()
         } catch (e: ZipException) {
             throw BackupException.NotABackup("Not a ZIP inside the age file", e)
+        } catch (e: OutOfMemoryError) {
+            throw BackupException.NeedsMoreMemory(e)
         }
     }
 
@@ -131,7 +140,15 @@ class BackupReader(private val currentDbSchemaVersion: Int) {
         return size to digest.digest().toHexString()
     }
 
-    private fun Throwable?.toBackupException(): BackupException = when (this) {
+    private fun Throwable?.toBackupException(): BackupException = when {
+        // scrypt's memory is Java heap: a cost above what this phone allows runs out of it.
+        this.causes().any { it is OutOfMemoryError } -> BackupException.NeedsMoreMemory(this)
+        else -> toBackupExceptionByType()
+    }
+
+    private fun Throwable?.causes(): Sequence<Throwable> = generateSequence(this) { it.cause }
+
+    private fun Throwable?.toBackupExceptionByType(): BackupException = when (this) {
         // The passphrase didn't unwrap the file key, or the file isn't for a passphrase.
         is InvalidIdentityException, is IncorrectIdentityException ->
             BackupException.WrongPassphrase(this)

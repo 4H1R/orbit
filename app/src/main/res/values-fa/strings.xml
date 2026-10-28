@@ -83,6 +83,7 @@
     <string name="welcome_primary_calendar">تقویم اصلی</string>
     <string name="welcome_latin_digits">استفاده از ارقام لاتین</string>
     <string name="welcome_continue">ادامه</string>
+    <string name="welcome_restore">بازیابی از پشتیبان</string>
 
     <!-- Settings -->
     <string name="settings_appearance_title">ظاهر</string>
@@ -389,10 +390,94 @@
     <string name="tag_merge_confirm">ادغام</string>
     <string name="tag_show_people">نمایش افراد</string>
 
-    <!-- TEMPORARY: slice 0 backup-format spike. Slice 5 replaces these. -->
-    <string name="settings_spike_backup_title">پشتیبان‌گیری (آزمایشی)</string>
-    <string name="settings_spike_backup_body">آزمایش موقت: یک پشتیبان رمزگذاری‌شده با عبارت عبور ثابت %1$s ذخیره می‌شود و سپس دوباره باز می‌شود تا بررسی شود.</string>
-    <string name="settings_spike_backup_running">در حال پشتیبان‌گیری…</string>
-    <string name="settings_spike_backup_verified">پشتیبان ذخیره و بررسی شد</string>
-    <string name="settings_spike_backup_failed">پشتیبان‌گیری ناموفق بود: %1$s</string>
+    <!-- تنظیمات ← پشتیبان، پشتیبان‌گیری، عبارت عبور، بازیابی (برش ۵) -->
+    <string name="common_not_now">فعلاً نه</string>
+    <string name="settings_backup_title">پشتیبان</string>
+    <string name="settings_backup_never">هنوز پشتیبانی گرفته نشده</string>
+    <string name="backup_now">پشتیبان‌گیری</string>
+    <string name="backup_nudge_last">آخرین پشتیبان: %1$s</string>
+    <string name="backup_nudge_never">هنوز پشتیبانی نگرفته‌اید</string>
+    <string name="backup_nudge_body">نسخه‌ای رمزگذاری‌شده از افراد، عکس‌ها و تنظیمات خود را جای امنی نگه دارید.</string>
+    <string name="backup_settings_restore">بازیابی</string>
+    <string name="backup_settings_restore_summary">همه‌چیز در Orbit با یک پشتیبان جایگزین می‌شود</string>
+    <string name="backup_settings_change_passphrase">تغییر عبارت عبور</string>
+    <string name="backup_settings_nudge_title">یادآوری پشتیبان‌گیری</string>
+    <string name="backup_settings_nudge_footer">کارتی در «پیش رو»، وقتی داده‌هایتان از آخرین پشتیبان تغییر کرده باشد.</string>
+    <plurals name="backup_nudge_interval_days">
+        <item quantity="one">پس از %1$s روز</item>
+        <item quantity="other">پس از %1$s روز</item>
+    </plurals>
+    <string name="backup_nudge_interval_off">خاموش</string>
+
+    <string name="passphrase_setup_title">یک عبارت عبور برای پشتیبان انتخاب کنید</string>
+    <string name="passphrase_setup_body">هر پشتیبان با این عبارت عبور رمزگذاری می‌شود. Orbit آن را روی این گوشی به خاطر می‌سپارد تا برای هر پشتیبان لازم نباشد واردش کنید، اما برای بازیابی روی گوشی دیگر به آن نیاز دارید.</string>
+    <string name="passphrase_new_title">تعیین عبارت عبور جدید</string>
+    <string name="passphrase_change_title">تغییر عبارت عبور</string>
+    <string name="passphrase_change_body">فقط پشتیبان‌های بعدی از عبارت عبور جدید استفاده می‌کنند. پشتیبان‌هایی که تا حالا گرفته‌اید همچنان با عبارت عبور قبلی باز می‌شوند.</string>
+    <string name="passphrase_field">عبارت عبور</string>
+    <string name="passphrase_current_field">عبارت عبور فعلی</string>
+    <string name="passphrase_new_field">عبارت عبور جدید</string>
+    <string name="passphrase_repeat_field">تکرار عبارت عبور</string>
+    <string name="passphrase_rule_length">دست‌کم ۱۲ نویسه</string>
+    <string name="passphrase_rule_ascii">فقط حروف انگلیسی، عدد و نماد</string>
+    <string name="passphrase_mismatch">دو عبارت عبور یکی نیستند</string>
+    <string name="passphrase_current_wrong">این عبارت عبور فعلی شما نیست</string>
+    <string name="passphrase_warning">اگر این عبارت عبور را فراموش کنید، هیچ‌کس نمی‌تواند پشتیبان‌هایتان را باز کند، حتی Orbit.</string>
+    <string name="passphrase_warning_ack">متوجه هستم</string>
+    <string name="passphrase_save">ذخیرهٔ عبارت عبور</string>
+    <string name="passphrase_show">نمایش عبارت عبور</string>
+    <string name="passphrase_hide">پنهان کردن عبارت عبور</string>
+    <string name="passphrase_changed_snackbar">عبارت عبور تغییر کرد</string>
+
+    <string name="passphrase_check_title">بررسی عبارت عبور</string>
+    <string name="passphrase_check_body">عبارت عبور پشتیبان را وارد کنید تا مطمئن شویم هنوز آن را به خاطر دارید</string>
+    <string name="passphrase_check_confirm">بررسی</string>
+    <string name="passphrase_check_wrong">این همان عبارت عبوری نیست که Orbit به خاطر دارد. پشتیبان شما همچنان با آن گرفته می‌شود.</string>
+    <string name="passphrase_check_show">نمایش عبارت عبور</string>
+    <string name="passphrase_check_set_new">تعیین عبارت جدید</string>
+    <string name="passphrase_check_back_up_anyway">پشتیبان‌گیری در هر صورت</string>
+    <string name="passphrase_check_revealed">عبارت عبور پشتیبان شما</string>
+    <string name="passphrase_unlock_show">برای دیدن عبارت عبور پشتیبان، قفل را باز کنید</string>
+    <string name="passphrase_unlock_new">برای تعیین عبارت عبور جدید، قفل را باز کنید</string>
+
+    <string name="backup_progress_writing">در حال پشتیبان‌گیری…</string>
+    <string name="backup_progress_verifying">در حال بررسی پشتیبان…</string>
+    <string name="backup_result_title">پشتیبان ذخیره و بررسی شد</string>
+    <string name="backed_up_result">از %1$s نفر و %2$s عکس پشتیبان گرفته شد</string>
+    <string name="backup_result_body">آن را جایی جز این گوشی نگه دارید، مثلاً روی رایانه یا فضای ابری.</string>
+    <string name="backup_failed_title">پشتیبان‌گیری ناموفق بود</string>
+    <string name="backup_failed_body">Orbit نتوانست پشتیبان را آن‌جا ذخیره کند، برای همین فایل نیمه‌کاره حذف شد. دوباره امتحان کنید یا جای دیگری را انتخاب کنید.</string>
+
+    <string name="restore_title">بازیابی از پشتیبان</string>
+    <string name="restore_passphrase_body">عبارت عبوری را وارد کنید که این پشتیبان با آن گرفته شده است.</string>
+    <string name="restore_open">باز کردن پشتیبان</string>
+    <string name="restore_checking">در حال باز کردن پشتیبان…</string>
+    <string name="restore_wrong_passphrase">این عبارت عبور این پشتیبان را باز نمی‌کند</string>
+    <string name="restore_not_a_backup">این فایل پشتیبان Orbit نیست. فایلی را انتخاب کنید که Orbit ذخیره کرده است (با پسوند age).</string>
+    <string name="restore_damaged">این پشتیبان آسیب دیده است و بازیابی نمی‌شود</string>
+    <string name="restore_newer_version">این پشتیبان با نسخهٔ جدیدتری از Orbit ساخته شده است. برای بازیابی، Orbit را به‌روز کنید.</string>
+    <string name="restore_needs_memory">این پشتیبان به حافظه‌ای بیش از آن‌چه این گوشی به Orbit می‌دهد نیاز دارد، برای همین این‌جا بازیابی نمی‌شود.</string>
+    <string name="restore_unreadable">Orbit نمی‌تواند این فایل را بخواند</string>
+    <string name="restore_summary_title">پشتیبانِ %1$s</string>
+    <plurals name="restore_summary_people">
+        <item quantity="one">%1$s نفر</item>
+        <item quantity="other">%1$s نفر</item>
+    </plurals>
+    <plurals name="restore_summary_interactions">
+        <item quantity="one">%1$s ارتباط</item>
+        <item quantity="other">%1$s ارتباط</item>
+    </plurals>
+    <plurals name="restore_summary_photos">
+        <item quantity="one">%1$s عکس</item>
+        <item quantity="other">%1$s عکس</item>
+    </plurals>
+    <string name="restore_summary_body">هرچه در آن است جای داده‌های فعلی Orbit را می‌گیرد: افراد، عکس‌ها، تنظیمات و زبان.</string>
+    <string name="restore_replace_title">همه‌چیز در Orbit جایگزین شود؟</string>
+    <string name="restore_replace_body">%1$s فرد فعلی، عکس‌هایشان و تنظیمات شما با این پشتیبانِ %2$s (%3$s نفر) جایگزین می‌شوند. این کار برگشت‌پذیر نیست.</string>
+    <string name="restore_replace_confirm">جایگزینی</string>
+    <string name="restore_back_up_first">اول از داده‌های فعلی پشتیبان بگیرید</string>
+    <string name="restore_confirm">بازیابی</string>
+    <string name="restore_progress">در حال بازیابی…</string>
+    <string name="restore_failed">Orbit نتوانست این پشتیبان را بازیابی کند. چیزی روی این گوشی تغییر نکرده است.</string>
+    <string name="restored_snackbar">%1$s نفر بازیابی شدند</string>
 </resources>

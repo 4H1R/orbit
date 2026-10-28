@@ -5,6 +5,7 @@ import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.TestDatabases
 import dev.alializadeh.orbit.data.insertTestRing
 import dev.alializadeh.orbit.person.Person
+import dev.alializadeh.orbit.testing.TestAppLocales
 import java.io.File
 import java.time.Clock
 import java.time.Instant
@@ -52,7 +53,9 @@ class AgeCliInteropTest {
         )
         database = TestDatabases.onDisk(File(temp.root, "orbit.db"))
         runBlocking {
-            database.personDao().insert(Person(name = "Sara", ringId = database.insertTestRing(), createdAt = Instant.EPOCH))
+            database.personDao().insert(
+                Person(name = "Sara", ringId = database.insertTestRing(), createdAt = Instant.EPOCH, photoFileName = PHOTO),
+            )
         }
     }
 
@@ -70,7 +73,10 @@ class AgeCliInteropTest {
                 file.getInputStream(file.getEntry(MANIFEST_ENTRY)).readBytes().decodeToString(),
             )
             val database = file.getInputStream(file.getEntry(DATABASE_ENTRY)).readBytes()
-            assertEquals(manifest.entries.single().sha256, database.sha256Hex())
+            assertEquals(manifest.entries.first { it.path == DATABASE_ENTRY }.sha256, database.sha256Hex())
+            // Photos are STORED entries; a standard ZIP reader gets them back byte for byte.
+            val photo = file.getInputStream(file.getEntry(PHOTOS_DIRECTORY + PHOTO)).readBytes()
+            assertEquals(PHOTO_BYTES.toList(), photo.toList())
         }
     }
 
@@ -86,7 +92,7 @@ class AgeCliInteropTest {
         val manifest = reencrypted.inputStream().use {
             BackupReader(OrbitDatabase.VERSION).read(it, PASSPHRASE)
         }
-        assertEquals(1, manifest.entries.size)
+        assertEquals(listOf(DATABASE_ENTRY, PHOTOS_DIRECTORY + PHOTO), manifest.entries.map(BackupEntry::path))
     }
 
     @Test
@@ -102,8 +108,12 @@ class AgeCliInteropTest {
             snapshotter = RoomDatabaseSnapshotter(database),
             clock = Clock.fixed(Instant.parse("2026-10-28T08:30:00Z"), ZoneOffset.UTC),
             appVersion = AppVersion("0.1.0", 1),
-            appLocales = { null },
+            appLocales = TestAppLocales(),
             workDir = temp.newFolder(),
+            photosDir = File(temp.root, "photos").apply {
+                mkdirs()
+                File(this, PHOTO).writeBytes(PHOTO_BYTES)
+            },
         )
         runBlocking { writer.write(file.outputStream(), PASSPHRASE) } // The real cost, logN 17.
         return file
@@ -133,6 +143,8 @@ class AgeCliInteropTest {
 
     private companion object {
         const val PASSPHRASE = "orbit interop passphrase"
+        const val PHOTO = "0b6f3c1e-photo.jpg"
+        val PHOTO_BYTES = ByteArray(5000) { (it * 31 % 251).toByte() }
 
         fun findAgeCli(): File? {
             System.getenv("ORBIT_AGE_CLI")?.takeIf(String::isNotBlank)?.let { path ->

@@ -135,7 +135,11 @@ class PreferencesRepositoryTest {
 
         val out = ByteArrayOutputStream()
         DeviceStateSerializer.writeTo(DeviceState(firstRunFinished = true), out)
-        assertEquals("""{"firstRunFinished":true,"lastInteractionType":"Call"}""", out.toString(Charsets.UTF_8))
+        assertEquals(
+            """{"firstRunFinished":true,"lastInteractionType":"Call","wrappedBackupPassphrase":null,"lastBackup":null,""" +
+                """"backupCount":0,"passphraseTypedAtBackupCount":0,"backupNudgeHiddenUntilEpochDay":null}""",
+            out.toString(Charsets.UTF_8),
+        )
     }
 
     @Test

@@ -6,6 +6,7 @@ import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.TestDatabases
 import dev.alializadeh.orbit.data.insertTestRing
 import dev.alializadeh.orbit.person.Person
+import dev.alializadeh.orbit.testing.TestAppLocales
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -59,8 +60,9 @@ class BackupRoundTripTest {
             snapshotter = RoomDatabaseSnapshotter(database),
             clock = Clock.fixed(now, ZoneOffset.UTC),
             appVersion = AppVersion(name = "0.1.0", code = 1),
-            appLocales = { "fa" },
+            appLocales = TestAppLocales("fa"),
             workDir = workDir,
+            photosDir = temp.newFolder("photos"),
         )
     }
 
@@ -77,7 +79,7 @@ class BackupRoundTripTest {
 
         val read = reader.read(backup.toByteArray().inputStream(), PASSPHRASE, extractTo = staging)
 
-        assertEquals(written, read)
+        assertEquals(written.manifest, read)
         assertEquals(
             BackupManifest(
                 backupFormat = BACKUP_FORMAT,
@@ -86,6 +88,9 @@ class BackupRoundTripTest {
                 appVersionCode = 1,
                 createdAt = now,
                 locale = "fa",
+                people = 2,
+                interactions = 0,
+                photos = 0,
                 entries = read.entries,
             ),
             read,
