@@ -21,6 +21,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +60,8 @@ fun PhotoCropScreen(
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onCancel)
-    var transform by remember(state) { mutableStateOf<CropTransform?>(null) }
+    // Saveable, so the pan and zoom are still there when App lock lets the user back in.
+    var transform by rememberSaveable(state, stateSaver = CropTransformSaver) { mutableStateOf<CropTransform?>(null) }
     Scaffold(
         modifier = modifier,
         containerColor = Color.Black,
@@ -170,3 +173,10 @@ private fun CropArea(
         }
     }
 }
+
+private val CropTransformSaver = Saver<CropTransform?, FloatArray>(
+    save = { transform ->
+        transform?.run { floatArrayOf(imageWidth.toFloat(), imageHeight.toFloat(), viewport, zoom, offsetX, offsetY) }
+    },
+    restore = { CropTransform(it[0].toInt(), it[1].toInt(), it[2], it[3], it[4], it[5]) },
+)

@@ -7,8 +7,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.ViewModelStoreProvider
+import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreProvider
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -130,12 +134,47 @@ fun rememberOrbitNavigator(): OrbitNavigator {
 }
 
 /**
- * The entries to draw, decorated per tab so each tab keeps its saved UI state and ViewModels while
- * another tab is shown. Upcoming's entries sit under the current tab's, so back from a tab root
- * reveals Upcoming (with predictive back).
+ * Each tab's entry state: the saved UI state ([rememberSaveable], scroll positions) and the
+ * ViewModels of every entry on its back stack. An entry's state goes when it's popped, never just
+ * because it isn't composed.
+ *
+ * App lock's gate ([dev.alializadeh.orbit.lock.AppLockGate]) holds this above the content it takes
+ * out of composition while locked. Navigation 3's own holders can't be left inside that content:
+ * `rememberViewModelStoreNavEntryDecorator()` clears every entry's ViewModels when it leaves
+ * composition (anything but the activity being destroyed), which would throw away an unsaved form.
+ */
+@Stable
+class NavEntryStates internal constructor(
+    private val saveableStates: Map<TopLevelTab, SaveableStateHolder>,
+    private val viewModelStores: Map<TopLevelTab, ViewModelStoreProvider>,
+) {
+    internal fun saveableState(tab: TopLevelTab): SaveableStateHolder = saveableStates.getValue(tab)
+
+    internal fun viewModelStore(tab: TopLevelTab): ViewModelStoreProvider = viewModelStores.getValue(tab)
+}
+
+/**
+ * Remembers [NavEntryStates] where it's called; it lasts as long as that stays composed (and over
+ * configuration changes: the ViewModels are kept in the activity's store, the saved state in its
+ * saved instance state).
+ */
+@Composable
+fun rememberNavEntryStates(): NavEntryStates {
+    val saveableStates = TopLevelTab.entries.associateWith { tab -> key(tab) { rememberSaveableStateHolder() } }
+    val viewModelStores = TopLevelTab.entries.associateWith { tab ->
+        key(tab) { rememberViewModelStoreProvider(key = "orbit.entries.${tab.name}") }
+    }
+    return remember(saveableStates, viewModelStores) { NavEntryStates(saveableStates, viewModelStores) }
+}
+
+/**
+ * The entries to draw, decorated per tab with [states] so each tab keeps its saved UI state and
+ * ViewModels while another tab is shown, or while nothing is (App lock). Upcoming's entries sit
+ * under the current tab's, so back from a tab root reveals Upcoming (with predictive back).
  */
 @Composable
 fun OrbitNavigator.rememberEntries(
+    states: NavEntryStates,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
 ): List<NavEntry<NavKey>> {
     val entriesByTab = TopLevelTab.entries.associateWith { tab ->
@@ -143,8 +182,8 @@ fun OrbitNavigator.rememberEntries(
             rememberDecoratedNavEntries(
                 backStack = backStack(tab),
                 entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
+                    rememberSaveableStateHolderNavEntryDecorator(states.saveableState(tab)),
+                    rememberViewModelStoreNavEntryDecorator(states.viewModelStore(tab)),
                 ),
                 entryProvider = entryProvider,
             )

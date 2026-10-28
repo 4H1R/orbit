@@ -34,6 +34,7 @@ class TabStateTest {
         var current: Probe? = null
         composeRule.setContent {
             val entries = navigator.rememberEntries(
+                rememberNavEntryStates(),
                 entryProvider {
                     entry<UpcomingKey> {}
                     entry<PeopleKey> { current = viewModel<Probe>() }

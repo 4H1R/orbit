@@ -300,10 +300,15 @@ private fun FocusEffect(
     onPhoto: () -> Unit,
 ) {
     val target = uiState.focus
+    // Not again when the form comes back after App lock (the crop screen may be over it).
+    var nameFocused by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(uiState.isLoading, target) {
         if (uiState.isLoading) return@LaunchedEffect
         when {
-            target == null -> if (uiState.isNew) runCatching { focus.requester(null).requestFocus() }
+            target == null -> if (uiState.isNew && !nameFocused) {
+                nameFocused = true
+                runCatching { focus.requester(null).requestFocus() }
+            }
             target == PersonField.Photo -> onPhoto()
             else -> {
                 if (target == PersonField.ContactMethods && uiState.contacts.isEmpty()) actions.addContact()

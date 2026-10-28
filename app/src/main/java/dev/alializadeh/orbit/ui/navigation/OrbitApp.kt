@@ -96,6 +96,8 @@ import dev.alializadeh.orbit.upcoming.UpcomingRoute
  */
 @Composable
 fun OrbitApp(
+    /** From App lock's gate, so every screen's state outlives a lock (see [NavEntryStates]). */
+    entryStates: NavEntryStates,
     resetNoticePending: Boolean = false,
     onResetNoticeShown: () -> Unit = {},
     navigator: OrbitNavigator = rememberOrbitNavigator(),
@@ -146,6 +148,7 @@ fun OrbitApp(
         onResetNoticeShown()
     }
     val entries = navigator.rememberEntries(
+        entryStates,
         entryProvider {
             entry<UpcomingKey> {
                 UpcomingRoute(

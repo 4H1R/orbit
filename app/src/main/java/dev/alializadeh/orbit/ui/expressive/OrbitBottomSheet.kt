@@ -8,6 +8,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import kotlinx.coroutines.launch
 
 /** What an [OrbitBottomSheet]'s content can do: close the sheet with its slide-out animation. */
@@ -34,10 +35,15 @@ fun OrbitBottomSheet(
             then()
         }
     }
+    // The sheet is its own window: without a holder out here, its content's saveable state (a typed
+    // note) would be lost when the screen under it leaves composition (App lock).
+    val saved = rememberSaveableStateHolder()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state) {
-        content(closer)
+        saved.SaveableStateProvider(SHEET_CONTENT) { content(closer) }
     }
 }
+
+private const val SHEET_CONTENT = "sheet"
 
 /**
  * A modal bottom sheet the user can't swipe, tap or back away: for blocking progress (a Backup

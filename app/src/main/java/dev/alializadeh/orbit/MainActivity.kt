@@ -10,16 +10,10 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +22,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.alializadeh.orbit.firstrun.FirstRunRoute
 import dev.alializadeh.orbit.lock.AppLock
+import dev.alializadeh.orbit.lock.AppLockGate
 import dev.alializadeh.orbit.lock.AppLockState
 import dev.alializadeh.orbit.lock.LockedRoute
 import dev.alializadeh.orbit.reminders.NotificationEntries
@@ -84,9 +79,6 @@ class MainActivity : AppCompatActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
-            // What's behind the gate leaves composition while locked; this keeps its saved state
-            // (back stacks, scroll positions), and its ViewModels stay with the activity.
-            val behindTheGate = rememberSaveableStateHolder()
             OrbitTheme(
                 appearance = ready.appearance,
                 useLatinDigits = ready.useLatinDigits,
@@ -95,22 +87,19 @@ class MainActivity : AppCompatActivity() {
             ) {
                 // "Remove animations" stills every endless animation (and the Orbit view's motion).
                 CompositionLocalProvider(LocalStillMotion provides rememberAnimationsRemoved()) {
-                    if (lock.state == AppLockState.Locked) {
-                        LockedRoute(appLock, lock.arrival)
-                    } else if (lock.state == AppLockState.Deciding) {
-                        // Until the picker's result says whether that's why Orbit is back.
-                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-                    } else {
-                        behindTheGate.SaveableStateProvider(GATED_CONTENT) {
-                            // A notification tap waits in NotificationEntries until OrbitApp takes it.
-                            if (ready.firstRunFinished) {
-                                OrbitApp(
-                                    resetNoticePending = ready.resetNoticePending,
-                                    onResetNoticeShown = viewModel::resetNoticeShown,
-                                )
-                            } else {
-                                FirstRunRoute()
-                            }
+                    AppLockGate(
+                        state = lock.state,
+                        locked = { LockedRoute(appLock, lock.arrival) },
+                    ) { entryStates ->
+                        // A notification tap waits in NotificationEntries until OrbitApp takes it.
+                        if (ready.firstRunFinished) {
+                            OrbitApp(
+                                entryStates = entryStates,
+                                resetNoticePending = ready.resetNoticePending,
+                                onResetNoticeShown = viewModel::resetNoticeShown,
+                            )
+                        } else {
+                            FirstRunRoute()
                         }
                     }
                 }
@@ -203,9 +192,5 @@ class MainActivity : AppCompatActivity() {
     private fun offerEntry(intent: Intent?) {
         if (intent == null || (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return
         NotificationEntry.of(intent)?.let(notificationEntries::offer)
-    }
-
-    private companion object {
-        const val GATED_CONTENT = "orbit"
     }
 }
