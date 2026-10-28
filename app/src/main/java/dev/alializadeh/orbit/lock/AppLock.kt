@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.PowerManager
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import dagger.Binds
@@ -43,14 +44,6 @@ class AndroidScreenLockStatus @Inject constructor(
 }
 
 /**
- * The activity that hosts Orbit: told just before Orbit covers itself with its own picker or the
- * screen-lock prompt, which App lock doesn't count as leaving.
- */
-fun interface OwnActivityHost {
-    fun onOwnActivity()
-}
-
-/**
  * App lock for the whole process: [AppLockMachine] fed with the stored settings, the host
  * activity's stops and starts, screen-off, the screen lock's presence, and unlocks. All on the
  * main thread. `MainActivity` draws the locked screen while [status] is [AppLockState.Locked].
@@ -62,7 +55,7 @@ class AppLock @Inject constructor(
     private val screenLock: ScreenLockStatus,
     @ApplicationScope scope: CoroutineScope,
 ) {
-    private val machine = AppLockMachine(SystemClock::elapsedRealtime)
+    private val machine = AppLockMachine(SystemClock::elapsedRealtime, SystemClock::uptimeMillis)
     private val mutableStatus = MutableStateFlow(machine.status)
     private var autoPromptedArrival = 0
 
@@ -85,9 +78,11 @@ class AppLock @Inject constructor(
 
     /** Listens for the screen going off (it ends the picker exemption). Once, from the Application. */
     fun start() {
+        val power = context.getSystemService(PowerManager::class.java)
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                machine.onScreenOff()
+                // Android 14+ holds broadcasts for a cached process: the screen may be on again.
+                machine.onScreenOff(screenIsOn = power?.isInteractive == true)
                 publish()
             }
         }
@@ -105,14 +100,33 @@ class AppLock @Inject constructor(
         publish()
     }
 
+    /** The host activity resumed: a return no picker result has claimed is decided now. */
+    fun onResumed() {
+        machine.onResumed()
+        publish()
+    }
+
+    /** The host activity got a new intent (the launcher, a notification): not a picker's return. */
+    fun onNewIntent() {
+        machine.onNewIntent()
+        publish()
+    }
+
     /** The host activity stopped, not for a configuration change. */
     fun onBackground() {
         machine.onBackground()
         publish()
     }
 
-    fun onOwnActivity() {
-        machine.onOwnActivity()
+    /** Orbit is about to launch its own picker for a result (photo, Backup Save/Open). */
+    fun onPickerLaunched(requestCode: Int) {
+        machine.onPickerLaunched(requestCode)
+    }
+
+    /** A result for [requestCode] reached the host activity. */
+    fun onPickerResult(requestCode: Int) {
+        machine.onPickerResult(requestCode)
+        publish()
     }
 
     fun onUnlocked() {

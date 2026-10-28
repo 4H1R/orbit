@@ -3,7 +3,6 @@ package dev.alializadeh.orbit.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
-import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStoreFile
 import androidx.room3.Room
 import dagger.Binds
@@ -14,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.backup.BackupStatusDao
 import dev.alializadeh.orbit.interaction.InteractionDao
+import dev.alializadeh.orbit.lock.hasSecureScreenLock
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.person.TagDao
 import dev.alializadeh.orbit.ring.RingDao
@@ -52,7 +52,7 @@ object DatabaseModule {
     fun provideDeviceStateStore(@ApplicationContext context: Context): DataStore<DeviceState> =
         DataStoreFactory.create(
             serializer = DeviceStateSerializer,
-            corruptionHandler = ReplaceFileCorruptionHandler { DeviceState() },
+            corruptionHandler = DeviceStateSerializer.corruptionHandler { context.hasSecureScreenLock() },
             produceFile = { context.dataStoreFile(DeviceStateSerializer.FILE_NAME) },
         )
 }

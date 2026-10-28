@@ -25,9 +25,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Orbit">
 
+        <!-- singleTask: opening Orbit from the launcher while one of its pickers is open closes the
+             picker and delivers a new intent, so App lock judges that return as time away (only a
+             picker's own result keeps the picker exemption). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.Orbit.Starting"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -35,6 +39,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Notification taps (Person detail, Upcoming's Due) come only through this alias, which
+             other apps can't start; MainActivity ignores entries sent to it directly. -->
+        <activity-alias
+            android:name=".OpenFromNotification"
+            android:exported="false"
+            android:targetActivity=".MainActivity" />
 
         <!-- Reminders: the alarm, the system events that lose or move it, and notification actions.
              None is exported: the alarm and actions are Orbit's own PendingIntents, and the system

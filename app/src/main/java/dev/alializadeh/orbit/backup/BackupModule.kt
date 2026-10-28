@@ -1,7 +1,6 @@
 package dev.alializadeh.orbit.backup
 
 import android.content.Context
-import android.util.Log
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -11,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.Multibinds
 import dev.alializadeh.orbit.AppLocales
 import dev.alializadeh.orbit.AppVersion
+import dev.alializadeh.orbit.OrbitLog
 import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.person.photo.FilesPhotoStore
@@ -67,7 +67,7 @@ object BackupModule {
         stagedDatabaseCheck = stagedDatabaseCheck,
         workDir = File(context.noBackupFilesDir, "restore"),
         photosDir = File(context.filesDir, FilesPhotoStore.DIRECTORY),
-        log = { Log.w("OrbitRestore", it) },
+        log = { OrbitLog.w("OrbitRestore", it) },
     )
 }
 

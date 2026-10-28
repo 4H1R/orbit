@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.data
 
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import dev.alializadeh.orbit.interaction.InteractionType
 import dev.alializadeh.orbit.lock.AppLockSettings
 import dev.alializadeh.orbit.reminders.NotificationState
@@ -55,6 +56,11 @@ data class DeviceState(
      * preferences and Rings instead of storing the Welcome choices.
      */
     val restoredDuringFirstRun: Boolean = false,
+    /**
+     * The device-state file was unreadable and replaced ([DeviceStateSerializer.replacement]): the
+     * app shell tells the user once to check App lock and the Backup passphrase, then clears it.
+     */
+    val resetNoticePending: Boolean = false,
 )
 
 /**
@@ -90,6 +96,17 @@ object DeviceStateSerializer : Serializer<DeviceState> {
     override suspend fun writeTo(t: DeviceState, output: OutputStream) {
         output.write(json.encodeToString(DeviceState.serializer(), t).encodeToByteArray())
     }
+
+    /**
+     * What an unreadable file is replaced with. It fails safe: App lock comes back on (default
+     * re-lock) when the phone has a secure screen lock, rather than silently off, and the user is
+     * told once that App lock and the remembered Backup passphrase (gone with the file) need a look.
+     */
+    fun replacement(hasSecureScreenLock: Boolean): DeviceState =
+        DeviceState(appLock = AppLockSettings(enabled = hasSecureScreenLock), resetNoticePending = true)
+
+    fun corruptionHandler(hasSecureScreenLock: () -> Boolean): ReplaceFileCorruptionHandler<DeviceState> =
+        ReplaceFileCorruptionHandler { replacement(hasSecureScreenLock()) }
 
     const val FILE_NAME = "device_state.json"
 }

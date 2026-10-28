@@ -265,8 +265,13 @@ class NotificationTextsTest {
     @Test
     fun entriesAndActionsRoundTripThroughTheirIntents() {
         val context = RuntimeEnvironment.getApplication()
+        val intents = NotificationIntents(context)
         for (entry in listOf(NotificationEntry.PersonDetail(42), NotificationEntry.UpcomingDue)) {
-            assertEquals(entry, NotificationEntry.of(android.content.Intent(android.content.Intent.ACTION_VIEW, entry.uri)))
+            assertEquals(entry, NotificationEntry.of(intents.openIntent(entry)))
+            // Review finding 8: another app can start the exported MainActivity, but not with an entry.
+            val direct = android.content.Intent(android.content.Intent.ACTION_VIEW, entry.uri)
+            assertNull(NotificationEntry.of(direct))
+            assertNull(NotificationEntry.of(direct.setClass(context, dev.alializadeh.orbit.MainActivity::class.java)))
         }
         assertNull(NotificationEntry.of(android.content.Intent(context, dev.alializadeh.orbit.MainActivity::class.java)))
         for (key in listOf(NotificationKey.Digest, NotificationKey.DateReminder(7))) {

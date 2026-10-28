@@ -1,6 +1,5 @@
 package dev.alializadeh.orbit.backup
 
-import android.util.Log
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
@@ -10,6 +9,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.ApplicationScope
+import dev.alializadeh.orbit.OrbitLog
 import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
@@ -135,10 +135,10 @@ class RestoreViewModel @AssistedInject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: BackupException) {
-                Log.i(TAG, "Can't stage the backup", e)
+                OrbitLog.i(TAG, "Can't stage the backup", e)
                 Step.Passphrase(e.toRestoreError())
             } catch (e: IOException) {
-                Log.i(TAG, "Can't read the backup", e)
+                OrbitLog.i(TAG, "Can't read the backup", e)
                 Step.Passphrase(RestoreError.Unreadable)
             } catch (e: OutOfMemoryError) {
                 Step.Passphrase(RestoreError.NeedsMoreMemory)
@@ -157,7 +157,7 @@ class RestoreViewModel @AssistedInject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w(TAG, "Restore failed", e)
+                OrbitLog.w(TAG, "Restore failed", e)
                 Step.Staged(staged, RestoreError.RestoreFailed)
             }
         }

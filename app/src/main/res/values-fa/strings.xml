@@ -440,6 +440,8 @@
 
     <!-- تنظیمات ← پشتیبان، پشتیبان‌گیری، عبارت عبور، بازیابی (برش ۵) -->
     <string name="common_not_now">فعلاً نه</string>
+    <string name="common_ok">تأیید</string>
+    <string name="device_state_reset_snackbar">تنظیمات Orbit بازنشانی شد. قفل برنامه و عبارت عبور پشتیبان را بررسی کنید.</string>
     <string name="settings_backup_title">پشتیبان</string>
     <string name="settings_backup_never">هنوز پشتیبانی گرفته نشده</string>
     <string name="backup_now">پشتیبان‌گیری</string>

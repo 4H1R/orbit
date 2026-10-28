@@ -6,13 +6,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.ApplicationScope
+import dev.alializadeh.orbit.OrbitLog
 import dev.alializadeh.orbit.due.SnoozeDuration
 import dev.alializadeh.orbit.interaction.InteractionRepository
 import dev.alializadeh.orbit.person.PersonRepository
@@ -163,7 +163,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
             } catch (e: RuntimeException) {
                 // The Person was deleted since the notification was posted.
-                Log.w(TAG, "Notification action for a Person who's gone", e)
+                OrbitLog.w(TAG, "Notification action for a Person who's gone", e)
             }
             app.reconciler().reconcile()
         }
@@ -177,7 +177,7 @@ private fun BroadcastReceiver.runAsync(scope: CoroutineScope, block: suspend () 
         try {
             withTimeout(RECEIVER_BUDGET_MILLIS) { block() }
         } catch (e: Exception) {
-            Log.w(TAG, "Reminder work failed", e)
+            OrbitLog.w(TAG, "Reminder work failed", e)
         } finally {
             pending.finish()
         }

@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -95,6 +96,8 @@ import dev.alializadeh.orbit.upcoming.UpcomingRoute
  */
 @Composable
 fun OrbitApp(
+    resetNoticePending: Boolean = false,
+    onResetNoticeShown: () -> Unit = {},
     navigator: OrbitNavigator = rememberOrbitNavigator(),
     backup: BackupViewModel = hiltViewModel(),
     entries: NotificationEntryViewModel = hiltViewModel(),
@@ -130,6 +133,17 @@ fun OrbitApp(
             resources.getQuantityString(R.plurals.restored_snackbar, people, numbers.format(people)),
         )
         backup.consumeRestored()
+    }
+    // The device-state file was unreadable and replaced (App lock back on where possible, the
+    // remembered passphrase gone): told once, until the user acknowledges or another snackbar.
+    LaunchedEffect(resetNoticePending) {
+        if (!resetNoticePending) return@LaunchedEffect
+        snackbars.hostState.showSnackbar(
+            message = resources.getString(R.string.device_state_reset_snackbar),
+            actionLabel = resources.getString(R.string.common_ok),
+            duration = SnackbarDuration.Indefinite,
+        )
+        onResetNoticeShown()
     }
     val entries = navigator.rememberEntries(
         entryProvider {

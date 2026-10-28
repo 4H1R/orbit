@@ -8,9 +8,17 @@ import org.junit.Test
 /** Every rule of when App lock locks, on a fake elapsed-realtime clock. */
 class AppLockMachineTest {
 
-    /** Elapsed realtime: the only clock the machine has. */
+    /** Elapsed realtime: the machine's clock. */
     private var elapsed = 1_000_000L
-    private val machine = AppLockMachine { elapsed }
+
+    /** Uptime: stands still while the phone is in deep sleep (screen off). */
+    private var uptime = 900_000L
+    private val machine = AppLockMachine(elapsedRealtime = { elapsed }, uptime = { uptime })
+
+    private fun pass(millis: Long) {
+        elapsed += millis
+        uptime += millis
+    }
 
     private fun on(relockAfter: RelockAfter = RelockAfter.OneMinute) =
         AppLockSettings(enabled = true, relockAfter = relockAfter)
@@ -23,11 +31,14 @@ class AppLockMachineTest {
         assertEquals(AppLockState.Unlocked, machine.state)
     }
 
+    /** Time away; [ownActivity]: on Orbit's own picker, which returns its result to bring Orbit back. */
     private fun away(millis: Long, ownActivity: Boolean = false) {
-        if (ownActivity) machine.onOwnActivity()
+        if (ownActivity) machine.onPickerLaunched(PICKER)
         machine.onBackground()
-        elapsed += millis
+        pass(millis)
         machine.onForeground(hasScreenLock = true)
+        if (ownActivity) machine.onPickerResult(PICKER)
+        machine.onResumed()
     }
 
     @Test
@@ -117,28 +128,196 @@ class AppLockMachineTest {
     @Test
     fun theScreenGoingOffOverAPickerStartsTheTimeAway() {
         unlockedWith(RelockAfter.OneMinute)
-        machine.onOwnActivity()
+        machine.onPickerLaunched(PICKER)
         machine.onBackground()
         elapsed += 30_000
         machine.onScreenOff()
         elapsed += 50_000
         machine.onForeground(hasScreenLock = true)
+        machine.onPickerResult(PICKER)
+        machine.onResumed()
         assertEquals(AppLockState.Unlocked, machine.state) // 50 s since screen-off
-        machine.onOwnActivity()
+        machine.onPickerLaunched(PICKER)
         machine.onBackground()
         machine.onScreenOff()
         elapsed += 61_000
         machine.onForeground(hasScreenLock = true)
+        machine.onPickerResult(PICKER)
         assertEquals(AppLockState.Locked, machine.state)
     }
 
     @Test
     fun aPickerAnnouncedLongBeforeLeavingDoesNotExemptIt() {
         unlockedWith(RelockAfter.Immediately)
-        machine.onOwnActivity()
-        elapsed += OWN_ACTIVITY_WINDOW_MILLIS + 1
+        machine.onPickerLaunched(PICKER)
+        pass(OWN_ACTIVITY_WINDOW_MILLIS + 1)
+        machine.onBackground()
+        pass(1_000)
+        machine.onForeground(hasScreenLock = true)
+        machine.onPickerResult(PICKER)
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    /** Review finding 1: the unlock's prompt never arms the exemption, and an unlock ends one. */
+    @Test
+    fun leavingRightAfterAnUnlockLocks() {
+        unlockedWith(RelockAfter.Immediately)
+        // Home (or Call) within seconds of unlocking.
         away(1_000)
         assertEquals(AppLockState.Locked, machine.state)
+
+        machine.onPickerLaunched(PICKER)
+        machine.onUnlocked()
+        away(1_000)
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    /** Review finding 2: only the picker's own result brings Orbit back without the gate. */
+    @Test
+    fun aPickerReturnWaitsForItsResult() {
+        unlockedWith(RelockAfter.Immediately)
+        machine.onPickerLaunched(PICKER)
+        machine.onBackground()
+        pass(20_000)
+        machine.onForeground(hasScreenLock = true)
+        // Between onStart and onResume: nothing is drawn, and no prompt yet.
+        assertEquals(AppLockState.Deciding, machine.state)
+        machine.onPickerResult(PICKER)
+        assertEquals(AppLockState.Deciding, machine.state)
+        machine.onResumed()
+        assertEquals(AppLockState.Unlocked, machine.state)
+    }
+
+    @Test
+    fun aCancelledPickerIsStillItsReturn() {
+        // A cancel comes back as a result too, like a pick.
+        unlockedWith(RelockAfter.Immediately)
+        away(5_000, ownActivity = true)
+        assertEquals(AppLockState.Unlocked, machine.state)
+    }
+
+    @Test
+    fun backWithoutThePickersResultIsTimeAway() {
+        // The picker, then Home; Orbit back some other way: no result before onResume.
+        unlockedWith(RelockAfter.Immediately)
+        val before = machine.arrival
+        machine.onPickerLaunched(PICKER)
+        machine.onBackground()
+        pass(20_000)
+        machine.onForeground(hasScreenLock = true)
+        machine.onResumed()
+        assertEquals(AppLockState.Locked, machine.state)
+        assertEquals(before + 1, machine.arrival)
+    }
+
+    @Test
+    fun theLauncherOrANotificationWhileAPickerIsOpenIsTimeAway() {
+        // singleTask: the launcher (or a notification tap) closes the picker, whose cancel still
+        // comes back as a result, and delivers a new intent. On Android 15 the order is onStart,
+        // the result, the new intent, onResume; any order must lock.
+        val orders = listOf(
+            listOf("intent", "start", "result"),
+            listOf("start", "intent", "result"),
+            listOf("start", "result", "intent"),
+        )
+        for (order in orders) {
+            unlockedWith(RelockAfter.Immediately)
+            machine.onPickerLaunched(PICKER)
+            machine.onBackground()
+            pass(20_000)
+            for (event in order) {
+                when (event) {
+                    "intent" -> machine.onNewIntent()
+                    "start" -> machine.onForeground(hasScreenLock = true)
+                    else -> machine.onPickerResult(PICKER)
+                }
+            }
+            machine.onResumed()
+            assertEquals(order.toString(), AppLockState.Locked, machine.state)
+        }
+    }
+
+    @Test
+    fun anotherRequestsResultIsNotThePickersReturn() {
+        unlockedWith(RelockAfter.Immediately)
+        machine.onPickerLaunched(PICKER)
+        machine.onBackground()
+        pass(20_000)
+        machine.onForeground(hasScreenLock = true)
+        machine.onPickerResult(PICKER + 1)
+        assertEquals(AppLockState.Deciding, machine.state)
+        machine.onResumed()
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    @Test
+    fun stoppedAgainWhileDecidingIsTimeAway() {
+        unlockedWith(RelockAfter.Immediately)
+        machine.onPickerLaunched(PICKER)
+        machine.onBackground()
+        pass(20_000)
+        machine.onForeground(hasScreenLock = true)
+        machine.onBackground()
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    /** Review finding 4: a screen-off broadcast held back for a cached process still counts. */
+    @Test
+    fun aLateScreenOffUndoesThePickerExemption() {
+        unlockedWith(RelockAfter.OneMinute)
+        away(3 * 60_000, ownActivity = true)
+        assertEquals(AppLockState.Unlocked, machine.state)
+        // Delivered once Orbit is back, with the screen on again.
+        machine.onScreenOff(screenIsOn = true)
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    @Test
+    fun aLateScreenOffAfterAShortPickerTripKeepsTheGrace() {
+        unlockedWith(RelockAfter.OneMinute)
+        away(30_000, ownActivity = true)
+        machine.onScreenOff(screenIsOn = true)
+        assertEquals(AppLockState.Unlocked, machine.state) // within the minute anyway
+    }
+
+    @Test
+    fun aLateScreenOffWhileDecidingEndsTheExemption() {
+        unlockedWith(RelockAfter.Immediately)
+        machine.onPickerLaunched(PICKER)
+        machine.onBackground()
+        pass(20_000)
+        machine.onForeground(hasScreenLock = true)
+        machine.onScreenOff(screenIsOn = true)
+        machine.onPickerResult(PICKER)
+        machine.onResumed()
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    @Test
+    fun deepSleepOnAPickerMeansTheScreenWasOff() {
+        // No broadcast at all, but uptime stood still: the phone slept, so the screen was off.
+        unlockedWith(RelockAfter.Immediately)
+        machine.onPickerLaunched(PICKER)
+        machine.onBackground()
+        pass(10_000)
+        elapsed += 60_000 // asleep
+        pass(5_000)
+        machine.onForeground(hasScreenLock = true)
+        machine.onPickerResult(PICKER)
+        assertEquals(AppLockState.Locked, machine.state)
+    }
+
+    @Test
+    fun aScreenOffNowInTheForegroundWaitsForTheStop() {
+        // The screen is going off now: the activity stops next, and that time away is judged then.
+        unlockedWith(RelockAfter.OneMinute)
+        away(3 * 60_000, ownActivity = true)
+        machine.onScreenOff(screenIsOn = false)
+        assertEquals(AppLockState.Unlocked, machine.state)
+        machine.onBackground()
+        pass(30_000)
+        machine.onForeground(hasScreenLock = true)
+        assertEquals(AppLockState.Unlocked, machine.state)
     }
 
     @Test
@@ -216,5 +395,9 @@ class AppLockMachineTest {
         away(0)
         machine.onForeground(hasScreenLock = true)
         assertEquals(first + 1, machine.arrival)
+    }
+
+    private companion object {
+        const val PICKER = 7
     }
 }

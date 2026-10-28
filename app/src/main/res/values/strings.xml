@@ -469,6 +469,8 @@
 
     <!-- Settings → Backup, Back up now, the passphrase, Restore (slice 5) -->
     <string name="common_not_now">Not now</string>
+    <string name="common_ok">OK</string>
+    <string name="device_state_reset_snackbar">Orbit\'s settings were reset. Check app lock and your backup passphrase.</string>
     <string name="settings_backup_title">Backup</string>
     <string name="settings_backup_never">No backup yet</string>
     <string name="backup_now">Back up now</string>

@@ -68,9 +68,8 @@ class ScreenLockPrompt(private val activity: FragmentActivity) {
             }
             // onAuthenticationFailed is one rejected attempt; the prompt stays up for another.
         }
+        // A system window on Android 12+: Orbit only pauses under it, so App lock needs no exemption.
         val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback)
-        // The prompt covers Orbit; App lock doesn't count that as leaving.
-        (activity as? OwnActivityHost)?.onOwnActivity()
         prompt.authenticate(
             BiometricPrompt.PromptInfo.Builder()
                 .setTitle(title)

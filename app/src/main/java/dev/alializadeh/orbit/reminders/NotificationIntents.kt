@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
-import dev.alializadeh.orbit.MainActivity
 import dev.alializadeh.orbit.person.contact.ContactAction
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,7 +12,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Where tapping a notification takes the user, carried in the activity intent's data. */
+/**
+ * Where tapping a notification takes the user, carried in the activity intent's data. Only an
+ * intent to the non-exported [NotificationIntents.OPEN_FROM_NOTIFICATION] alias counts: other apps
+ * can start the exported `MainActivity`, but never with an entry.
+ */
 sealed interface NotificationEntry {
     val uri: Uri
 
@@ -33,9 +36,10 @@ sealed interface NotificationEntry {
         private const val UPCOMING = "upcoming"
         private const val DUE = "due"
 
-        /** The entry [intent] asks for, or null when it's a plain launch. */
+        /** The entry [intent] asks for, or null when it's a plain launch or not Orbit's own. */
         fun of(intent: Intent?): NotificationEntry? {
-            val data = intent?.data ?: return null
+            if (intent?.component?.className != NotificationIntents.OPEN_FROM_NOTIFICATION) return null
+            val data = intent.data ?: return null
             if (data.scheme != SCHEME) return null
             return when (data.host) {
                 PERSON -> data.lastPathSegment?.toLongOrNull()?.let(::PersonDetail)
@@ -120,15 +124,14 @@ data class NotificationActionTarget(
  */
 class NotificationIntents(private val context: Context) {
 
-    fun open(entry: NotificationEntry): PendingIntent = PendingIntent.getActivity(
-        context,
-        0,
-        Intent(context, MainActivity::class.java)
-            .setAction(Intent.ACTION_VIEW)
-            .setData(entry.uri)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-        FLAGS,
-    )
+    fun open(entry: NotificationEntry): PendingIntent = PendingIntent.getActivity(context, 0, openIntent(entry), FLAGS)
+
+    /** `MainActivity` through its non-exported alias, which only Orbit itself can start. */
+    fun openIntent(entry: NotificationEntry): Intent = Intent()
+        .setClassName(context, OPEN_FROM_NOTIFICATION)
+        .setAction(Intent.ACTION_VIEW)
+        .setData(entry.uri)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
     /** The dialer or messenger, straight from the notification; logs nothing. */
     fun contact(action: ContactAction): PendingIntent = PendingIntent.getActivity(
@@ -145,7 +148,10 @@ class NotificationIntents(private val context: Context) {
         FLAGS,
     )
 
-    private companion object {
-        const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+    companion object {
+        /** The manifest's non-exported `activity-alias` for `MainActivity`. */
+        const val OPEN_FROM_NOTIFICATION = "dev.alializadeh.orbit.OpenFromNotification"
+
+        private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     }
 }

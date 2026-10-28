@@ -10,11 +10,16 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,7 +30,6 @@ import dev.alializadeh.orbit.firstrun.FirstRunRoute
 import dev.alializadeh.orbit.lock.AppLock
 import dev.alializadeh.orbit.lock.AppLockState
 import dev.alializadeh.orbit.lock.LockedRoute
-import dev.alializadeh.orbit.lock.OwnActivityHost
 import dev.alializadeh.orbit.reminders.NotificationEntries
 import dev.alializadeh.orbit.reminders.NotificationEntry
 import dev.alializadeh.orbit.reminders.ReminderTriggers
@@ -48,7 +52,7 @@ import kotlinx.coroutines.launch
  * finished once, and the tabs after. Everything behind the gate keeps its state while locked.
  */
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), OwnActivityHost {
+class MainActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
@@ -93,10 +97,20 @@ class MainActivity : AppCompatActivity(), OwnActivityHost {
                 CompositionLocalProvider(LocalStillMotion provides rememberAnimationsRemoved()) {
                     if (lock.state == AppLockState.Locked) {
                         LockedRoute(appLock, lock.arrival)
+                    } else if (lock.state == AppLockState.Deciding) {
+                        // Until the picker's result says whether that's why Orbit is back.
+                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
                     } else {
                         behindTheGate.SaveableStateProvider(GATED_CONTENT) {
                             // A notification tap waits in NotificationEntries until OrbitApp takes it.
-                            if (ready.firstRunFinished) OrbitApp() else FirstRunRoute()
+                            if (ready.firstRunFinished) {
+                                OrbitApp(
+                                    resetNoticePending = ready.resetNoticePending,
+                                    onResetNoticeShown = viewModel::resetNoticeShown,
+                                )
+                            } else {
+                                FirstRunRoute()
+                            }
                         }
                     }
                 }
@@ -105,6 +119,8 @@ class MainActivity : AppCompatActivity(), OwnActivityHost {
     }
 
     override fun onNewIntent(intent: Intent) {
+        // The launcher (singleTask) or a notification: not a picker's return.
+        appLock.onNewIntent()
         super.onNewIntent(intent)
         offerEntry(intent)
     }
@@ -117,23 +133,35 @@ class MainActivity : AppCompatActivity(), OwnActivityHost {
         reminderTriggers.request()
     }
 
+    override fun onResume() {
+        // A return that may have been a picker's and got no result from it is decided here.
+        appLock.onResumed()
+        super.onResume()
+    }
+
     override fun onStop() {
         super.onStop()
         // Screen off, Home, another app; not a rotation or language change.
         if (!isChangingConfigurations) appLock.onBackground()
     }
 
-    override fun onOwnActivity() {
-        appLock.onOwnActivity()
-    }
-
-    // Everything Orbit launches for a result is its own picker (photo, Backup Save/Open) or a
-    // system ask; App lock doesn't count those as leaving. Contact actions use startActivity.
+    // Everything Orbit launches for a result is its own picker (photo, Backup Save/Open); App lock
+    // doesn't count the trip as leaving when the picker's result is what brings Orbit back.
+    // Anything that leaves Orbit (contact actions, system settings) uses plain startActivity.
     @Deprecated("Overrides a deprecated framework method; ActivityResultRegistry calls it.")
     @Suppress("DEPRECATION")
     override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
-        if (requestCode >= 0) onOwnActivity()
+        if (requestCode >= 0) appLock.onPickerLaunched(requestCode)
         super.startActivityForResult(intent, requestCode, options)
+    }
+
+    // Results come after onStart and before onResume (so does a launcher's or notification's new
+    // intent, which closed the picker): App lock's Deciding is settled in onResume.
+    @Deprecated("Overrides a deprecated framework method; ActivityResultRegistry relies on it.")
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        appLock.onPickerResult(requestCode)
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     @Deprecated("Overrides a deprecated framework method; ActivityResultRegistry calls it.")
@@ -147,7 +175,7 @@ class MainActivity : AppCompatActivity(), OwnActivityHost {
         extraFlags: Int,
         options: Bundle?,
     ) {
-        if (requestCode >= 0) onOwnActivity()
+        if (requestCode >= 0) appLock.onPickerLaunched(requestCode)
         super.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask, flagsValues, extraFlags, options)
     }
 

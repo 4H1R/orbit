@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.backup
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -34,10 +35,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.lock.rememberScreenLockGate
+import dev.alializadeh.orbit.ui.components.SensitiveClipboard
 import dev.alializadeh.orbit.ui.expressive.OrbitBlockingSheet
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
@@ -57,6 +63,11 @@ fun BackupHost(viewModel: BackupViewModel) {
     val screenLock = rememberScreenLockGate()
     val unlockToShow = stringResource(R.string.passphrase_unlock_show)
     val unlockToSetNew = stringResource(R.string.passphrase_unlock_new)
+    // A shown passphrase never outlives Orbit leaving the screen (not a rotation).
+    val activity = LocalActivity.current
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        if (activity?.isChangingConfigurations != true) viewModel.hidePassphrase()
+    }
 
     when (val current = state) {
         BackupFlowState.Idle -> Unit
@@ -123,6 +134,8 @@ fun PassphraseCheckDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        // The typed or shown passphrase: kept out of screenshots, screen recordings and Recents.
+        properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn),
         title = { Text(stringResource(R.string.passphrase_check_title)) },
         text = { PassphraseCheckContent(state, field, onCheck, onShow, onSetNew) },
         confirmButton = {
@@ -160,15 +173,18 @@ fun PassphraseCheckContent(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                SelectionContainer {
-                    Text(
-                        text = state.revealed,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontFamily = FontFamily.Monospace,
-                            textDirection = TextDirection.Ltr,
-                        ),
-                        modifier = Modifier.padding(12.dp),
-                    )
+                // Copy marks the clip sensitive: hidden in the copy preview and keyboard clipboard.
+                SensitiveClipboard {
+                    SelectionContainer {
+                        Text(
+                            text = state.revealed,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontFamily = FontFamily.Monospace,
+                                textDirection = TextDirection.Ltr,
+                            ),
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
                 }
             }
             return@Column

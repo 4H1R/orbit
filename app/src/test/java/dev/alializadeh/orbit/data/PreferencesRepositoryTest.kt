@@ -145,7 +145,7 @@ class PreferencesRepositoryTest {
                 """"notifications":{"postedReminders":[],"showingReminders":[],"lastDigestEpochDay":null,"digestPersonIds":[],""" +
                 """"renderedAs":null,"restoreToken":null},"notificationPermissionAsked":false,"batteryExemptionAsked":false,""" +
                 """"appLock":{"enabled":false,"relockAfter":"OneMinute","showDetailsInNotifications":false},""" +
-                """"backupInProgressUri":null,"restoredDuringFirstRun":false}""",
+                """"backupInProgressUri":null,"restoredDuringFirstRun":false,"resetNoticePending":false}""",
             out.toString(Charsets.UTF_8),
         )
     }
@@ -194,5 +194,29 @@ class PreferencesRepositoryTest {
     @Test(expected = androidx.datastore.core.CorruptionException::class)
     fun unreadableDeviceStateIsReportedAsCorruption() = runBlocking<Unit> {
         DeviceStateSerializer.readFrom(ByteArrayInputStream("not json".toByteArray()))
+    }
+
+    /**
+     * Review finding 7: an unreadable device-state file fails safe. With a screen lock, App lock
+     * comes back on (default re-lock) rather than silently off; either way the user is told once.
+     */
+    @Test
+    fun aCorruptDeviceStateComesBackLockedAndSaysSo() = runBlocking {
+        for (hasScreenLock in listOf(true, false)) {
+            val file = folder.newFile("corrupt-$hasScreenLock.json").apply { writeText("{\"appLock\":{\"enab") }
+            val store = DataStoreFactory.create(
+                serializer = DeviceStateSerializer,
+                corruptionHandler = DeviceStateSerializer.corruptionHandler { hasScreenLock },
+                produceFile = { file },
+            )
+            val repository = RoomPreferencesRepository(database, store)
+
+            val state = repository.deviceState.first()
+
+            assertEquals(AppLockSettings(enabled = hasScreenLock), state.appLock)
+            assertTrue(state.resetNoticePending)
+            repository.updateDeviceState { it.copy(resetNoticePending = false) }
+            assertFalse(repository.deviceState.first().resetNoticePending)
+        }
     }
 }

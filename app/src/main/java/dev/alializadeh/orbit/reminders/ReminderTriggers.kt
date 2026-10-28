@@ -1,12 +1,12 @@
 package dev.alializadeh.orbit.reminders
 
-import android.util.Log
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import dev.alializadeh.orbit.ApplicationScope
+import dev.alializadeh.orbit.OrbitLog
 import dev.alializadeh.orbit.backup.RestoreListener
 import dev.alializadeh.orbit.data.OrbitDatabase
 import javax.inject.Inject
@@ -48,7 +48,7 @@ class ReminderTriggers @Inject constructor(
                 try {
                     reconciler.reconcile()
                 } catch (e: Exception) {
-                    Log.w("OrbitReminders", "Reconcile failed", e)
+                    OrbitLog.w("OrbitReminders", "Reconcile failed", e)
                 }
             }
         }

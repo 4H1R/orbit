@@ -2,7 +2,6 @@ package dev.alializadeh.orbit
 
 import android.app.Application
 import android.os.Build
-import android.util.Log
 import dagger.hilt.android.HiltAndroidApp
 import dev.alializadeh.orbit.about.CrashLog
 import dev.alializadeh.orbit.backup.BackupMaker
@@ -38,12 +37,12 @@ class OrbitApplication : Application() {
         // A Restore that a crash interrupted is finished (or its copied photos taken back) first;
         // then what an interrupted Backup left behind goes. Neither may ever stop the app starting:
         // a failure is logged by class only (messages can hold user data).
-        val logFailure = CoroutineExceptionHandler { _, t -> Log.w(TAG, "Start-up clean-up failed: ${t.javaClass.name}") }
+        val logFailure = CoroutineExceptionHandler { _, t -> OrbitLog.w(TAG, "Start-up clean-up failed", t) }
         CoroutineScope(SupervisorJob() + Dispatchers.IO + logFailure).launch {
             try {
                 restorer.get().recoverInterrupted(startedAt)
             } catch (e: Exception) {
-                Log.w(TAG, "Restore recovery failed: ${e.javaClass.name}")
+                OrbitLog.w(TAG, "Restore recovery failed", e)
             }
             backupMaker.get().cleanUpInterrupted(startedAt)
         }

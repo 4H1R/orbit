@@ -1,11 +1,11 @@
 package dev.alializadeh.orbit.backup
 
-import android.util.Log
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.alializadeh.orbit.OrbitLog
 import dev.alializadeh.orbit.data.PreferencesRepository
 import java.io.IOException
 import java.time.Clock
@@ -126,6 +126,15 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Orbit went to the background: a shown passphrase is hidden again (it would wait there for
+     * whoever opens Orbit next); showing it again needs the screen lock again.
+     */
+    fun hidePassphrase() {
+        val checking = flow.value as? BackupFlowState.CheckingPassphrase ?: return
+        if (checking.revealed != null) flow.value = checking.copy(revealed = null)
+    }
+
     /** Set a new one, once the screen lock has been passed. */
     fun setNewPassphrase() {
         if (flow.value !is BackupFlowState.CheckingPassphrase) return
@@ -162,11 +171,11 @@ class BackupViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: BackupException.NeedsMoreMemory) {
-                Log.w(TAG, "Backup failed: out of memory")
+                OrbitLog.w(TAG, "Backup failed: out of memory")
                 BackupFlowState.Failed(needsMoreMemory = true)
             } catch (e: Exception) {
                 // Storage, the provider, SQLite or the verification: whatever it was, nothing was kept.
-                Log.w(TAG, "Backup failed", e)
+                OrbitLog.w(TAG, "Backup failed", e)
                 BackupFlowState.Failed()
             }
         }

@@ -1,7 +1,6 @@
 package dev.alializadeh.orbit.person.detail
 
 import android.content.ActivityNotFoundException
-import android.content.ClipData
 import android.content.Intent
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +61,7 @@ import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
+import dev.alializadeh.orbit.ui.components.sensitiveClipData
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
 import java.time.LocalDate
@@ -145,7 +145,8 @@ fun PersonDetailRoute(
         onOpenLink = { link -> ContactActions.of(ContactType.Link, link).firstOrNull()?.let(startAction) },
         onContactAction = startAction,
         onCopy = { value ->
-            scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(value, value))) }
+            // No label (it would repeat the value), and sensitive: hidden in the copy preview.
+            scope.launch { clipboard.setClipEntry(ClipEntry(sensitiveClipData(value))) }
             // Android 13 and later confirm a copy themselves.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) snackbars?.show(copied)
         },

@@ -97,7 +97,6 @@ fun ReminderHealthRoute(onBack: () -> Unit, viewModel: ReminderHealthViewModel =
         onPauseOrDispose {}
     }
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { viewModel.refresh() }
-    val manageUnused = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { viewModel.refresh() }
     ReminderHealthScreen(
         uiState = uiState,
         onBack = onBack,
@@ -123,7 +122,9 @@ fun ReminderHealthRoute(onBack: () -> Unit, viewModel: ReminderHealthViewModel =
         onFixBattery = { ReminderSettingsIntents.requestBatteryExemption(context) },
         onFixPausedIfUnused = {
             try {
-                manageUnused.launch(IntentCompat.createManageUnusedAppRestrictionsIntent(context, context.packageName))
+                // System settings count as leaving Orbit (App lock), so not "for a result"; the
+                // check refreshes on resume.
+                context.startActivity(IntentCompat.createManageUnusedAppRestrictionsIntent(context, context.packageName))
             } catch (_: RuntimeException) {
                 // No such screen on this phone.
             }
