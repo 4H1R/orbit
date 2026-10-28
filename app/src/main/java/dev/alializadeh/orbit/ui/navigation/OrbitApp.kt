@@ -1,24 +1,13 @@
 package dev.alializadeh.orbit.ui.navigation
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -27,9 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
@@ -86,7 +73,6 @@ import dev.alializadeh.orbit.settings.TagsRoute
 import dev.alializadeh.orbit.settings.TagsSettingsKey
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.rememberOrbitSnackbars
-import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.UpcomingKey
 import dev.alializadeh.orbit.upcoming.UpcomingRoute
 import dev.alializadeh.orbit.wishes.WishesHost
@@ -280,6 +266,12 @@ private fun OrbitShell(navigator: OrbitNavigator, entries: List<NavEntry<NavKey>
         // Each screen's own Scaffold handles the system bars, so its background reaches behind
         // them; this one only makes room for the navigation bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        // Around the floating bar: the tab's own page colour (Settings' is surfaceContainer).
+        containerColor = if (navigator.currentTab == TopLevelTab.Settings) {
+            MaterialTheme.colorScheme.surfaceContainer
+        } else {
+            MaterialTheme.colorScheme.background
+        },
         bottomBar = {
             if (navigator.showsNavigationBar) {
                 OrbitNavigationBar(
@@ -298,51 +290,3 @@ private fun OrbitShell(navigator: OrbitNavigator, entries: List<NavEntry<NavKey>
         )
     }
 }
-
-@Composable
-private fun OrbitNavigationBar(
-    currentTab: TopLevelTab,
-    onTabSelected: (TopLevelTab) -> Unit,
-) {
-    NavigationBar {
-        TopLevelTab.entries.forEach { tab ->
-            val selected = tab == currentTab
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onTabSelected(tab) },
-                icon = {
-                    Icon(
-                        imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                        contentDescription = null,
-                    )
-                },
-                label = { Text(stringResource(tab.label)) },
-            )
-        }
-    }
-}
-
-@get:StringRes
-private val TopLevelTab.label: Int
-    get() = when (this) {
-        TopLevelTab.Upcoming -> R.string.nav_tab_upcoming
-        TopLevelTab.People -> R.string.nav_tab_people
-        TopLevelTab.Orbit -> R.string.nav_tab_orbit
-        TopLevelTab.Settings -> R.string.nav_tab_settings
-    }
-
-private val TopLevelTab.selectedIcon: ImageVector
-    get() = when (this) {
-        TopLevelTab.Upcoming -> Icons.Filled.Home
-        TopLevelTab.People -> Icons.Filled.Person
-        TopLevelTab.Orbit -> OrbitIcons.Orbit
-        TopLevelTab.Settings -> Icons.Filled.Settings
-    }
-
-private val TopLevelTab.unselectedIcon: ImageVector
-    get() = when (this) {
-        TopLevelTab.Upcoming -> Icons.Outlined.Home
-        TopLevelTab.People -> Icons.Outlined.Person
-        TopLevelTab.Orbit -> OrbitIcons.Orbit
-        TopLevelTab.Settings -> Icons.Outlined.Settings
-    }
