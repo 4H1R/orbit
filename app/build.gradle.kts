@@ -203,6 +203,8 @@ dependencies {
     // The Upcoming home-screen widget (v1.1).
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    // Glance runs on WorkManager; see libs.versions.toml for why it is pinned.
+    implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
