@@ -3,7 +3,10 @@ package dev.alializadeh.orbit.interaction
 import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.data.TestDatabases
 import dev.alializadeh.orbit.data.insertTestRing
+import dev.alializadeh.orbit.person.ContactMethodDraft
+import dev.alializadeh.orbit.person.GiftIdeaDraft
 import dev.alializadeh.orbit.person.PersonDraft
+import dev.alializadeh.orbit.person.contact.ContactType
 import dev.alializadeh.orbit.person.RoomPersonRepository
 import dev.alializadeh.orbit.testing.FakePhotoStore
 import dev.alializadeh.orbit.upcoming.RoomUpcomingRepository
@@ -167,7 +170,7 @@ class InteractionRepositoryTest {
         log(sara, date = today.minusDays(31), type = InteractionType.Other)
         log(reza, date = today.minusDays(5), type = InteractionType.Message)
 
-        val summaries = people.observePeople().first().associateBy { it.id }
+        val summaries = people.observeEveryone().first().associateBy { it.id }
         assertEquals(today.minusDays(31), summaries.getValue(sara).keepInTouch.lastInteraction)
         assertTrue(summaries.getValue(sara).keepInTouch.on(today).isDue)
         assertFalse(summaries.getValue(reza).keepInTouch.on(today).isDue)
@@ -182,7 +185,7 @@ class InteractionRepositoryTest {
     @Test
     fun withoutAnInteractionDueCountsFromTheDayTheyWereAdded() = runTest {
         val sara = person("Sara")
-        val facts = people.observePeople().first().single { it.id == sara }.keepInTouch
+        val facts = people.observeEveryone().first().single { it.id == sara }.keepInTouch
         assertEquals(today, facts.addedOn)
         assertNull(facts.lastInteraction)
         assertEquals(today.plusDays(30), facts.dueOn)
@@ -203,5 +206,51 @@ class InteractionRepositoryTest {
         people.setSnoozedUntil(sara, today.plusDays(3))
         people.save(PersonDraft(id = sara, name = "Sara Ahmadi", ringId = ringId))
         assertEquals(today.plusDays(3), people.getProfile(sara)!!.person.snoozedUntil)
+    }
+
+    @Test
+    fun everyoneCarriesWhatSearchAndTheFiltersNeed() = runTest {
+        val reza = person("Reza")
+        val sara = people.save(
+            PersonDraft(
+                name = "Sara",
+                otherScriptName = "سارا",
+                nickname = "Sari",
+                ringId = ringId,
+                tags = listOf("Gym"),
+                canHelpWith = listOf("Photography"),
+                likes = listOf("Jazz"),
+                dislikes = listOf("Olives"),
+                howWeMet = "University",
+                notes = "Allergic to cats",
+                contactMethods = listOf(ContactMethodDraft(ContactType.Phone, "+98 912 345 6789")),
+            ),
+        )
+        people.saveGiftIdea(sara, GiftIdeaDraft(text = "Record player"))
+        log(sara, reza, date = today.minusDays(9), note = "Dinner in town")
+        log(sara, date = today.minusDays(2), note = "Moving to Berlin")
+        log(sara, date = today.minusDays(1))
+        people.setArchived(reza, archived = true)
+
+        val everyone = people.observeEveryone().first().associateBy { it.id }
+        val summary = everyone.getValue(sara)
+        val document = summary.search
+        assertEquals(listOf("Gym"), document.tags)
+        assertEquals(listOf("Photography"), document.canHelpWith)
+        assertEquals(listOf("Jazz"), document.likes)
+        assertEquals(listOf("Olives"), document.dislikes)
+        assertEquals(listOf("Record player"), document.giftIdeas)
+        assertEquals("University", document.howWeMet)
+        assertEquals("Allergic to cats", document.notes)
+        assertEquals(listOf("+98 912 345 6789"), document.contactMethods.map { it.value })
+        assertEquals(listOf("Moving to Berlin", "Dinner in town"), document.interactionNotes.map { it.note })
+        assertEquals(today.minusDays(2), document.interactionNotes.first().date)
+        assertEquals(ringId, summary.ringId)
+        assertEquals(1, summary.tagIds.size)
+        assertEquals(now, summary.addedAt)
+        assertFalse(summary.isArchived)
+        // Archived People are there too, flagged; shared notes are theirs as well.
+        assertTrue(everyone.getValue(reza).isArchived)
+        assertEquals(listOf("Dinner in town"), everyone.getValue(reza).search.interactionNotes.map { it.note })
     }
 }

@@ -84,6 +84,15 @@ class OrbitNavigator(
         currentTab = TopLevelTab.Upcoming
     }
 
+    /**
+     * The People tab at its root, selected: a People search or Tag filter asked for from another
+     * screen (Person detail's chips, Settings → Tags). Other tabs keep their stacks.
+     */
+    fun openPeople() {
+        backStack(TopLevelTab.People).popToRoot()
+        currentTab = TopLevelTab.People
+    }
+
     /** Every tab back at its root, on Upcoming: after a Restore replaced the data under them. */
     fun resetToRoots() {
         TopLevelTab.entries.forEach { backStack(it).popToRoot() }

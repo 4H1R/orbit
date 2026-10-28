@@ -112,7 +112,7 @@ class TagsViewModel @Inject constructor(private val tagRepository: TagRepository
 }
 
 @Composable
-fun TagsRoute(onBack: () -> Unit, viewModel: TagsViewModel = hiltViewModel()) {
+fun TagsRoute(onBack: () -> Unit, onShowPeople: (tagId: Long) -> Unit, viewModel: TagsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     TagsScreen(
         uiState = uiState,
@@ -121,6 +121,7 @@ fun TagsRoute(onBack: () -> Unit, viewModel: TagsViewModel = hiltViewModel()) {
         onConfirmMerge = viewModel::confirmMerge,
         onDismissMerge = viewModel::dismissMerge,
         onDelete = viewModel::delete,
+        onShowPeople = onShowPeople,
     )
 }
 
@@ -129,8 +130,7 @@ fun TagsRoute(onBack: () -> Unit, viewModel: TagsViewModel = hiltViewModel()) {
  * (renaming to an existing Tag's name merges, after asking) or delete it (after asking, when anyone
  * has it).
  *
- * [onShowPeople] is the hook for slice 8's Show People (the People tab filtered by the Tag): the
- * sheet offers it once the route passes it (left out until the People list has filters).
+ * The sheet's Show people ([onShowPeople]) opens the People tab filtered by the Tag.
  */
 @Composable
 fun TagsScreen(

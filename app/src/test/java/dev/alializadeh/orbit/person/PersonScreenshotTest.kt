@@ -36,6 +36,7 @@ import dev.alializadeh.orbit.person.photo.CropImage
 import dev.alializadeh.orbit.person.photo.PhotoCropScreen
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.ring.Ring
+import dev.alializadeh.orbit.testing.NoPeopleListActions
 import dev.alializadeh.orbit.testing.ScreenshotVariant
 import dev.alializadeh.orbit.testing.captureScreen
 import java.time.Instant
@@ -226,6 +227,8 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
     private fun People(uiState: PeopleUiState) {
         PeopleScreen(
             uiState = uiState,
+            query = TextFieldState(),
+            actions = NoPeopleListActions,
             onPersonClick = {},
             onAddPerson = {},
             onContactAction = {},

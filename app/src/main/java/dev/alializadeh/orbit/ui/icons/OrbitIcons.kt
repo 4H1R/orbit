@@ -222,12 +222,18 @@ object OrbitIcons {
         )
     }
 
-    private fun filled(name: String, pathData: String): ImageVector =
+    /** Sort (the People list's Sort chip); its bars line up at the start, so it mirrors in RTL. */
+    val Sort: ImageVector by lazy {
+        filled("Sort", "M3,18h6v-2H3v2zM3,6v2h18V6H3zM3,13h12v-2H3v2z", autoMirror = true)
+    }
+
+    private fun filled(name: String, pathData: String, autoMirror: Boolean = false): ImageVector =
         ImageVector.Builder(
             name = name,
             defaultWidth = 24.dp,
             defaultHeight = 24.dp,
             viewportWidth = 24f,
             viewportHeight = 24f,
+            autoMirror = autoMirror,
         ).addPath(pathData = addPathNodes(pathData), fill = SolidColor(Color.Black)).build()
 }

@@ -4,18 +4,24 @@ import androidx.room3.withWriteTransaction
 import dev.alializadeh.orbit.data.OrbitDatabase
 import dev.alializadeh.orbit.due.KeepInTouch
 import dev.alializadeh.orbit.due.keepInTouch
+import dev.alializadeh.orbit.interaction.PersonInteractionNote
 import dev.alializadeh.orbit.person.photo.PhotoStore
 import dev.alializadeh.orbit.ring.Ring
 import dev.alializadeh.orbit.ring.RingDao
+import dev.alializadeh.orbit.search.InteractionNote
+import dev.alializadeh.orbit.search.SearchContact
+import dev.alializadeh.orbit.search.SearchDocument
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 /**
  * A People-list row: who, their photo and Ring, how to reach them, their Important dates (for the
- * date badge) and what Due is worked out from.
+ * date badge), what Due is worked out from, and what search and the filters look at.
  */
 data class PersonSummary(
     val id: Long,
@@ -27,13 +33,55 @@ data class PersonSummary(
     val ringPosition: Int = 0,
     val primaryContactMethod: ContactMethod? = null,
     val importantDates: List<ImportantDate> = emptyList(),
+    val ringId: Long = 0,
+    val tagIds: Set<Long> = emptySet(),
+    /** When they were added (Recently added; Last Interaction for People without one). */
+    val addedAt: Instant = Instant.EPOCH,
+    /** Everything they can be found by. */
+    val search: SearchDocument = SearchDocument(id, names),
+) {
+    val isArchived: Boolean get() = keepInTouch.isArchived
+}
+
+/**
+ * [this] Person's summary, with their latest Interaction on [lastInteraction] and the notes of the
+ * Interactions they were part of ([interactionNotes], newest first).
+ */
+fun PersonProfile.summary(lastInteraction: LocalDate?, interactionNotes: List<InteractionNote>, zone: ZoneId) = PersonSummary(
+    id = person.id,
+    names = names,
+    photoFileName = person.photoFileName,
+    ringName = ring?.name,
+    keepInTouch = person.keepInTouch(ring, lastInteraction, zone),
+    ringPosition = ring?.position ?: Int.MAX_VALUE,
+    primaryContactMethod = primaryContactMethod,
+    importantDates = importantDates,
+    ringId = person.ringId,
+    tagIds = tags.mapTo(HashSet(), Tag::id),
+    addedAt = person.createdAt,
+    search = SearchDocument(
+        personId = person.id,
+        names = names,
+        tags = tags.map(Tag::name),
+        canHelpWith = canHelpWith,
+        likes = likes,
+        dislikes = dislikes,
+        giftIdeas = giftIdeas.map(GiftIdea::text),
+        howWeMet = person.howWeMet,
+        contactMethods = contactMethods.map { SearchContact(it.type, it.value) },
+        notes = person.notes,
+        interactionNotes = interactionNotes,
+    ),
 )
 
 /** Reads and writes People and what's stored around them. Screens observe it through Flows. */
 interface PersonRepository {
 
-    /** Every Person who isn't Archived, unsorted: the UI sorts by the displayed name. */
-    fun observePeople(): Flow<List<PersonSummary>>
+    /**
+     * Every Person, Archived ones included ([PersonSummary.isArchived]), unsorted: the People list
+     * sorts, filters and searches them.
+     */
+    fun observeEveryone(): Flow<List<PersonSummary>>
 
     /** Every Person, Archived ones included (the Interaction People picker filters them). */
     fun observeAllPeople(): Flow<List<Person>>
@@ -103,23 +151,23 @@ class RoomPersonRepository @Inject constructor(
 
     private val interactionDao = database.interactionDao()
 
-    override fun observePeople(): Flow<List<PersonSummary>> =
-        combine(personDao.observeActiveWithDates(), ringDao.observeAll(), interactionDao.observeLastDates()) { people, rings, last ->
+    override fun observeEveryone(): Flow<List<PersonSummary>> =
+        combine(
+            personDao.observeAllWithDetails(),
+            ringDao.observeAll(),
+            interactionDao.observeLastDates(),
+            interactionDao.observeNotes(),
+        ) { people, rings, last, notes ->
             val ringsById = rings.associateBy(Ring::id)
             val lastDates = last.associate { it.personId to it.date }
-            people.map { row ->
-                val person = row.person
-                val ring = ringsById[person.ringId]
-                PersonSummary(
-                    id = person.id,
-                    names = person.names,
-                    photoFileName = person.photoFileName,
-                    ringName = ring?.name,
-                    keepInTouch = person.keepInTouch(ring, lastDates[person.id], clock.zone),
-                    ringPosition = ring?.position ?: Int.MAX_VALUE,
-                    primaryContactMethod = row.contactMethods.firstOrNull(ContactMethod::isPrimary),
-                    importantDates = row.importantDates.sortedWith(ImportantDateOrder),
-                )
+            val notesByPerson = notes.groupBy(
+                keySelector = PersonInteractionNote::personId,
+                valueTransform = { InteractionNote(it.interactionId, it.date, it.note) },
+            )
+            people.map { details ->
+                val id = details.person.id
+                PersonProfile.of(details, ringsById[details.person.ringId])
+                    .summary(lastDates[id], notesByPerson[id].orEmpty(), clock.zone)
             }
         }
 

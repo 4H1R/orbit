@@ -73,6 +73,8 @@ fun PersonDetailRoute(
     onBack: () -> Unit,
     onEdit: (focus: PersonField?) -> Unit,
     onAllInteractions: () -> Unit,
+    /** A Likes, Dislikes or Can help with chip: search People for its text. */
+    onSearchPeople: (String) -> Unit,
     /** Archived: show "[name] archived · Undo" ([undo] outlives this screen) and leave. */
     onArchived: (displayName: String, undo: suspend () -> Unit) -> Unit,
     viewModel: PersonDetailViewModel =
@@ -147,6 +149,7 @@ fun PersonDetailRoute(
             // Android 13 and later confirm a copy themselves.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) snackbars?.show(copied)
         },
+        onSearchPeople = onSearchPeople,
     )
 }
 
@@ -172,6 +175,7 @@ fun PersonDetailScreen(
     onContactAction: (ContactAction) -> Unit,
     onCopy: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onSearchPeople: (String) -> Unit = {},
 ) {
     val loaded = uiState as? PersonDetailUiState.Loaded
     var moreContactSheet by rememberSaveable { mutableStateOf(false) }
@@ -251,6 +255,7 @@ fun PersonDetailScreen(
                         onOpenLink = onOpenLink,
                         onContactAction = onContactAction,
                         onCopy = onCopy,
+                        onSearchPeople = onSearchPeople,
                     )
                     AddDetails(uiState.missingFields, onAddDetail)
                 }

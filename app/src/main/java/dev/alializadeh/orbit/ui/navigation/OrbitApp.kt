@@ -66,6 +66,7 @@ import dev.alializadeh.orbit.reminders.ReminderHealthRoute
 import dev.alializadeh.orbit.reminders.ReminderPermissionHost
 import dev.alializadeh.orbit.reminders.RemindersSettingsKey
 import dev.alializadeh.orbit.reminders.RemindersSettingsRoute
+import dev.alializadeh.orbit.search.PeopleLinksViewModel
 import dev.alializadeh.orbit.settings.AppearanceRoute
 import dev.alializadeh.orbit.settings.AppearanceSettingsKey
 import dev.alializadeh.orbit.settings.LanguageDatesRoute
@@ -91,6 +92,7 @@ fun OrbitApp(
     navigator: OrbitNavigator = rememberOrbitNavigator(),
     backup: BackupViewModel = hiltViewModel(),
     entries: NotificationEntryViewModel = hiltViewModel(),
+    peopleLinks: PeopleLinksViewModel = hiltViewModel(),
 ) {
     val snackbars = rememberOrbitSnackbars()
     val resources = LocalResources.current
@@ -164,6 +166,10 @@ fun OrbitApp(
                     onBack = navigator::goBack,
                     onEdit = { focus -> navigator.navigate(EditPersonKey(key.personId, focus)) },
                     onAllInteractions = { navigator.navigate(AllInteractionsKey(key.personId)) },
+                    onSearchPeople = { text ->
+                        peopleLinks.search(text)
+                        navigator.openPeople()
+                    },
                     onArchived = { name, undo ->
                         snackbars.show(
                             message = resources.getString(R.string.archived_snackbar, bidiIsolate(name)),
@@ -180,7 +186,15 @@ fun OrbitApp(
             entry<AppearanceSettingsKey> { AppearanceRoute(onBack = navigator::goBack) }
             entry<LanguageDatesSettingsKey> { LanguageDatesRoute(onBack = navigator::goBack) }
             entry<RingsSettingsKey> { RingsRoute(onBack = navigator::goBack) }
-            entry<TagsSettingsKey> { TagsRoute(onBack = navigator::goBack) }
+            entry<TagsSettingsKey> {
+                TagsRoute(
+                    onBack = navigator::goBack,
+                    onShowPeople = { tagId ->
+                        peopleLinks.showTag(tagId)
+                        navigator.openPeople()
+                    },
+                )
+            }
             entry<RemindersSettingsKey> {
                 RemindersSettingsRoute(onBack = navigator::goBack, onOpenHealth = { navigator.navigate(ReminderHealthKey) })
             }

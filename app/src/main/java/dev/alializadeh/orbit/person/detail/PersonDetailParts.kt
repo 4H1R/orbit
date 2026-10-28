@@ -228,6 +228,7 @@ internal fun PersonSections(
     onOpenLink: (String) -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onCopy: (String) -> Unit,
+    onSearchPeople: (String) -> Unit,
 ) {
     val profile = uiState.profile
     ImportantDatesSection(profile.importantDates, uiState.today, onOpenDate)
@@ -251,12 +252,12 @@ internal fun PersonSections(
         if (items.isNotEmpty()) {
             Column {
                 OrbitSectionTitle(stringResource(kind.titleRes), horizontalPadding = 4.dp)
-                // Slice 8: tapping a chip searches People for its text.
+                // Tapping a chip searches People for its text ("Who else likes jazz?").
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items.forEach { LabelChip(it) }
+                    items.forEach { item -> LabelChip(item, onClick = { onSearchPeople(item) }) }
                 }
             }
         }
@@ -414,22 +415,28 @@ private fun fieldName(field: PersonField): String = stringResource(
     },
 )
 
-/** A chip that only shows a value (Ring, Tags, Likes…); not tappable yet. */
+/** A chip showing a value (Ring, Tags); with [onClick], a tappable one (Likes… search People). */
 @Composable
-private fun LabelChip(text: String, icon: ImageVector? = null, emphasised: Boolean = false) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = if (emphasised) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-        border = if (emphasised) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+private fun LabelChip(text: String, icon: ImageVector? = null, emphasised: Boolean = false, onClick: (() -> Unit)? = null) {
+    val shape = RoundedCornerShape(8.dp)
+    val color = if (emphasised) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+    val border = if (emphasised) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    if (onClick != null) {
+        Surface(onClick = onClick, shape = shape, color = color, border = border) { LabelChipContent(text, icon) }
+    } else {
+        Surface(shape = shape, color = color, border = border) { LabelChipContent(text, icon) }
+    }
+}
+
+@Composable
+private fun LabelChipContent(text: String, icon: ImageVector?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-        ) {
-            if (icon != null) {
-                Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 6.dp).size(16.dp))
-            }
-            Text(text, style = MaterialTheme.typography.labelLarge)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 6.dp).size(16.dp))
         }
+        Text(text, style = MaterialTheme.typography.labelLarge)
     }
 }

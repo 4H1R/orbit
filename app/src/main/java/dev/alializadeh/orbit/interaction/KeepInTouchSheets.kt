@@ -65,8 +65,8 @@ import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.dates.WheelDatePickerStateSaver
-import dev.alializadeh.orbit.person.nameKey
 import dev.alializadeh.orbit.person.sortByDisplayName
+import dev.alializadeh.orbit.search.SearchText
 import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
@@ -316,7 +316,7 @@ internal fun PeoplePickerContent(candidates: List<PickablePerson>, onPick: (Long
     val sorted = remember(candidates, language) {
         sortByDisplayName(candidates, language, names = PickablePerson::names, tieBreak = PickablePerson::id)
     }
-    val key = nameKey(query.text.toString())
+    val key = SearchText.normalise(query.text.toString()).trim()
     val shown = if (key.isEmpty()) sorted else sorted.filter { it.names.matches(key) }
     Column(Modifier.fillMaxHeight(0.85f).padding(horizontal = 16.dp)) {
         Text(
@@ -357,9 +357,9 @@ internal fun PeoplePickerContent(candidates: List<PickablePerson>, onPick: (Long
     }
 }
 
-/** Whether any of the names contains [key] (already through [nameKey]). */
+/** Whether any of the names contains [key] (already through [SearchText.normalise]). */
 private fun PersonNames.matches(key: String): Boolean =
-    listOfNotNull(name, otherScriptName, nickname).any { nameKey(it).contains(key) }
+    listOfNotNull(name, otherScriptName, nickname).any { SearchText.normalise(it).contains(key) }
 
 @Composable
 fun SnoozeSheet(state: SnoozeSheetState, onPick: (SnoozeDuration) -> Unit, onDismiss: () -> Unit) {

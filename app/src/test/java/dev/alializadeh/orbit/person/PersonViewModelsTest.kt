@@ -19,8 +19,6 @@ import dev.alializadeh.orbit.person.edit.CropUiState
 import dev.alializadeh.orbit.person.edit.FormDialog
 import dev.alializadeh.orbit.person.edit.PersonFormViewModel
 import dev.alializadeh.orbit.person.edit.TagSuggestion
-import dev.alializadeh.orbit.person.list.PeopleUiState
-import dev.alializadeh.orbit.person.list.PeopleViewModel
 import dev.alializadeh.orbit.person.photo.CropRect
 import dev.alializadeh.orbit.ring.Cadence
 import dev.alializadeh.orbit.testing.FakeInteractionRepository
@@ -56,24 +54,6 @@ class PersonViewModelsTest {
     private val sara = profileOf(1, "Sara Ahmadi")
     private val photos = FakePhotoStore()
     private val clock = Clock.fixed(Instant.parse("2026-10-28T09:00:00Z"), ZoneOffset.UTC)
-
-    // People list
-
-    @Test
-    fun peopleListShowsEveryoneButTheArchived() = runTest {
-        val repository = FakePersonRepository(initial = listOf(sara, profileOf(2, "Reza")))
-        val viewModel = PeopleViewModel(repository, photos, clock)
-
-        assertEquals(PeopleUiState.Loading, viewModel.uiState.value)
-        viewModel.uiState.test {
-            assertEquals(setOf("Sara Ahmadi", "Reza"), namesIn(awaitItem()))
-            repository.setArchived(1, archived = true)
-            assertEquals(setOf("Reza"), namesIn(awaitItem()))
-        }
-    }
-
-    private fun namesIn(state: PeopleUiState) =
-        (state as PeopleUiState.Loaded).people.map { it.summary.names.name }.toSet()
 
     // Person detail
 

@@ -347,6 +347,47 @@
     </plurals>
     <string name="people_count_none">هنوز کسی نیست</string>
 
+    <!-- People list: search, filters, sort (slice 8) -->
+    <string name="people_search_hint">جستجوی افراد</string>
+    <string name="people_search_clear">پاک کردن جستجو</string>
+    <string name="people_sort_description">ترتیب: %1$s</string>
+    <string name="people_sort_name">نام</string>
+    <string name="people_sort_ring">حلقه</string>
+    <string name="people_sort_last_interaction">آخرین ارتباط</string>
+    <string name="people_sort_recently_added">تازه‌اضافه‌شده</string>
+    <string name="people_filter_ring">حلقه</string>
+    <plurals name="people_filter_rings_count">
+        <item quantity="one">%1$s حلقه</item>
+        <item quantity="other">%1$s حلقه</item>
+    </plurals>
+    <string name="people_filter_tags">برچسب‌ها</string>
+    <plurals name="people_filter_tags_count">
+        <item quantity="one">%1$s برچسب</item>
+        <item quantity="other">%1$s برچسب</item>
+    </plurals>
+    <string name="people_filter_date_soon">تاریخ نزدیک</string>
+    <string name="people_filter_archived">بایگانی‌شده‌ها</string>
+    <string name="people_filter_ring_title">فیلتر بر اساس حلقه</string>
+    <string name="people_filter_tags_title">فیلتر بر اساس برچسب</string>
+    <string name="people_archived_title">بایگانی‌شده‌ها</string>
+    <string name="filter_bar_filtered">فیلتر شده</string>
+    <string name="filter_bar_clear">پاک کردن</string>
+    <string name="search_clear_filters">پاک کردن فیلترها</string>
+    <plurals name="search_archived_matches">
+        <item quantity="one">%1$s فرد بایگانی‌شده هم پیدا شد</item>
+        <item quantity="other">%1$s فرد بایگانی‌شده هم پیدا شد</item>
+    </plurals>
+    <string name="archived_empty">هیچ فردی بایگانی نشده</string>
+    <!-- "Can help with: Photography": the field, then the matching text -->
+    <string name="search_why_field">%1$s: %2$s</string>
+    <!-- An Interaction note, quoted -->
+    <string name="search_why_quoted">«%1$s»</string>
+    <string name="search_why_interaction">ارتباط</string>
+    <plurals name="search_why_more">
+        <item quantity="one">و %1$s مورد دیگر</item>
+        <item quantity="other">و %1$s مورد دیگر</item>
+    </plurals>
+
     <!-- Settings → Rings -->
     <string name="settings_rings_title">حلقه‌ها</string>
     <string name="rings_hint">درونی‌ترین حلقه اول است. برای جابه‌جایی بکشید.</string>

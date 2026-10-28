@@ -1,6 +1,5 @@
 package dev.alializadeh.orbit.testing
 
-import dev.alializadeh.orbit.due.keepInTouch
 import dev.alializadeh.orbit.person.ContactMethod
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.GiftIdeaDraft
@@ -17,6 +16,8 @@ import dev.alializadeh.orbit.person.PersonSummary
 import dev.alializadeh.orbit.person.Tag
 import dev.alializadeh.orbit.person.nameKey
 import dev.alializadeh.orbit.person.requireOneBirthdayAtMost
+import dev.alializadeh.orbit.person.summary
+import dev.alializadeh.orbit.search.InteractionNote
 import dev.alializadeh.orbit.person.names
 import dev.alializadeh.orbit.person.withCadenceSetting
 import dev.alializadeh.orbit.ring.Ring
@@ -40,24 +41,16 @@ class FakePersonRepository(
     /** Each Person's latest Interaction date, as the Room repository reads it from Interactions. */
     val lastInteractions = MutableStateFlow<Map<Long, LocalDate>>(emptyMap())
 
+    /** The notes of each Person's Interactions, newest first. */
+    val interactionNotes = MutableStateFlow<Map<Long, List<InteractionNote>>>(emptyMap())
+
     /** Every draft passed to [save], as given. */
     val saved = mutableListOf<PersonDraft>()
 
     val people: List<Person> get() = profiles.value.values.map(PersonProfile::person)
 
-    override fun observePeople(): Flow<List<PersonSummary>> = combine(profiles, lastInteractions) { all, last ->
-        all.values.filter { !it.person.isArchived }.map {
-            PersonSummary(
-                id = it.person.id,
-                names = it.person.names,
-                photoFileName = it.person.photoFileName,
-                ringName = it.ring?.name,
-                keepInTouch = it.person.keepInTouch(it.ring, last[it.person.id], ZoneOffset.UTC),
-                ringPosition = it.ring?.position ?: Int.MAX_VALUE,
-                primaryContactMethod = it.primaryContactMethod,
-                importantDates = it.importantDates,
-            )
-        }
+    override fun observeEveryone(): Flow<List<PersonSummary>> = combine(profiles, lastInteractions, interactionNotes) { all, last, notes ->
+        all.values.map { it.summary(last[it.person.id], notes[it.person.id].orEmpty(), ZoneOffset.UTC) }
     }
 
     override fun observeAllPeople(): Flow<List<Person>> = profiles.map { all -> all.values.map(PersonProfile::person) }

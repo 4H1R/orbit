@@ -15,16 +15,15 @@ object Digits {
     fun toAscii(text: String): String {
         if (text.none { it.isPersianDigit() || it.isArabicIndicDigit() }) return text
         return buildString(text.length) {
-            for (c in text) {
-                append(
-                    when {
-                        c.isPersianDigit() -> '0' + (c - PERSIAN_ZERO)
-                        c.isArabicIndicDigit() -> '0' + (c - ARABIC_INDIC_ZERO)
-                        else -> c
-                    },
-                )
-            }
+            for (c in text) append(toAscii(c))
         }
+    }
+
+    /** [c] as an ASCII digit when it's a Persian or Arabic-Indic one; anything else as it is. */
+    fun toAscii(c: Char): Char = when {
+        c.isPersianDigit() -> '0' + (c - PERSIAN_ZERO)
+        c.isArabicIndicDigit() -> '0' + (c - ARABIC_INDIC_ZERO)
+        else -> c
     }
 
     /** ASCII digits in [text] as Persian digits (۰–۹). */

@@ -96,10 +96,10 @@ interface PersonDao {
     @Query("SELECT * FROM person")
     fun observeWithDates(): Flow<List<PersonWithDates>>
 
-    /** Every Person who isn't Archived, with their Important dates, Gift ideas and Contact methods. */
+    /** Every Person, Archived ones included, with everything stored around them (the People list). */
     @Transaction
-    @Query("SELECT * FROM person WHERE archivedAt IS NULL")
-    fun observeActiveWithDates(): Flow<List<PersonWithDates>>
+    @Query("SELECT * FROM person")
+    fun observeAllWithDetails(): Flow<List<PersonWithDetails>>
 
     /**
      * Deletes the Person; their items, Tags links, Contact methods, Important dates and Gift ideas

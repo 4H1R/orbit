@@ -373,6 +373,47 @@
     </plurals>
     <string name="people_count_none">No one yet</string>
 
+    <!-- People list: search, filters, sort (slice 8) -->
+    <string name="people_search_hint">Search people</string>
+    <string name="people_search_clear">Clear search</string>
+    <string name="people_sort_description">Sort: %1$s</string>
+    <string name="people_sort_name">Name</string>
+    <string name="people_sort_ring">Ring</string>
+    <string name="people_sort_last_interaction">Last interaction</string>
+    <string name="people_sort_recently_added">Recently added</string>
+    <string name="people_filter_ring">Ring</string>
+    <plurals name="people_filter_rings_count">
+        <item quantity="one">%1$s ring</item>
+        <item quantity="other">%1$s rings</item>
+    </plurals>
+    <string name="people_filter_tags">Tags</string>
+    <plurals name="people_filter_tags_count">
+        <item quantity="one">%1$s tag</item>
+        <item quantity="other">%1$s tags</item>
+    </plurals>
+    <string name="people_filter_date_soon">Date soon</string>
+    <string name="people_filter_archived">Archived</string>
+    <string name="people_filter_ring_title">Filter by ring</string>
+    <string name="people_filter_tags_title">Filter by tag</string>
+    <string name="people_archived_title">Archived</string>
+    <string name="filter_bar_filtered">Filtered</string>
+    <string name="filter_bar_clear">Clear</string>
+    <string name="search_clear_filters">Clear filters</string>
+    <plurals name="search_archived_matches">
+        <item quantity="one">%1$s archived person matches</item>
+        <item quantity="other">%1$s archived people match</item>
+    </plurals>
+    <string name="archived_empty">No archived people</string>
+    <!-- "Can help with: Photography": the field, then the matching text -->
+    <string name="search_why_field">%1$s: %2$s</string>
+    <!-- An Interaction note, quoted -->
+    <string name="search_why_quoted">“%1$s”</string>
+    <string name="search_why_interaction">Interaction</string>
+    <plurals name="search_why_more">
+        <item quantity="one">+%1$s more</item>
+        <item quantity="other">+%1$s more</item>
+    </plurals>
+
     <!-- Settings → Rings -->
     <string name="settings_rings_title">Rings</string>
     <string name="rings_hint">Innermost first. Drag to reorder.</string>

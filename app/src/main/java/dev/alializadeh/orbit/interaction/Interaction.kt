@@ -79,6 +79,14 @@ data class LastInteractionDate(
     val date: LocalDate,
 )
 
+/** The note of an Interaction [personId] was part of. */
+data class PersonInteractionNote(
+    val personId: Long,
+    val interactionId: Long,
+    val date: LocalDate,
+    val note: String,
+)
+
 @Dao
 interface InteractionDao {
 
@@ -107,6 +115,16 @@ interface InteractionDao {
             "GROUP BY interaction_person.personId",
     )
     fun observeLastDates(): Flow<List<LastInteractionDate>>
+
+    /** Every Interaction note with each Person in it, newest first (People search). */
+    @Query(
+        "SELECT interaction_person.personId AS personId, interaction.id AS interactionId, " +
+            "interaction.date AS date, interaction.note AS note " +
+            "FROM interaction_person JOIN interaction ON interaction.id = interaction_person.interactionId " +
+            "WHERE interaction.note IS NOT NULL " +
+            "ORDER BY interaction.date DESC, interaction.id DESC",
+    )
+    fun observeNotes(): Flow<List<PersonInteractionNote>>
 
     @Insert
     suspend fun insert(interaction: Interaction): Long

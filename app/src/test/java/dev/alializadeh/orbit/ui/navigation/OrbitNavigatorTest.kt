@@ -4,6 +4,7 @@ import dev.alializadeh.orbit.person.AddPersonKey
 import dev.alializadeh.orbit.person.PeopleKey
 import dev.alializadeh.orbit.person.PersonDetailKey
 import dev.alializadeh.orbit.settings.SettingsKey
+import dev.alializadeh.orbit.settings.TagsSettingsKey
 import dev.alializadeh.orbit.upcoming.UpcomingKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -99,5 +100,19 @@ class OrbitNavigatorTest {
 
         assertEquals(TopLevelTab.Upcoming, navigator.currentTab)
         assertEquals(listOf(UpcomingKey), navigator.backStack(TopLevelTab.Upcoming).toList())
+    }
+
+    @Test
+    fun openingPeopleFromAnotherTabShowsItsRootAndLeavesTheOtherStack() {
+        navigator.selectTab(TopLevelTab.People)
+        navigator.navigate(PersonDetailKey(1))
+        navigator.selectTab(TopLevelTab.Settings)
+        navigator.navigate(TagsSettingsKey)
+
+        navigator.openPeople()
+
+        assertEquals(TopLevelTab.People, navigator.currentTab)
+        assertEquals(listOf(PeopleKey), navigator.backStack(TopLevelTab.People).toList())
+        assertEquals(listOf(SettingsKey, TagsSettingsKey), navigator.backStack(TopLevelTab.Settings).toList())
     }
 }

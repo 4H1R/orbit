@@ -237,18 +237,18 @@ class PersonRepositoryTest {
         repository.save(draft("Reza"))
 
         repository.setArchived(sara, archived = true)
-        assertEquals(listOf("Reza"), repository.observePeople().first().map { it.names.name })
+        assertEquals(listOf("Reza"), repository.observeEveryone().first().filterNot { it.isArchived }.map { it.names.name })
         assertEquals(now, repository.getProfile(sara)!!.person.archivedAt)
 
         repository.setArchived(sara, archived = false)
-        assertEquals(setOf("Sara", "Reza"), repository.observePeople().first().map { it.names.name }.toSet())
+        assertEquals(setOf("Sara", "Reza"), repository.observeEveryone().first().filterNot { it.isArchived }.map { it.names.name }.toSet())
     }
 
     @Test
     fun theListCarriesEachPersonsRingName() = runTest {
         repository.save(draft("Sara"))
 
-        assertEquals("Friends", repository.observePeople().first().single().ringName)
+        assertEquals("Friends", repository.observeEveryone().first().single().ringName)
     }
 
     @Test
