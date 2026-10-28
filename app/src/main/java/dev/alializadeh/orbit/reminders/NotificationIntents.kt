@@ -25,6 +25,11 @@ sealed interface NotificationEntry {
         override val uri: Uri get() = "$SCHEME://$PERSON/$personId".toUri()
     }
 
+    /** Upcoming at its top (the widget's header). */
+    data object Upcoming : NotificationEntry {
+        override val uri: Uri get() = "$SCHEME://$UPCOMING/$TOP".toUri()
+    }
+
     /** Upcoming, scrolled to Due (the digest naming several People). */
     data object UpcomingDue : NotificationEntry {
         override val uri: Uri get() = "$SCHEME://$UPCOMING/$DUE".toUri()
@@ -46,6 +51,7 @@ sealed interface NotificationEntry {
         private const val PERSON = "person"
         private const val UPCOMING = "upcoming"
         private const val DUE = "due"
+        private const val TOP = "top"
         private const val WISHES = "wishes"
 
         /** The entry [intent] asks for, or null when it's a plain launch or not Orbit's own. */
@@ -55,7 +61,11 @@ sealed interface NotificationEntry {
             if (data.scheme != SCHEME) return null
             return when (data.host) {
                 PERSON -> data.lastPathSegment?.toLongOrNull()?.let(::PersonDetail)
-                UPCOMING -> UpcomingDue.takeIf { data.lastPathSegment == DUE }
+                UPCOMING -> when (data.lastPathSegment) {
+                    DUE -> UpcomingDue
+                    TOP -> Upcoming
+                    else -> null
+                }
                 OCCASION -> data.lastPathSegment?.toLongOrNull()?.let(::Occasion)
                 WISHES -> {
                     val segments = data.pathSegments

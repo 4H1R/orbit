@@ -82,3 +82,14 @@ Result: **no crash in any of these**: the process id stayed the same through eve
 The emulator's own records point away from Orbit. Its 32 tombstones go back to 10 September: `system_server` (8), Google Play services (4), the Play Store (4), zygote, SurfaceFlinger, Bluetooth, Messages, the media provider, Digital Wellbeing and another app under development all died the same way, a "null pointer dereference" SIGSEGV, mostly inside ART-compiled Java code; 7 of today's 10 are outside Orbit. Orbit's 3 today (two debug, during earlier slices; one release, during this smoke test) look the same: the faulting frames are plain managed code (`TreeMap.compare`, `PersistentCompositionLocalHashMap.get`, Compose's draw pass), which can't dereference null natively; a null there is normally a Java `NullPointerException`, which Orbit's crash log would have caught. The release one hit while Orbit drew its first frame back from the Save picker during a Backup, at the same millisecond as ART's concurrent mark-compact GC was freeing the 128 MiB scrypt buffer; retrying the same Backup worked. Orbit has no native code of its own (its only native library is SQLite, on none of these stacks).
 
 So the likeliest cause is this emulator image (x86_64, 16 KB pages, on WHPX) rather than Orbit; if it were Orbit, the phone would show it again. Hence the watch above, including during a Backup.
+
+## 9. v1.1: Send wishes, Lunar Hijri, Occasions and the widget
+
+Checked on the emulator on 2026-10-28 (debug build): the on-the-day Reminder's Send wishes opens the sheet, SMS opens Google Messages with the text filled in, Log as a message logs it, a Lunar Hijri birthday shows in Coming up with its lunar years, an Occasion posts on the Occasions channel, and the widget shows and opens the Occasion. On the phone:
+
+- [ ] Send wishes through each messenger you use: WhatsApp and Telegram (a username) should open with the text filled in; Signal, Instagram, X and Telegram by number open the chat with "Message copied", so paste it.
+- [ ] A Persian message to someone while Orbit is in English (and the reverse): the text reads in its own direction in the sheet and arrives right in the messenger.
+- [ ] Settings → Language & dates → Lunar Hijri dates: pick the row whose date matches Iran's calendar today (the preview under each row), and check it again at the start of the next lunar month.
+- [ ] Add Nowruz and one Lunar Hijri Occasion (Eid or Mother's Day) for a Tag, and check its Reminder a week before arrives at the Reminder time, naming the right number of people.
+- [ ] Place the Upcoming widget; check it the next morning (it should have turned over to the new day at midnight), and with App lock on it shows counts only.
+- [ ] With the widget placed, watch the battery page for Orbit for a day: the widget uses WorkManager (through Glance) for its redraws.

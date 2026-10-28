@@ -69,6 +69,20 @@
             android:name=".reminders.NotificationActionReceiver"
             android:exported="false" />
 
+        <!-- The Upcoming home-screen widget (v1.1). Exported for the launcher's updates; its taps
+             go through .OpenFromNotification, so App lock applies. -->
+        <receiver
+            android:name=".widget.UpcomingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/nav_tab_upcoming">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/upcoming_widget_info" />
+        </receiver>
+
         <!-- Settings → About → Share crash log: the log file, read-only, to whatever the user picks. -->
         <provider
             android:name="androidx.core.content.FileProvider"

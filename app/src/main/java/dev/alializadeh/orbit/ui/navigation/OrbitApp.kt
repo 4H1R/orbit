@@ -116,6 +116,7 @@ fun OrbitApp(
         when (target) {
             is NotificationEntry.PersonDetail -> navigator.openOnUpcoming(PersonDetailKey(target.personId))
             is NotificationEntry.Occasion -> navigator.openOnUpcoming(OccasionKey(target.occasionId))
+            NotificationEntry.Upcoming -> navigator.openOnUpcoming(null)
             is NotificationEntry.Wishes -> {
                 navigator.openOnUpcoming(PersonDetailKey(target.personId))
                 sendWishes(target.personId, target.dateId)

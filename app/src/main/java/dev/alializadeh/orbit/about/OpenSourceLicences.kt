@@ -55,6 +55,7 @@ object OpenSourceLicences {
         OpenSourceItem("kage", listOf(Licence.Apache2), listOf("com.github.android-password-store:kage")),
         OpenSourceItem("kotlin-result", listOf(Licence.IscKotlinResult), listOf("com.michael-bull.kotlin-result:*")),
         OpenSourceItem("Kotlin", listOf(Licence.Apache2), listOf("org.jetbrains.kotlin:*")),
+        OpenSourceItem("kotlinx.atomicfu", listOf(Licence.Apache2), listOf("org.jetbrains.kotlinx:atomicfu", "org.jetbrains.kotlinx:atomicfu-jvm")),
         OpenSourceItem("kotlinx.coroutines", listOf(Licence.Apache2), listOf("org.jetbrains.kotlinx:kotlinx-coroutines-*")),
         OpenSourceItem("kotlinx.serialization", listOf(Licence.Apache2), listOf("org.jetbrains.kotlinx:kotlinx-serialization-*")),
         // MaterialKolor is MIT; its port of Google's material-color-utilities keeps Apache 2.0 too.

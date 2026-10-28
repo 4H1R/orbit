@@ -825,4 +825,19 @@
     </plurals>
     <string name="discreet_occasion_soon">مناسبتی در پیش است، %1$s</string>
     <string name="discreet_occasion_today">امروز یک مناسبت دارید</string>
+
+    <!-- The home-screen widget (v1.1) -->
+    <string name="widget_upcoming_description">تاریخ‌ها و مناسبت‌های امروز، آنچه در پیش است و کسانی که موعد ارتباطشان رسیده</string>
+    <plurals name="widget_discreet_today">
+        <item quantity="one">%1$s مورد امروز</item>
+        <item quantity="other">%1$s مورد امروز</item>
+    </plurals>
+    <plurals name="widget_discreet_coming_up">
+        <item quantity="one">%1$s مورد در پیش</item>
+        <item quantity="other">%1$s مورد در پیش</item>
+    </plurals>
+    <plurals name="widget_discreet_due">
+        <item quantity="one">%1$s نفر در موعد ارتباط</item>
+        <item quantity="other">%1$s نفر در موعد ارتباط</item>
+    </plurals>
 </resources>

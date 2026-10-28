@@ -878,4 +878,20 @@
     </plurals>
     <string name="discreet_occasion_soon">An occasion is coming up · %1$s</string>
     <string name="discreet_occasion_today">There\'s an occasion today</string>
+
+    <!-- The home-screen widget (v1.1) -->
+    <string name="widget_upcoming_description">Today\'s dates and occasions, what\'s coming up, and who\'s due</string>
+    <!-- Discreet widget (App lock on): counts only, joined with the separator -->
+    <plurals name="widget_discreet_today">
+        <item quantity="one">%1$s today</item>
+        <item quantity="other">%1$s today</item>
+    </plurals>
+    <plurals name="widget_discreet_coming_up">
+        <item quantity="one">%1$s coming up</item>
+        <item quantity="other">%1$s coming up</item>
+    </plurals>
+    <plurals name="widget_discreet_due">
+        <item quantity="one">%1$s due</item>
+        <item quantity="other">%1$s due</item>
+    </plurals>
 </resources>

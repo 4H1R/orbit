@@ -4,7 +4,10 @@ import android.os.SystemClock
 import dev.alializadeh.orbit.backup.BackupStatusDao
 import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import dev.alializadeh.orbit.data.PreferencesRepository
+import dev.alializadeh.orbit.OrbitLog
 import dev.alializadeh.orbit.occasion.OccasionRepository
+import dev.alializadeh.orbit.widget.HomeWidgets
+import dev.alializadeh.orbit.widget.NoHomeWidgets
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.upcoming.UpcomingRepository
 import java.time.Clock
@@ -12,6 +15,7 @@ import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -145,6 +149,7 @@ class ReminderReconciler @Inject constructor(
     private val clock: Clock,
     private val statusDao: BackupStatusDao,
     private val pacer: NotificationPacer,
+    private val widgets: HomeWidgets = NoHomeWidgets,
 ) {
     private val mutex = Mutex()
 
@@ -155,6 +160,18 @@ class ReminderReconciler @Inject constructor(
         try {
             reconcileAt(now) { nextAlarm = it }
         } finally {
+            // The widget (v1.1): redrawn after every run, whatever happened above, and woken at
+            // midnight while one is placed so its day turns over.
+            try {
+                if (widgets.isPlaced()) {
+                    val midnight = now.atZone(clock.zone).toLocalDate().plusDays(1).atStartOfDay(clock.zone).toInstant()
+                    nextAlarm = nextAlarm?.let { if (midnight.isBefore(it)) midnight else it } ?: midnight
+                    widgets.refresh()
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                OrbitLog.w(TAG, "Widget refresh failed", e)
+            }
             alarm.set(nextAlarm)
         }
     }
@@ -250,5 +267,7 @@ class ReminderReconciler @Inject constructor(
 
         /** When the pacing budget ran out: the rest is posted by a run this much later. */
         val FOLLOW_UP: Duration = Duration.ofSeconds(10)
+
+        const val TAG = "OrbitReconcile"
     }
 }

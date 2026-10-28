@@ -188,6 +188,9 @@ dependencies {
     // App lock in slice 7), and Coil for photos (no network artifact).
     implementation(libs.androidx.biometric)
     implementation(libs.coil.compose)
+    // The Upcoming home-screen widget (v1.1).
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

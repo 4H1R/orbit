@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.ui.theme
 
+import android.content.Context
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -14,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.ktx.harmonize
+import com.materialkolor.material3.dynamicColorScheme
 import com.materialkolor.material3.rememberDynamicColorScheme
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.format.LocalOrbitFormats
@@ -104,4 +106,32 @@ fun ThemeMode.isDark(): Boolean = when (this) {
     ThemeMode.System -> isSystemInDarkTheme()
     ThemeMode.Light -> false
     ThemeMode.Dark -> true
+}
+
+/**
+ * Orbit's colour scheme outside composition (the home-screen widget): the same rules as
+ * [OrbitTheme] for [appearance], light or [darkTheme].
+ */
+fun orbitColorScheme(context: Context, appearance: OrbitAppearance, darkTheme: Boolean): ColorScheme {
+    fun seeded(seed: Color) = dynamicColorScheme(
+        seedColor = seed,
+        isDark = darkTheme,
+        tertiary = Apricot.harmonize(seed),
+        style = PaletteStyle.TonalSpot,
+        specVersion = ColorSpec.SpecVersion.SPEC_2025,
+    )
+    return when (appearance.colourSource) {
+        ColourSource.OrbitViolet -> seeded(OrbitViolet)
+        ColourSource.Custom -> seeded(appearance.customSeed ?: OrbitViolet)
+        ColourSource.Wallpaper -> {
+            val wallpaper = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            val apricotRoles = seeded(wallpaper.primary)
+            wallpaper.copy(
+                tertiary = apricotRoles.tertiary,
+                onTertiary = apricotRoles.onTertiary,
+                tertiaryContainer = apricotRoles.tertiaryContainer,
+                onTertiaryContainer = apricotRoles.onTertiaryContainer,
+            )
+        }
+    }
 }
