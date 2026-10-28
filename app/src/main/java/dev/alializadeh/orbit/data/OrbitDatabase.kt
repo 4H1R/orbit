@@ -86,11 +86,18 @@ abstract class OrbitDatabase : RoomDatabase() {
     }
 
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
         const val FILE_NAME = "orbit.db"
 
-        /** Every migration, oldest first. Empty until version 2. */
-        val MIGRATIONS: List<Migration> = emptyList()
+        /** Every migration, oldest first. */
+        val MIGRATIONS: List<Migration> = listOf(Migration1To2)
+    }
+}
+
+/** v1.1: the Lunar date adjustment, a backed-up preference (ADR 0007). */
+object Migration1To2 : Migration(1, 2) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE backed_up_preferences ADD COLUMN lunarAdjustmentDays INTEGER NOT NULL DEFAULT 0")
     }
 }
 

@@ -53,19 +53,21 @@ import kotlinx.coroutines.launch
 /**
  * Orbit's one date entry: a Calendar toggle on top, then day · month · year wheels (the year can be
  * "No year"). The rules live in [WheelDatePickerState]; this only draws them. In RTL the wheels
- * read day · month · year from the right.
+ * read day · month · year from the right. The toggle offers [calendars]: the Primary calendar's
+ * choices, or every Calendar (Lunar Hijri too) for Important dates and Occasions.
  */
 @Composable
 fun WheelDatePicker(
     state: WheelDatePickerState,
     onStateChange: (WheelDatePickerState) -> Unit,
     modifier: Modifier = Modifier,
+    calendars: List<CalendarSystem> = CalendarSystem.Primaries,
 ) {
     val formats = LocalOrbitFormats.current
     val calendarLabel = stringResource(R.string.date_picker_calendar)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         OrbitConnectedChoice(
-            options = CalendarSystem.entries,
+            options = if (state.calendar in calendars) calendars else calendars + state.calendar,
             selected = state.calendar,
             onSelect = { onStateChange(state.withCalendar(it)) },
             label = { calendarName(it) },
@@ -118,6 +120,7 @@ fun calendarName(calendar: CalendarSystem): String = stringResource(
     when (calendar) {
         CalendarSystem.Gregorian -> R.string.calendar_gregorian
         CalendarSystem.SolarHijri -> R.string.calendar_solar_hijri
+        CalendarSystem.LunarHijri -> R.string.calendar_lunar_hijri
     },
 )
 

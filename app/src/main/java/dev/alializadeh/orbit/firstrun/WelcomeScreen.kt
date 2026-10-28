@@ -243,7 +243,7 @@ fun WelcomeScreen(
                 )
                 OrbitSectionTitle(stringResource(R.string.welcome_primary_calendar), horizontalPadding = 0.dp)
                 OrbitConnectedChoice(
-                    options = CalendarSystem.entries,
+                    options = CalendarSystem.Primaries,
                     selected = uiState.primaryCalendar,
                     onSelect = onPrimaryCalendarSelect,
                     label = { calendarName(it) },

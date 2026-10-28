@@ -52,6 +52,25 @@ class DatabaseMigrationTest {
         }
     }
 
+    /** v1.1: the Lunar date adjustment column arrives as 0, and the other preferences stay. */
+    @Test
+    fun version1To2AddsTheLunarAdjustment() = runTest {
+        val file = File(temp.root, "v1-prefs.db")
+        SchemaMigrations.createDatabase(1, file) { connection ->
+            connection.execSQL("INSERT INTO backed_up_preferences (id, primaryCalendar, useLatinDigits) VALUES (1, 'SolarHijri', 1)")
+        }
+
+        val database = SchemaMigrations.openWithRoom(file)
+        try {
+            val preferences = database.backedUpPreferencesDao().get()
+            assertEquals(dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri, preferences.primaryCalendar)
+            assertTrue(preferences.useLatinDigits)
+            assertEquals(0, preferences.lunarAdjustmentDays)
+        } finally {
+            database.close()
+        }
+    }
+
     /** Runs every migration path to the current version; Room validates each result. */
     @Test
     fun everyOlderVersionMigratesToTheCurrentOne() = runTest {

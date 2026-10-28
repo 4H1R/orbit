@@ -17,6 +17,7 @@ data class CalendarDate(
     fun toLocalDate(): LocalDate = when (calendar) {
         CalendarSystem.Gregorian -> LocalDate.of(year, month, day)
         CalendarSystem.SolarHijri -> SolarHijriRules.toLocalDate(year, month, day)
+        CalendarSystem.LunarHijri -> LunarHijriRules.toLocalDate(year, month, day)
     }
 
     /**
@@ -35,6 +36,7 @@ data class CalendarDate(
             CalendarSystem.Gregorian ->
                 CalendarDate(CalendarSystem.Gregorian, date.year, date.monthValue, date.dayOfMonth)
             CalendarSystem.SolarHijri -> SolarHijriRules.fromLocalDate(date)
+            CalendarSystem.LunarHijri -> LunarHijriRules.fromLocalDate(date)
         }
     }
 }

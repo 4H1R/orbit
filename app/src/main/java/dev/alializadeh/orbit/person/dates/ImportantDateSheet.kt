@@ -147,7 +147,7 @@ internal fun ImportantDateSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        WheelDatePicker(state = picker, onStateChange = { picker = it })
+        WheelDatePicker(state = picker, onStateChange = { picker = it }, calendars = CalendarSystem.entries)
         RemindersChoice(leadTimes = leadTimes, defaultLeadTimes = defaultLeadTimes, onChange = { leadTimes = it })
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             if (onDelete != null) {

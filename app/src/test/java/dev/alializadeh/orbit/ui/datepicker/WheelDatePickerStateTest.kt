@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.ui.datepicker
 
 import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
+import dev.alializadeh.orbit.calendar.CalendarSystem.LunarHijri
 import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
 import dev.alializadeh.orbit.calendar.RecurringDate
 import java.time.LocalDate
@@ -143,5 +144,17 @@ class WheelDatePickerStateTest {
         assertEquals(1278, old.year)
         assertEquals(1278, old.yearOptions.last())
         assertTrue(1279 in old.yearOptions)
+    }
+
+    @Test
+    fun flippingToLunarHijriConvertsExactlyAndOffersItsYears() {
+        val lunar = LunarHijri
+        val state = WheelDatePickerState.forDate(RecurringDate(SolarHijri, 12, 11, 1403), today, allowNoYear = true)
+            .withCalendar(lunar)
+        assertEquals(RecurringDate(lunar, 9, 1, 1446), state.date)
+        assertEquals(listOf(null, 1448), state.yearOptions.take(2))
+        assertEquals(1317, state.yearOptions.last())
+        // Without a year, every lunar month offers a 30th.
+        assertEquals(30, state.withYear(null).withMonth(2).dayCount)
     }
 }

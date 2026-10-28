@@ -10,7 +10,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.res.pluralStringResource
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
+import dev.alializadeh.orbit.calendar.LunarHijriRules
 import dev.alializadeh.orbit.calendar.inCalendar
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.language.OrbitLanguage
@@ -35,12 +40,14 @@ fun LanguageDatesRoute(onBack: () -> Unit, viewModel: LanguageDatesViewModel = h
         onLanguageSelect = viewModel::selectLanguage,
         onPrimaryCalendarSelect = viewModel::selectPrimaryCalendar,
         onUseLatinDigitsChange = viewModel::setUseLatinDigits,
+        onLunarAdjustmentSelect = viewModel::setLunarAdjustment,
     )
 }
 
 /**
  * Settings → Language & dates: Language (each shown in its own script), Primary calendar (each
- * option previews today's date), and "Use Latin digits" in the Persian UI only.
+ * option previews today's date), "Use Latin digits" in the Persian UI only, and the Lunar date
+ * adjustment (each option previews today's Lunar Hijri date with it).
  */
 @Composable
 fun LanguageDatesScreen(
@@ -51,6 +58,7 @@ fun LanguageDatesScreen(
     onPrimaryCalendarSelect: (CalendarSystem) -> Unit,
     onUseLatinDigitsChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onLunarAdjustmentSelect: (Int) -> Unit = {},
 ) {
     OrbitSettingsScaffold(
         title = stringResource(R.string.settings_language_dates_title),
@@ -70,13 +78,13 @@ fun LanguageDatesScreen(
             }
         }
         OrbitListGroup(title = stringResource(R.string.language_dates_primary_calendar)) {
-            CalendarSystem.entries.forEachIndexed { index, calendar ->
+            CalendarSystem.Primaries.forEachIndexed { index, calendar ->
                 ChoiceRow(
                     title = calendarName(calendar),
                     summary = dates.format(uiState.today.inCalendar(calendar)),
                     selected = uiState.primaryCalendar == calendar,
                     index = index,
-                    count = CalendarSystem.entries.size,
+                    count = CalendarSystem.Primaries.size,
                     onClick = { onPrimaryCalendarSelect(calendar) },
                 )
             }
@@ -93,5 +101,35 @@ fun LanguageDatesScreen(
                 )
             }
         }
+        val adjustments = (-LunarHijriAdjustment.MAX_DAYS..LunarHijriAdjustment.MAX_DAYS).toList()
+        OrbitListGroup(title = stringResource(R.string.language_dates_lunar_title), modifier = Modifier.padding(top = 24.dp)) {
+            adjustments.forEachIndexed { index, days ->
+                ChoiceRow(
+                    title = lunarAdjustmentName(days),
+                    summary = dates.format(LunarHijriRules.fromLocalDate(uiState.today, adjustment = days)),
+                    selected = uiState.lunarAdjustmentDays == days,
+                    index = index,
+                    count = adjustments.size,
+                    onClick = { onLunarAdjustmentSelect(days) },
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.lunar_adjustment_footer),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+    }
+}
+
+/** "As calculated", "1 day earlier", "2 days later". */
+@Composable
+private fun lunarAdjustmentName(days: Int): String {
+    val numbers = LocalOrbitFormats.current.numbers
+    return when {
+        days == 0 -> stringResource(R.string.lunar_adjustment_none)
+        days < 0 -> pluralStringResource(R.plurals.lunar_adjustment_earlier, -days, numbers.format(-days))
+        else -> pluralStringResource(R.plurals.lunar_adjustment_later, days, numbers.format(days))
     }
 }

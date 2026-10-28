@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.ui.theme.OrbitAppearance
 import javax.inject.Inject
@@ -23,6 +24,8 @@ sealed interface MainUiState {
         val useLatinDigits: Boolean,
         val primaryCalendar: CalendarSystem,
         val firstRunFinished: Boolean,
+        /** Already applied to [LunarHijriAdjustment]; passed on so composition redraws its dates. */
+        val lunarAdjustmentDays: Int = 0,
         /** The device-state file was unreadable and replaced: tell the user once. */
         val resetNoticePending: Boolean = false,
     ) : MainUiState
@@ -36,6 +39,8 @@ class MainViewModel @Inject constructor(
 
     val uiState: StateFlow<MainUiState> =
         combine(preferencesRepository.preferences, preferencesRepository.deviceState) { preferences, device ->
+            // Before anything is drawn with it: every Lunar Hijri date goes through it.
+            LunarHijriAdjustment.set(preferences.lunarAdjustmentDays)
             MainUiState.Ready(
                 appearance = OrbitAppearance(
                     themeMode = preferences.theme,
@@ -45,6 +50,7 @@ class MainViewModel @Inject constructor(
                 useLatinDigits = preferences.useLatinDigits,
                 primaryCalendar = preferences.primaryCalendar,
                 firstRunFinished = device.firstRunFinished,
+                lunarAdjustmentDays = preferences.lunarAdjustmentDays,
                 resetNoticePending = device.resetNoticePending,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, MainUiState.Loading)

@@ -1,6 +1,7 @@
 package dev.alializadeh.orbit.format
 
 import dev.alializadeh.orbit.calendar.CalendarSystem.Gregorian
+import dev.alializadeh.orbit.calendar.CalendarSystem.LunarHijri
 import dev.alializadeh.orbit.calendar.CalendarSystem.SolarHijri
 import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.calendar.inCalendar
@@ -134,5 +135,19 @@ class OrbitDateFormatterTest {
         )
         // In its own Calendar it reads as entered, even a leap day in a year without one.
         assertEquals(listOf("29 Feb"), english.importantDateParts(RecurringDate(Gregorian, 2, 29), Gregorian, today))
+    }
+
+    @Test
+    fun lunarHijriDatesUseTheirMonthNamesAndShowAfterThePrimary() {
+        val ramadan = RecurringDate(LunarHijri, 9, 1, 1446)
+        assertEquals("1 Ramadan 1446", english.format(ramadan))
+        assertEquals("۱ رمضان ۱۴۴۶", persian.format(ramadan))
+        assertEquals("30 Dhu al-Hijjah", english.format(RecurringDate(LunarHijri, 12, 30)))
+        assertEquals("۱۲ ربیع‌الاول", persian.format(RecurringDate(LunarHijri, 3, 12)))
+        val day = LocalDate.of(2025, 3, 1)
+        assertEquals(
+            listOf("11 Esfand", "1 Ramadan"),
+            english.occurrenceParts(day, LunarHijri, SolarHijri, today = day),
+        )
     }
 }

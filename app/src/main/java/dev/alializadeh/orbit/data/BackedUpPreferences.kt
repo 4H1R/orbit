@@ -40,6 +40,8 @@ data class BackedUpPreferences(
     @ColumnInfo(defaultValue = "OneWeek,OnTheDay") val defaultLeadTimes: Set<LeadTime> = LeadTime.DEFAULT,
     @ColumnInfo(defaultValue = "Days30") val backupNudgeInterval: BackupNudgeInterval = BackupNudgeInterval.DEFAULT,
     @ColumnInfo(defaultValue = "Name") val peopleSort: PeopleSort = PeopleSort.Name,
+    /** The Lunar date adjustment, −2…+2 days (schema 2, ADR 0007). */
+    @ColumnInfo(defaultValue = "0") val lunarAdjustmentDays: Int = 0,
 ) {
     companion object {
         /** The table only ever holds this one row, inserted when the database is created. */

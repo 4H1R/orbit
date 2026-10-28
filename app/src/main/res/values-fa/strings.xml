@@ -29,6 +29,7 @@
     <!-- Calendars -->
     <string name="calendar_gregorian">میلادی</string>
     <string name="calendar_solar_hijri">شمسی</string>
+    <string name="calendar_lunar_hijri">قمری</string>
 
     <!-- Relative time (copy deck) -->
     <string name="time_today">امروز</string>
@@ -736,4 +737,17 @@
     <string name="wishes_default_birthday">%1$s عزیز، تولدت مبارک. سالی پر از شادی و سلامتی برایت آرزو می‌کنم.</string>
     <string name="wishes_default_anniversary">%1$s عزیز، سالگردت مبارک. سال‌های شاد بسیاری برایت آرزو می‌کنم.</string>
     <string name="wishes_default_custom">%1$s عزیز، امروز به یادت هستم.</string>
+
+    <!-- Lunar Hijri (v1.1): Settings → Language & dates -->
+    <string name="language_dates_lunar_title">تاریخ‌های قمری</string>
+    <string name="lunar_adjustment_none">طبق محاسبه</string>
+    <plurals name="lunar_adjustment_earlier">
+        <item quantity="one">%1$s روز زودتر</item>
+        <item quantity="other">%1$s روز زودتر</item>
+    </plurals>
+    <plurals name="lunar_adjustment_later">
+        <item quantity="one">%1$s روز دیرتر</item>
+        <item quantity="other">%1$s روز دیرتر</item>
+    </plurals>
+    <string name="lunar_adjustment_footer">Orbit تاریخ‌های قمری را با تقویم ام‌القری محاسبه می‌کند. اگر تقویم رسمی ایران ماه را در روز دیگری آغاز کند، همهٔ تاریخ‌های قمری را یک یا دو روز جابه‌جا کنید تا یکی شوند.</string>
 </resources>

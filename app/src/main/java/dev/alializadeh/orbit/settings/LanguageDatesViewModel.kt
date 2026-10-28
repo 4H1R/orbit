@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.calendar.CalendarSystem
+import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.language.AppLanguage
 import dev.alializadeh.orbit.language.OrbitLanguage
@@ -24,6 +25,8 @@ sealed interface LanguageDatesUiState {
         val useLatinDigits: Boolean,
         /** For showing today's date in each Calendar. */
         val today: LocalDate,
+        /** The Lunar date adjustment, −2…+2 days. */
+        val lunarAdjustmentDays: Int = 0,
     ) : LanguageDatesUiState
 }
 
@@ -44,6 +47,7 @@ class LanguageDatesViewModel @Inject constructor(
                 primaryCalendar = preferences.primaryCalendar,
                 useLatinDigits = preferences.useLatinDigits,
                 today = LocalDate.now(clock),
+                lunarAdjustmentDays = preferences.lunarAdjustmentDays,
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LanguageDatesUiState.Loading)
@@ -57,5 +61,11 @@ class LanguageDatesViewModel @Inject constructor(
 
     fun setUseLatinDigits(useLatinDigits: Boolean) {
         viewModelScope.launch { preferencesRepository.setUseLatinDigits(useLatinDigits) }
+    }
+
+    /** Moves every Lunar Hijri date by [days] (−2…+2) from Umm al-Qura. */
+    fun setLunarAdjustment(days: Int) {
+        val clamped = days.coerceIn(-LunarHijriAdjustment.MAX_DAYS, LunarHijriAdjustment.MAX_DAYS)
+        viewModelScope.launch { preferencesRepository.update { it.copy(lunarAdjustmentDays = clamped) } }
     }
 }

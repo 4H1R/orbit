@@ -37,6 +37,7 @@
     <!-- Calendars -->
     <string name="calendar_gregorian">Gregorian</string>
     <string name="calendar_solar_hijri">Solar Hijri</string>
+    <string name="calendar_lunar_hijri">Lunar Hijri</string>
 
     <!-- Relative time (copy deck). Numbers arrive formatted, as %1$s. -->
     <string name="time_today">Today</string>
@@ -786,4 +787,17 @@
     <string name="wishes_default_anniversary">Happy anniversary, %1$s. Wishing you many more happy years.</string>
     <!-- A custom date's label can be anything (a memorial too), so this text is neutral -->
     <string name="wishes_default_custom">Thinking of you today, %1$s.</string>
+
+    <!-- Lunar Hijri (v1.1): Settings → Language & dates -->
+    <string name="language_dates_lunar_title">Lunar Hijri dates</string>
+    <string name="lunar_adjustment_none">As calculated</string>
+    <plurals name="lunar_adjustment_earlier">
+        <item quantity="one">%1$s day earlier</item>
+        <item quantity="other">%1$s days earlier</item>
+    </plurals>
+    <plurals name="lunar_adjustment_later">
+        <item quantity="one">%1$s day later</item>
+        <item quantity="other">%1$s days later</item>
+    </plurals>
+    <string name="lunar_adjustment_footer">Orbit calculates Lunar Hijri dates with the Umm al-Qura calendar. When Iran\'s official calendar starts a month on another day, move every Lunar Hijri date by a day or two to match.</string>
 </resources>

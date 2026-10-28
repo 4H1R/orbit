@@ -11,12 +11,14 @@ import dev.alializadeh.orbit.language.OrbitLanguage
 
 /**
  * The number and date formatters for the current UI language and digit setting, and the Primary
- * calendar dates are shown in.
+ * calendar dates are shown in. [lunarAdjustmentDays] is the `LunarHijriAdjustment` these were made
+ * under: it's only here so a change provides new formats and composition draws every date again.
  */
 class OrbitFormats(
     language: OrbitLanguage,
     useLatinDigits: Boolean,
     val primaryCalendar: CalendarSystem = language.defaultCalendar,
+    val lunarAdjustmentDays: Int = 0,
 ) {
     val numbers = OrbitNumberFormatter(language, useLatinDigits)
     val dates = OrbitDateFormatter(numbers)

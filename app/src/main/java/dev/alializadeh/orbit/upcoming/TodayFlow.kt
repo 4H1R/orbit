@@ -5,7 +5,9 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import kotlinx.coroutines.delay
+import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -15,13 +17,15 @@ import kotlinx.coroutines.flow.onStart
 /**
  * Today's date per [clock], again whenever it changes: at each midnight while collected, and on
  * every [checks] emission (the screen resuming, which also catches a midnight that passed while
- * the phone slept, since coroutine delays don't count deep sleep).
+ * the phone slept, since coroutine delays don't count deep sleep). The same day comes again when
+ * the Lunar date adjustment changes, so whatever resolved occurrences from it does so again.
  */
 fun todayFlow(clock: Clock, checks: Flow<Unit>): Flow<LocalDate> =
     merge(checks, midnights(clock))
         .onStart { emit(Unit) }
         .map { LocalDate.now(clock) }
         .distinctUntilChanged()
+        .combine(LunarHijriAdjustment.days) { today, _ -> today }
 
 /** Ticks just after each midnight of [clock]'s zone. */
 private fun midnights(clock: Clock): Flow<Unit> = flow {

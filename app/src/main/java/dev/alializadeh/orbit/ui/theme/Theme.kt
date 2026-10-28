@@ -45,6 +45,8 @@ fun OrbitTheme(
     useLatinDigits: Boolean = false,
     /** Null: the UI language's own (Persian → Solar Hijri), as before first run sets it. */
     primaryCalendar: CalendarSystem? = null,
+    /** The Lunar date adjustment in force: a change gives new formats, so every date is drawn again. */
+    lunarAdjustmentDays: Int = 0,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = appearance.themeMode.isDark()
@@ -57,7 +59,9 @@ fun OrbitTheme(
     val typography = remember(context) { orbitTypography(OrbitFonts.get(context)) }
     val language = OrbitLanguage.of(LocalConfiguration.current.locales[0])
     val calendar = primaryCalendar ?: language.defaultCalendar
-    val formats = remember(language, useLatinDigits, calendar) { OrbitFormats(language, useLatinDigits, calendar) }
+    val formats = remember(language, useLatinDigits, calendar, lunarAdjustmentDays) {
+        OrbitFormats(language, useLatinDigits, calendar, lunarAdjustmentDays)
+    }
     CompositionLocalProvider(LocalOrbitFormats provides formats) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,

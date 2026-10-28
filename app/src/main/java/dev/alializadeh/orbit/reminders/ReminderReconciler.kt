@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.reminders
 
 import android.os.SystemClock
 import dev.alializadeh.orbit.backup.BackupStatusDao
+import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.upcoming.UpcomingRepository
@@ -159,6 +160,8 @@ class ReminderReconciler @Inject constructor(
     private suspend fun reconcileAt(now: Instant, setNextAlarm: (Instant?) -> Unit): ReminderPlan {
         val zone = clock.zone
         val backedUp = preferences.preferences.first()
+        // A receiver's process may have no activity to have applied it.
+        LunarHijriAdjustment.set(backedUp.lunarAdjustmentDays)
         val device = preferences.deviceState.first()
         val token = statusDao.restoreToken()
         val people = upcoming.observePeople().first()

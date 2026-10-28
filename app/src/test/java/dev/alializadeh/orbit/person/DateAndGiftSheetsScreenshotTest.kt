@@ -64,6 +64,27 @@ class DateAndGiftSheetsScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
+    /** A Birthday kept in Lunar Hijri: the third Calendar on the toggle. */
+    @Test
+    fun dateSheetLunarHijri() = captureScreen("date_sheet_lunar", variant) {
+        SheetFrame {
+            ImportantDateSheetContent(
+                initial = ImportantDateDraft(
+                    id = 6,
+                    type = ImportantDateType.Birthday,
+                    date = RecurringDate(CalendarSystem.LunarHijri, 9, 15, 1408),
+                ),
+                newType = ImportantDateType.Birthday,
+                birthdayTaken = false,
+                defaultLeadTimes = LeadTime.DEFAULT,
+                today = ScreenshotToday,
+                onDone = {},
+                onDelete = {},
+                sheet = NoCloser,
+            )
+        }
+    }
+
     /** Custom reminders: the chips editable, with No reminders last. */
     @Test
     fun dateSheetCustomReminders() = captureScreen("date_sheet_custom_reminders", variant, tall = true) {

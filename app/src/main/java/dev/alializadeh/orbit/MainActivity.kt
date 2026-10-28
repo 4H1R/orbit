@@ -84,6 +84,7 @@ class MainActivity : AppCompatActivity() {
                 useLatinDigits = ready.useLatinDigits,
                 // First run shows dates (if any) in the calendar it's offering.
                 primaryCalendar = ready.primaryCalendar.takeIf { ready.firstRunFinished },
+                lunarAdjustmentDays = ready.lunarAdjustmentDays,
             ) {
                 // "Remove animations" stills every endless animation (and the Orbit view's motion).
                 CompositionLocalProvider(LocalStillMotion provides rememberAnimationsRemoved()) {

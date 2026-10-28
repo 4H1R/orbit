@@ -107,7 +107,7 @@ class BackupRoundTripTest {
         reader.read(backup.toByteArray().inputStream(), PASSPHRASE, extractTo = staging)
 
         BundledSQLiteDriver().open(File(staging, DATABASE_ENTRY).path).use { connection ->
-            connection.prepare("PRAGMA user_version").use { it.step(); assertEquals(1L, it.getLong(0)) }
+            connection.prepare("PRAGMA user_version").use { it.step(); assertEquals(OrbitDatabase.VERSION.toLong(), it.getLong(0)) }
             connection.prepare("SELECT COUNT(*) FROM backed_up_preferences").use {
                 it.step()
                 assertEquals(1L, it.getLong(0))

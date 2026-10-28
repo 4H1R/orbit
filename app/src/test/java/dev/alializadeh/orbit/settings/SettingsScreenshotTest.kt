@@ -85,12 +85,13 @@ class SettingsScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Test
-    fun languageAndDates() = captureScreen("language_dates", variant) {
+    fun languageAndDates() = captureScreen("language_dates", variant, tall = true) {
         LanguageDatesScreen(
             uiState = LanguageDatesUiState.Loaded(
                 primaryCalendar = language.defaultCalendar,
                 useLatinDigits = false,
                 today = LocalDate.of(2026, 10, 28),
+                lunarAdjustmentDays = 1,
             ),
             language = language,
             onBack = {},

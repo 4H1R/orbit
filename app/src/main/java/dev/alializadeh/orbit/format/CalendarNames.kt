@@ -34,6 +34,14 @@ internal object CalendarNames {
         "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
         "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند",
     )
+    private val ENGLISH_LUNAR_HIJRI = listOf(
+        "Muharram", "Safar", "Rabi' al-awwal", "Rabi' al-thani", "Jumada al-ula", "Jumada al-akhirah",
+        "Rajab", "Sha'ban", "Ramadan", "Shawwal", "Dhu al-Qa'dah", "Dhu al-Hijjah",
+    )
+    private val PERSIAN_LUNAR_HIJRI = listOf(
+        "محرم", "صفر", "ربیع‌الاول", "ربیع‌الثانی", "جمادی‌الاول", "جمادی‌الثانی",
+        "رجب", "شعبان", "رمضان", "شوال", "ذی‌القعده", "ذی‌الحجه",
+    )
 
     // Monday first, as java.time.DayOfWeek numbers them.
     private val ENGLISH_WEEKDAYS_SHORT = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
@@ -50,10 +58,12 @@ internal object CalendarNames {
             OrbitLanguage.English -> when (calendar) {
                 CalendarSystem.Gregorian -> if (full) ENGLISH_GREGORIAN_FULL else ENGLISH_GREGORIAN_SHORT
                 CalendarSystem.SolarHijri -> ENGLISH_SOLAR_HIJRI
+                CalendarSystem.LunarHijri -> ENGLISH_LUNAR_HIJRI
             }
             OrbitLanguage.Persian -> when (calendar) {
                 CalendarSystem.Gregorian -> PERSIAN_GREGORIAN
                 CalendarSystem.SolarHijri -> PERSIAN_SOLAR_HIJRI
+                CalendarSystem.LunarHijri -> PERSIAN_LUNAR_HIJRI
             }
         }
         return names[month - 1]
