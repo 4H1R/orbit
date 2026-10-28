@@ -89,6 +89,8 @@ import dev.alializadeh.orbit.ui.components.rememberOrbitSnackbars
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.UpcomingKey
 import dev.alializadeh.orbit.upcoming.UpcomingRoute
+import dev.alializadeh.orbit.wishes.WishesHost
+import dev.alializadeh.orbit.wishes.WishesViewModel
 
 /**
  * The app shell: four bottom tabs over a single [NavDisplay], with Back up now ([BackupHost])
@@ -104,10 +106,13 @@ fun OrbitApp(
     backup: BackupViewModel = hiltViewModel(),
     entries: NotificationEntryViewModel = hiltViewModel(),
     peopleLinks: PeopleLinksViewModel = hiltViewModel(),
+    wishes: WishesViewModel = hiltViewModel(),
 ) {
     val snackbars = rememberOrbitSnackbars()
     val resources = LocalResources.current
     val numbers = LocalOrbitFormats.current.numbers
+    val language = LocalOrbitFormats.current.language
+    val sendWishes = { personId: Long, dateId: Long -> wishes.openForDate(personId, dateId, language) }
     val restoredPeople by backup.restoredPeople.collectAsStateWithLifecycle()
     // A notification tap: Upcoming, then Person detail over it, or Upcoming scrolled to Due.
     // App lock's gate sits in front of OrbitApp (MainActivity), so this waits until it's passed.
@@ -117,6 +122,10 @@ fun OrbitApp(
         val target = entry ?: return@LaunchedEffect
         when (target) {
             is NotificationEntry.PersonDetail -> navigator.openOnUpcoming(PersonDetailKey(target.personId))
+            is NotificationEntry.Wishes -> {
+                navigator.openOnUpcoming(PersonDetailKey(target.personId))
+                sendWishes(target.personId, target.dateId)
+            }
             NotificationEntry.UpcomingDue -> {
                 navigator.openOnUpcoming(null)
                 scrollToDue = true
@@ -156,6 +165,7 @@ fun OrbitApp(
                     onPersonClick = { id -> navigator.navigate(PersonDetailKey(id)) },
                     onBackUpNow = backup::start,
                     onFixReminders = { navigator.navigate(ReminderHealthKey) },
+                    onSendWishes = sendWishes,
                     scrollToDue = scrollToDue,
                     onScrolledToDue = { scrollToDue = false },
                 )
@@ -189,6 +199,7 @@ fun OrbitApp(
                     onBack = navigator::goBack,
                     onEdit = { focus -> navigator.navigate(EditPersonKey(key.personId, focus)) },
                     onAllInteractions = { navigator.navigate(AllInteractionsKey(key.personId)) },
+                    onSendWishes = { dateId -> sendWishes(key.personId, dateId) },
                     onSearchPeople = { text ->
                         peopleLinks.search(text)
                         navigator.openPeople()
@@ -257,6 +268,7 @@ fun OrbitApp(
         Box(Modifier.fillMaxSize()) {
             OrbitShell(navigator, entries)
             BackupHost(backup)
+            WishesHost(wishes)
             ReminderPermissionHost()
         }
     }

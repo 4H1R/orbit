@@ -30,11 +30,17 @@ sealed interface NotificationEntry {
         override val uri: Uri get() = "$SCHEME://$UPCOMING/$DUE".toUri()
     }
 
+    /** Person detail with the Wishes sheet open for their Important date [dateId] (an on-the-day Reminder's Send wishes). */
+    data class Wishes(val personId: Long, val dateId: Long) : NotificationEntry {
+        override val uri: Uri get() = "$SCHEME://$WISHES/$personId/$dateId".toUri()
+    }
+
     companion object {
         private const val SCHEME = "orbit"
         private const val PERSON = "person"
         private const val UPCOMING = "upcoming"
         private const val DUE = "due"
+        private const val WISHES = "wishes"
 
         /** The entry [intent] asks for, or null when it's a plain launch or not Orbit's own. */
         fun of(intent: Intent?): NotificationEntry? {
@@ -44,6 +50,12 @@ sealed interface NotificationEntry {
             return when (data.host) {
                 PERSON -> data.lastPathSegment?.toLongOrNull()?.let(::PersonDetail)
                 UPCOMING -> UpcomingDue.takeIf { data.lastPathSegment == DUE }
+                WISHES -> {
+                    val segments = data.pathSegments
+                    val personId = segments.getOrNull(0)?.toLongOrNull()
+                    val dateId = segments.getOrNull(1)?.toLongOrNull()
+                    if (segments.size == 2 && personId != null && dateId != null) Wishes(personId, dateId) else null
+                }
                 else -> null
             }
         }

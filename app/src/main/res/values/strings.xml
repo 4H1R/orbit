@@ -767,4 +767,23 @@
     <string name="about_crash_log_footer">If Orbit stops unexpectedly, it writes down what went wrong on this phone, without any of your people or notes. Nothing is sent anywhere unless you share it.</string>
     <!-- The subject line when the log is shared (e.g. by email) -->
     <string name="about_crash_log_subject">Orbit crash log</string>
+
+    <!-- Send wishes (v1.1) -->
+    <string name="wishes_send">Send wishes</string>
+    <!-- The Wishes sheet's title; %1$s is the Person's name -->
+    <string name="wishes_sheet_title">Wishes for %1$s</string>
+    <string name="wishes_language">Language</string>
+    <string name="wishes_message">Message</string>
+    <string name="wishes_send_with">Send with</string>
+    <!-- Send with: the system share sheet, for any app -->
+    <string name="wishes_other_app">Other app</string>
+    <string name="wishes_copy_hint">This app can\'t take a message, so Orbit copies it for you to paste in the chat</string>
+    <string name="wishes_copied_snackbar">Message copied. Paste it in the chat.</string>
+    <string name="wishes_log_as_message">Log as a message</string>
+    <string name="wishes_send_action">Send</string>
+    <!-- The default Wishes, sent to the Person; %1$s is the name they're greeted by -->
+    <string name="wishes_default_birthday">Happy birthday, %1$s. Wishing you a wonderful year ahead.</string>
+    <string name="wishes_default_anniversary">Happy anniversary, %1$s. Wishing you many more happy years.</string>
+    <!-- A custom date's label can be anything (a memorial too), so this text is neutral -->
+    <string name="wishes_default_custom">Thinking of you today, %1$s.</string>
 </resources>

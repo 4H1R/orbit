@@ -77,6 +77,8 @@ fun PersonDetailRoute(
     onSearchPeople: (String) -> Unit,
     /** Archived: show "[name] archived · Undo" ([undo] outlives this screen) and leave. */
     onArchived: (displayName: String, undo: suspend () -> Unit) -> Unit,
+    /** Opens the Wishes sheet for their Important date [dateId] (one that falls today). */
+    onSendWishes: (dateId: Long) -> Unit = {},
     viewModel: PersonDetailViewModel =
         hiltViewModel<PersonDetailViewModel, PersonDetailViewModel.Factory>(
             creationCallback = { factory -> factory.create(key.personId) },
@@ -151,6 +153,7 @@ fun PersonDetailRoute(
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) snackbars?.show(copied)
         },
         onSearchPeople = onSearchPeople,
+        onSendWishes = onSendWishes,
     )
 }
 
@@ -177,6 +180,7 @@ fun PersonDetailScreen(
     onCopy: (String) -> Unit,
     modifier: Modifier = Modifier,
     onSearchPeople: (String) -> Unit = {},
+    onSendWishes: (dateId: Long) -> Unit = {},
 ) {
     val loaded = uiState as? PersonDetailUiState.Loaded
     var moreContactSheet by rememberSaveable { mutableStateOf(false) }
@@ -257,6 +261,7 @@ fun PersonDetailScreen(
                         onContactAction = onContactAction,
                         onCopy = onCopy,
                         onSearchPeople = onSearchPeople,
+                        onSendWishes = onSendWishes,
                     )
                     AddDetails(uiState.missingFields, onAddDetail)
                 }

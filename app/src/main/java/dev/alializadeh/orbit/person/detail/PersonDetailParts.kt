@@ -232,9 +232,16 @@ internal fun PersonSections(
     onContactAction: (ContactAction) -> Unit,
     onCopy: (String) -> Unit,
     onSearchPeople: (String) -> Unit,
+    onSendWishes: (dateId: Long) -> Unit = {},
 ) {
     val profile = uiState.profile
-    ImportantDatesSection(profile.importantDates, uiState.today, onOpenDate)
+    // An Archived Person is left out of Upcoming and Reminders, so they get no Wishes either.
+    ImportantDatesSection(
+        dates = profile.importantDates,
+        today = uiState.today,
+        onOpen = onOpenDate,
+        onSendWishes = if (profile.person.isArchived) null else onSendWishes,
+    )
     GiftIdeasSection(
         open = profile.openGiftIdeas,
         given = profile.givenGiftIdeas,

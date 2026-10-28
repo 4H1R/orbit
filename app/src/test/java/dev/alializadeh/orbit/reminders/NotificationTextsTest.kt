@@ -197,12 +197,16 @@ class NotificationTextsTest {
 
     @Test
     @Config(qualifiers = "en")
-    fun theOnTheDayReminderHasTheContactActionAndMarkAsContacted() {
+    fun theOnTheDayReminderHasTheContactActionMarkAsContactedAndSendWishes() {
         val notification = build(reminder(0, person = person(primary = phone)))
         assertEquals(ReminderChannel.ImportantDates.id, notification.channelId)
         assertEquals("Today is Sara's birthday", notification.title)
-        assertEquals(listOf("Call", "Mark as contacted"), notification.actions.map { it.title.toString() })
+        assertEquals(listOf("Call", "Mark as contacted", "Send wishes"), notification.actions.map { it.title.toString() })
         assertFalse(notification.actions.any { it.isAuthenticationRequired })
+        // Send wishes opens Orbit on the Person, with the sheet for this date.
+        val wishes = org.robolectric.Shadows.shadowOf(notification.actions.last().actionIntent).savedIntent
+        val reminder = reminder(0, person = person(primary = phone))
+        assertEquals(NotificationEntry.Wishes(reminder.person.id, reminder.date.id), NotificationEntry.of(wishes))
         assertTrue(notification.getLargeIcon() != null)
         // Expires at the end of the date's day.
         assertEquals(15 * 60 * 60 * 1000L, notification.timeoutAfter) // 09:00 until the end of the day
@@ -232,7 +236,7 @@ class NotificationTextsTest {
     @Config(qualifiers = "en")
     fun earlierRemindersHaveNoActionsAndNoPrimaryMeansNoContactAction() {
         assertNull(build(reminder(7, person = person(primary = phone))).actions)
-        assertEquals(listOf("Mark as contacted"), build(reminder(0)).actions.map { it.title.toString() })
+        assertEquals(listOf("Mark as contacted", "Send wishes"), build(reminder(0)).actions.map { it.title.toString() })
     }
 
     @Test
@@ -266,7 +270,7 @@ class NotificationTextsTest {
     fun entriesAndActionsRoundTripThroughTheirIntents() {
         val context = RuntimeEnvironment.getApplication()
         val intents = NotificationIntents(context)
-        for (entry in listOf(NotificationEntry.PersonDetail(42), NotificationEntry.UpcomingDue)) {
+        for (entry in listOf(NotificationEntry.PersonDetail(42), NotificationEntry.UpcomingDue, NotificationEntry.Wishes(42, 7))) {
             assertEquals(entry, NotificationEntry.of(intents.openIntent(entry)))
             // Review finding 8: another app can start the exported MainActivity, but not with an entry.
             val direct = android.content.Intent(android.content.Intent.ACTION_VIEW, entry.uri)
@@ -294,7 +298,7 @@ class NotificationTextsTest {
     fun backgroundActionsCarryTheRestoreTokenTheyWerePostedFor() {
         val notification = NotificationFactory(RuntimeEnvironment.getApplication(), OrbitFormats(OrbitLanguage.English, false), FakePhotoStore(), restoreToken = 99L)
             .build(reminder(0), NotificationRendering(), now)
-        val action = notification.actions.single()
+        val action = notification.actions.first()
         val intent = org.robolectric.Shadows.shadowOf(action.actionIntent).savedIntent
         assertEquals(99L, NotificationActionTarget.of(intent)!!.restoreToken)
     }

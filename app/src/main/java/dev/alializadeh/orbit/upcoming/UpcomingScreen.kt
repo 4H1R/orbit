@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -117,6 +119,8 @@ fun UpcomingRoute(
     onPersonClick: (personId: Long) -> Unit,
     onBackUpNow: () -> Unit,
     onFixReminders: () -> Unit = {},
+    /** Opens the Wishes sheet for a date today. */
+    onSendWishes: (personId: Long, dateId: Long) -> Unit = { _, _ -> },
     /** A notification asked for Upcoming at Due: scroll there once loaded, then [onScrolledToDue]. */
     scrollToDue: Boolean = false,
     onScrolledToDue: () -> Unit = {},
@@ -156,6 +160,7 @@ fun UpcomingRoute(
         onLogInteraction = keepInTouch::logInteraction,
         onSnooze = keepInTouch::openSnooze,
         onShowAllDue = viewModel::showAllDue,
+        onSendWishes = onSendWishes,
         backupNudge = nudge,
         onBackUpNow = onBackUpNow,
         onNudgeNotNow = backupNudge::notNow,
@@ -179,6 +184,7 @@ fun UpcomingScreen(
     onSnooze: (personId: Long) -> Unit,
     onShowAllDue: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onSendWishes: (personId: Long, dateId: Long) -> Unit = { _, _ -> },
     /** Slice 5's Backup nudge, or null when it isn't shown. */
     backupNudge: BackupNudgeUi? = null,
     onBackUpNow: () -> Unit = {},
@@ -277,7 +283,8 @@ fun UpcomingScreen(
                             UpcomingSection.BackupNudge -> if (nudgeCard != null) {
                                 item(key = "backup_nudge") { nudgeCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
                             }
-                            UpcomingSection.Today -> todaySection(uiState, onPersonClick, onContactAction, onLogInteraction)
+                            UpcomingSection.Today ->
+                                todaySection(uiState, onPersonClick, onContactAction, onLogInteraction, onSendWishes)
                             UpcomingSection.Due ->
                                 dueSection(uiState, onPersonClick, onContactAction, onLogInteraction, onSnooze, onShowAllDue)
                             UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick)
@@ -303,6 +310,7 @@ private fun LazyListScope.todaySection(
     onPersonClick: (Long) -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: (Long) -> Unit,
+    onSendWishes: (personId: Long, dateId: Long) -> Unit,
 ) {
     val dates = uiState.feed.today
     if (dates.isEmpty()) return
@@ -316,6 +324,7 @@ private fun LazyListScope.todaySection(
             onClick = { onPersonClick(hero.person.id) },
             onContactAction = onContactAction,
             onLogInteraction = { onLogInteraction(hero.person.id) },
+            onSendWishes = { onSendWishes(hero.person.id, hero.importantDate.id) },
         )
     }
     val rest = dates.drop(1)
@@ -328,6 +337,7 @@ private fun LazyListScope.todaySection(
             onClick = { onPersonClick(date.person.id) },
             onContactAction = onContactAction,
             onLogInteraction = { onLogInteraction(date.person.id) },
+            onSendWishes = { onSendWishes(date.person.id, date.importantDate.id) },
             modifier = if (index == 0) Modifier.padding(top = 8.dp) else Modifier,
         )
     }
@@ -401,7 +411,7 @@ private fun SectionTitle(text: String) {
 
 /**
  * The nearest date today: the photo, "Today is Sara's birthday · turns 35", the date, the open
- * Gift ideas, and the primary contact action (slice 4 adds Log interaction beside it).
+ * Gift ideas, then the primary contact action, Send wishes and Log interaction.
  */
 @Composable
 private fun HeroCard(
@@ -411,6 +421,7 @@ private fun HeroCard(
     onClick: () -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: () -> Unit,
+    onSendWishes: () -> Unit,
 ) {
     val formats = LocalOrbitFormats.current
     val separator = stringResource(R.string.separator)
@@ -473,6 +484,14 @@ private fun HeroCard(
                         }
                     }
                     OutlinedButton(
+                        onClick = onSendWishes,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onTertiaryContainer),
+                        border = BorderStroke(1.dp, colors.onTertiaryContainer),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.wishes_send), modifier = Modifier.padding(start = 8.dp))
+                    }
+                    OutlinedButton(
                         onClick = onLogInteraction,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onTertiaryContainer),
                         border = BorderStroke(1.dp, colors.onTertiaryContainer),
@@ -487,8 +506,8 @@ private fun HeroCard(
 }
 
 /**
- * Another date today: whose it is, the years count and Gift ideas, the contact action and Log
- * interaction.
+ * Another date today: whose it is, the years count and Gift ideas, the contact action, Send wishes
+ * and Log interaction.
  */
 @Composable
 private fun TodayRow(
@@ -499,6 +518,7 @@ private fun TodayRow(
     onClick: () -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: () -> Unit,
+    onSendWishes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val formats = LocalOrbitFormats.current
@@ -517,6 +537,9 @@ private fun TodayRow(
                     IconButton(onClick = { onContactAction(it) }) {
                         Icon(it.kind.icon, contentDescription = it.kind.label())
                     }
+                }
+                IconButton(onClick = onSendWishes) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.wishes_send))
                 }
                 IconButton(onClick = onLogInteraction) {
                     Icon(OrbitIcons.LogInteraction, contentDescription = stringResource(R.string.interaction_log))

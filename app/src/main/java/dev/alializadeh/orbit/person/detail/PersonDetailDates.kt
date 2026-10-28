@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -42,10 +43,16 @@ import java.time.LocalDate
 /**
  * Important dates, first among the sections: each date's type or label, the date in the Primary
  * calendar (plus its own Calendar when that differs), the years count when the year is known, and
- * a Birthday's current age. Tapping a date opens the date sheet.
+ * a Birthday's current age. Tapping a date opens the date sheet. A date that falls today has Send
+ * wishes, unless [onSendWishes] is null.
  */
 @Composable
-internal fun ImportantDatesSection(dates: List<ImportantDate>, today: LocalDate, onOpen: (ImportantDate) -> Unit) {
+internal fun ImportantDatesSection(
+    dates: List<ImportantDate>,
+    today: LocalDate,
+    onOpen: (ImportantDate) -> Unit,
+    onSendWishes: ((dateId: Long) -> Unit)? = null,
+) {
     if (dates.isEmpty()) return
     val formats = LocalOrbitFormats.current
     val separator = stringResource(R.string.separator)
@@ -54,8 +61,10 @@ internal fun ImportantDatesSection(dates: List<ImportantDate>, today: LocalDate,
         Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
             dates.forEachIndexed { index, date ->
                 val dateLine = formats.dates.importantDateParts(date.date, formats.primaryCalendar, today).joinToString(separator)
-                val years = yearsCountText(date.type, date.date.nextOccurrence(today).yearsCount)
+                val occurrence = date.date.nextOccurrence(today)
+                val years = yearsCountText(date.type, occurrence.yearsCount)
                 val age = if (date.type == ImportantDateType.Birthday) ageText(date.date.completedYears(today)) else null
+                val wishes = onSendWishes?.takeIf { occurrence.date == today }
                 SegmentedListItem(
                     onClick = { onOpen(date) },
                     shapes = ListItemDefaults.segmentedShapes(index, dates.size),
@@ -67,7 +76,20 @@ internal fun ImportantDatesSection(dates: List<ImportantDate>, today: LocalDate,
                             if (years != null) Text(years, color = MaterialTheme.colorScheme.tertiary)
                         }
                     },
-                    trailingContent = age?.let { { Text(it, style = MaterialTheme.typography.labelLarge) } },
+                    trailingContent = if (age == null && wishes == null) {
+                        null
+                    } else {
+                        {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                age?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
+                                wishes?.let { send ->
+                                    IconButton(onClick = { send(date.id) }) {
+                                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.wishes_send))
+                                    }
+                                }
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(importantDateName(date.type, date.label?.let(::bidiIsolate)))

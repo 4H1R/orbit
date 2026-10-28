@@ -721,4 +721,19 @@
     <string name="about_crash_log_cleared">گزارش خطا پاک شد</string>
     <string name="about_crash_log_footer">اگر Orbit ناگهان بسته شود، شرح خطا را روی همین گوشی می‌نویسد، بی‌آن‌که چیزی از افراد یا یادداشت‌های شما در آن باشد. تا خودتان آن را نفرستید، به جایی فرستاده نمی‌شود.</string>
     <string name="about_crash_log_subject">گزارش خطای Orbit</string>
+
+    <!-- Send wishes (v1.1) -->
+    <string name="wishes_send">فرستادن تبریک</string>
+    <string name="wishes_sheet_title">تبریک برای %1$s</string>
+    <string name="wishes_language">زبان</string>
+    <string name="wishes_message">پیام</string>
+    <string name="wishes_send_with">فرستادن با</string>
+    <string name="wishes_other_app">برنامهٔ دیگر</string>
+    <string name="wishes_copy_hint">این برنامه پیام را نمی‌پذیرد؛ Orbit آن را کپی می‌کند تا در گفت‌وگو بچسبانید</string>
+    <string name="wishes_copied_snackbar">پیام کپی شد. آن را در گفت‌وگو بچسبانید.</string>
+    <string name="wishes_log_as_message">ثبت به‌عنوان ارتباط پیامی</string>
+    <string name="wishes_send_action">فرستادن</string>
+    <string name="wishes_default_birthday">%1$s عزیز، تولدت مبارک. سالی پر از شادی و سلامتی برایت آرزو می‌کنم.</string>
+    <string name="wishes_default_anniversary">%1$s عزیز، سالگردت مبارک. سال‌های شاد بسیاری برایت آرزو می‌کنم.</string>
+    <string name="wishes_default_custom">%1$s عزیز، امروز به یادت هستم.</string>
 </resources>

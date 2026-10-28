@@ -60,6 +60,14 @@ class NotificationFactory(
                         rendering,
                     ),
                 )
+                // Opens Orbit (behind App lock's gate), so it needs no unlock of its own.
+                builder.addAction(
+                    NotificationCompat.Action.Builder(
+                        0,
+                        context.getString(R.string.wishes_send),
+                        intents.open(NotificationEntry.Wishes(reminder.person.id, reminder.date.id)),
+                    ).build(),
+                )
             }
         }
         return builder.build()
