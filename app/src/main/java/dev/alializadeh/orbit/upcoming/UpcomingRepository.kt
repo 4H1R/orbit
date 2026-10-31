@@ -7,9 +7,13 @@ import dagger.hilt.components.SingletonComponent
 import dev.alializadeh.orbit.due.keepInTouch
 import dev.alializadeh.orbit.interaction.InteractionDao
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.FollowUp
+import dev.alializadeh.orbit.person.FollowUpOrder
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.GiftIdeaOrder
 import dev.alializadeh.orbit.person.ImportantDateOrder
+import dev.alializadeh.orbit.person.Loan
+import dev.alializadeh.orbit.person.LoanOrder
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.person.names
 import dev.alializadeh.orbit.ring.Ring
@@ -54,6 +58,8 @@ class RoomUpcomingRepository @Inject constructor(
                     ringPosition = ring?.position ?: Int.MAX_VALUE,
                     ringId = row.person.ringId,
                     tagIds = row.tags.map { it.tagId }.toSet(),
+                    openFollowUps = row.followUps.filterNot(FollowUp::isDone).sortedWith(FollowUpOrder),
+                    openLoans = row.loans.filterNot(Loan::isReturned).sortedWith(LoanOrder),
                 )
             }
         }

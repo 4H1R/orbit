@@ -17,8 +17,10 @@ import dev.alializadeh.orbit.occasion.OccasionPerson
 import dev.alializadeh.orbit.occasion.OccasionRing
 import dev.alializadeh.orbit.occasion.OccasionTag
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.FollowUp
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.ImportantDate
+import dev.alializadeh.orbit.person.Loan
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonDao
 import dev.alializadeh.orbit.person.PersonItem
@@ -54,6 +56,8 @@ import kotlinx.coroutines.Dispatchers
         OccasionRing::class,
         OccasionTag::class,
         OccasionPerson::class,
+        FollowUp::class,
+        Loan::class,
     ],
     version = OrbitDatabase.VERSION,
     exportSchema = true,
@@ -97,11 +101,11 @@ abstract class OrbitDatabase : RoomDatabase() {
     }
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 4
         const val FILE_NAME = "orbit.db"
 
         /** Every migration, oldest first. */
-        val MIGRATIONS: List<Migration> = listOf(Migration1To2, Migration2To3)
+        val MIGRATIONS: List<Migration> = listOf(Migration1To2, Migration2To3, Migration3To4)
     }
 }
 
@@ -141,5 +145,24 @@ object Migration2To3 : Migration(2, 3) {
             )
             connection.execSQL("CREATE INDEX IF NOT EXISTS `index_${table}_$column` ON `$table` (`$column`)")
         }
+    }
+}
+
+/** Follow-ups, and what's lent and borrowed. */
+object Migration3To4 : Migration(3, 4) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        // As exported in 4.json.
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `follow_up` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `personId` INTEGER NOT NULL, " +
+                "`text` TEXT NOT NULL, `dueOn` TEXT NOT NULL, `doneOn` TEXT, `createdAt` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`personId`) REFERENCES `person`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_follow_up_personId` ON `follow_up` (`personId`)")
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `loan` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `personId` INTEGER NOT NULL, " +
+                "`direction` TEXT NOT NULL, `text` TEXT NOT NULL, `returnBy` TEXT, `returnedOn` TEXT, `createdAt` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`personId`) REFERENCES `person`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_loan_personId` ON `loan` (`personId`)")
     }
 }

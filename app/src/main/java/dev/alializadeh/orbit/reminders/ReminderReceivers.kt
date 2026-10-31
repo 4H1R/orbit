@@ -140,8 +140,8 @@ class ReminderSystemReceiver : BroadcastReceiver() {
 }
 
 /**
- * Mark as contacted (an Interaction of type Other, today, no note) and Snooze 1 week, from a
- * notification. The notification goes at once; then a reconcile tidies up the rest. Not exported:
+ * Mark as contacted (an Interaction of type Other, today, no note), Snooze 1 week and Done on a
+ * Follow-up or Loan, from a notification. The notification goes at once; then a reconcile tidies up the rest. Not exported:
  * only Orbit's own immutable PendingIntents reach it.
  */
 class NotificationActionReceiver : BroadcastReceiver() {
@@ -159,6 +159,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             target.personId,
                             SnoozeDuration.OneWeek.endFrom(LocalDate.now(app.clock())),
                         )
+                        NotificationActionType.MarkDone -> when (val key = target.key) {
+                            is NotificationKey.FollowUp -> app.people().setFollowUpDone(key.followUpId, LocalDate.now(app.clock()))
+                            is NotificationKey.Loan -> app.people().setLoanReturned(key.loanId, LocalDate.now(app.clock()))
+                            else -> Unit
+                        }
                     }
                 }
             } catch (e: RuntimeException) {

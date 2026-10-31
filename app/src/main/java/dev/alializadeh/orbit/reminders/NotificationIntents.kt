@@ -103,6 +103,9 @@ class NotificationEntries @Inject constructor() {
 enum class NotificationActionType(val action: String) {
     MarkAsContacted("dev.alializadeh.orbit.action.MARK_AS_CONTACTED"),
     SnoozeWeek("dev.alializadeh.orbit.action.SNOOZE_WEEK"),
+
+    /** Closes the Follow-up or Loan the notification's key names. */
+    MarkDone("dev.alializadeh.orbit.action.MARK_DONE"),
     ;
 
     companion object {

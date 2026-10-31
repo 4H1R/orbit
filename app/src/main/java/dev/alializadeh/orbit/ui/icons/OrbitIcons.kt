@@ -192,6 +192,11 @@ object OrbitIcons {
         )
     }
 
+    /** Two arrows passing each other: something lent or borrowed. */
+    val Loan: ImageVector by lazy {
+        filled("Loan", "M6.99,11L3,15l3.99,4v-3H14v-2H6.99v-3zM21,9l-3.99,-4v3H10v2h7.01v3L21,9z")
+    }
+
     /** A drag handle (Settings → Rings). */
     val DragHandle: ImageVector by lazy {
         filled("DragHandle", "M20,9H4v2h16V9zM4,15h16v-2H4v2z")

@@ -894,4 +894,53 @@
         <item quantity="one">%1$s due</item>
         <item quantity="other">%1$s due</item>
     </plurals>
+
+    <!-- Follow-ups -->
+    <string name="person_section_follow_ups">Follow-ups</string>
+    <string name="follow_up_add">Follow-up</string>
+    <string name="follow_up_sheet_new">New follow-up</string>
+    <string name="follow_up_sheet_edit">Follow-up</string>
+    <string name="follow_up_text">What to follow up on</string>
+    <string name="follow_up_date">When</string>
+    <string name="follow_up_mark_done">Mark as done</string>
+    <string name="follow_up_marked_done">Marked as done</string>
+    <string name="follow_up_done_section">Done (%1$s)</string>
+    <string name="follow_up_done_on">Done %1$s</string>
+    <string name="follow_up_log_add">Add a follow-up</string>
+    <string name="follow_up_log_person">Follow up with</string>
+    <string name="date_choice_none">No date</string>
+    <string name="date_choice_week">In 1 week</string>
+    <string name="date_choice_month">In 1 month</string>
+    <string name="date_choice_pick">Pick…</string>
+    <string name="date_choice_past">Pick today or a later day</string>
+
+    <!-- Lent and borrowed -->
+    <string name="person_section_loans">Lent and borrowed</string>
+    <string name="loan_add">Lent or borrowed</string>
+    <string name="loan_sheet_new">New lent or borrowed item</string>
+    <string name="loan_sheet_edit">Lent or borrowed</string>
+    <string name="loan_direction_lent">I lent</string>
+    <string name="loan_direction_borrowed">I borrowed</string>
+    <string name="loan_text">What</string>
+    <string name="loan_return_by">Return by</string>
+    <string name="loan_return_by_date">Return by %1$s</string>
+    <string name="loan_mark_returned">Mark as returned</string>
+    <string name="loan_marked_returned">Marked as returned</string>
+    <string name="loan_returned_section">Returned (%1$s)</string>
+    <string name="loan_returned_on">Returned %1$s</string>
+
+    <!-- Follow-ups and Loans: Upcoming and notifications -->
+    <string name="upcoming_section_tasks">Follow-ups and returns</string>
+    <string name="channel_follow_ups_name">Follow-ups and returns</string>
+    <string name="channel_follow_ups_description">When it\'s time to follow up, or for something to be returned</string>
+    <string name="reminder_follow_up_title">Follow up with %1$s</string>
+    <string name="reminder_loan_lent_title">Ask %1$s to return this</string>
+    <string name="reminder_loan_borrowed_title">Return this to %1$s</string>
+    <string name="discreet_follow_up">You have a follow-up</string>
+    <string name="discreet_loan">It\'s time for something to be returned</string>
+    <string name="action_mark_done">Done</string>
+
+    <!-- Add from phone contacts -->
+    <string name="person_form_add_from_contacts">Add from contacts</string>
+    <string name="person_form_contact_import_failed">Couldn\'t read that contact</string>
 </resources>

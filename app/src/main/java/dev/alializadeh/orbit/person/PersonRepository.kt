@@ -67,6 +67,8 @@ fun PersonProfile.summary(lastInteraction: LocalDate?, interactionNotes: List<In
         likes = likes,
         dislikes = dislikes,
         giftIdeas = giftIdeas.map(GiftIdea::text),
+        followUps = followUps.map(FollowUp::text),
+        loans = loans.map(Loan::text),
         howWeMet = person.howWeMet,
         contactMethods = contactMethods.map { SearchContact(it.type, it.value) },
         notes = person.notes,
@@ -132,6 +134,22 @@ interface PersonRepository {
     suspend fun setGiftIdeaGiven(id: Long, date: LocalDate?)
 
     suspend fun deleteGiftIdea(id: Long)
+
+    /** Adds (no [FollowUpDraft.id]) or edits a Follow-up of [personId] and returns its id. */
+    suspend fun saveFollowUp(personId: Long, draft: FollowUpDraft): Long
+
+    /** Marks the Follow-up Done on [date], or open again when [date] is null. */
+    suspend fun setFollowUpDone(id: Long, date: LocalDate?)
+
+    suspend fun deleteFollowUp(id: Long)
+
+    /** Adds (no [LoanDraft.id]) or edits a Loan of [personId] and returns its id. */
+    suspend fun saveLoan(personId: Long, draft: LoanDraft): Long
+
+    /** Marks the Loan Returned on [date], or open again when [date] is null. */
+    suspend fun setLoanReturned(id: Long, date: LocalDate?)
+
+    suspend fun deleteLoan(id: Long)
 
     /**
      * Deletes the Person, everything they own, and their photo. Permanent. They leave shared
@@ -324,6 +342,44 @@ class RoomPersonRepository @Inject constructor(
     override suspend fun setGiftIdeaGiven(id: Long, date: LocalDate?) = personDao.setGiftIdeaGivenOn(id, date)
 
     override suspend fun deleteGiftIdea(id: Long) = personDao.deleteGiftIdea(id)
+
+    override suspend fun saveFollowUp(personId: Long, draft: FollowUpDraft): Long {
+        val d = draft.normalised()
+        require(d.text.isNotEmpty()) { "A Follow-up needs its text" }
+        return database.withWriteTransaction {
+            val current = d.id?.let { personDao.getFollowUp(it) }?.takeIf { it.personId == personId }
+            if (current != null) {
+                personDao.updateFollowUp(current.copy(text = d.text, dueOn = d.dueOn))
+                current.id
+            } else {
+                personDao.insertFollowUp(FollowUp(personId = personId, text = d.text, dueOn = d.dueOn, createdAt = clock.instant()))
+            }
+        }
+    }
+
+    override suspend fun setFollowUpDone(id: Long, date: LocalDate?) = personDao.setFollowUpDoneOn(id, date)
+
+    override suspend fun deleteFollowUp(id: Long) = personDao.deleteFollowUp(id)
+
+    override suspend fun saveLoan(personId: Long, draft: LoanDraft): Long {
+        val d = draft.normalised()
+        require(d.text.isNotEmpty()) { "A Loan needs its text" }
+        return database.withWriteTransaction {
+            val current = d.id?.let { personDao.getLoan(it) }?.takeIf { it.personId == personId }
+            if (current != null) {
+                personDao.updateLoan(current.copy(direction = d.direction, text = d.text, returnBy = d.returnBy))
+                current.id
+            } else {
+                personDao.insertLoan(
+                    Loan(personId = personId, direction = d.direction, text = d.text, returnBy = d.returnBy, createdAt = clock.instant()),
+                )
+            }
+        }
+    }
+
+    override suspend fun setLoanReturned(id: Long, date: LocalDate?) = personDao.setLoanReturnedOn(id, date)
+
+    override suspend fun deleteLoan(id: Long) = personDao.deleteLoan(id)
 
     override suspend fun delete(id: Long) {
         val photo = database.withWriteTransaction {

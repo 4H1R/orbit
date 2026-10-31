@@ -55,9 +55,11 @@ import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.contact.ContactType
 import dev.alializadeh.orbit.person.dates.ImportantDateSheet
+import dev.alializadeh.orbit.person.followups.FollowUpSheet
 import dev.alializadeh.orbit.person.gifts.GiftIdeaSheet
 import dev.alializadeh.orbit.person.gifts.GivenDateSheet
 import dev.alializadeh.orbit.person.contact.ContactAction
+import dev.alializadeh.orbit.person.loans.LoanSheet
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
@@ -100,6 +102,8 @@ fun PersonDetailRoute(
     val copied = stringResource(R.string.contact_copied)
     val markedGiven = stringResource(R.string.gift_idea_marked_given)
     val undo = stringResource(R.string.common_undo)
+    val markedDone = stringResource(R.string.follow_up_marked_done)
+    val markedReturned = stringResource(R.string.loan_marked_returned)
     val startAction: (ContactAction) -> Unit = { action ->
         try {
             context.startActivity(Intent(action.intentAction, action.uri.toUri()))
@@ -144,6 +148,16 @@ fun PersonDetailRoute(
             val undoGiven = viewModel.undoGiven
             snackbars?.show(markedGiven, actionLabel = undo) { undoGiven(id) }
         },
+        onMarkFollowUpDone = { id ->
+            viewModel.markFollowUpDone(id)
+            val undoDone = viewModel.undoFollowUpDone
+            snackbars?.show(markedDone, actionLabel = undo) { undoDone(id) }
+        },
+        onMarkLoanReturned = { id ->
+            viewModel.markLoanReturned(id)
+            val undoReturned = viewModel.undoLoanReturned
+            snackbars?.show(markedReturned, actionLabel = undo) { undoReturned(id) }
+        },
         onOpenLink = { link -> ContactActions.of(ContactType.Link, link).firstOrNull()?.let(startAction) },
         onContactAction = startAction,
         onCopy = { value ->
@@ -181,6 +195,8 @@ fun PersonDetailScreen(
     modifier: Modifier = Modifier,
     onSearchPeople: (String) -> Unit = {},
     onSendWishes: (dateId: Long) -> Unit = {},
+    onMarkFollowUpDone: (id: Long) -> Unit = {},
+    onMarkLoanReturned: (id: Long) -> Unit = {},
 ) {
     val loaded = uiState as? PersonDetailUiState.Loaded
     var moreContactSheet by rememberSaveable { mutableStateOf(false) }
@@ -188,6 +204,8 @@ fun PersonDetailScreen(
     var dateSheet by rememberSaveable { mutableStateOf<Long?>(null) }
     var giftSheet by rememberSaveable { mutableStateOf<Long?>(null) }
     var givenSheet by rememberSaveable { mutableStateOf<Long?>(null) }
+    var followUpSheet by rememberSaveable { mutableStateOf<Long?>(null) }
+    var loanSheet by rememberSaveable { mutableStateOf<Long?>(null) }
     Scaffold(
         modifier = modifier,
         snackbarHost = { OrbitSnackbarHost() },
@@ -262,6 +280,12 @@ fun PersonDetailScreen(
                         onCopy = onCopy,
                         onSearchPeople = onSearchPeople,
                         onSendWishes = onSendWishes,
+                        onAddFollowUp = { followUpSheet = NEW_GIFT_IDEA },
+                        onOpenFollowUp = { followUpSheet = it },
+                        onMarkFollowUpDone = onMarkFollowUpDone,
+                        onAddLoan = { loanSheet = NEW_GIFT_IDEA },
+                        onOpenLoan = { loanSheet = it },
+                        onMarkLoanReturned = onMarkLoanReturned,
                     )
                     AddDetails(uiState.missingFields, onAddDetail)
                 }
@@ -290,6 +314,16 @@ fun PersonDetailScreen(
             onDismissDate = { dateSheet = null },
             onDismissGift = { giftSheet = null },
             onDismissGiven = { givenSheet = null },
+        )
+        TaskSheets(
+            uiState = loaded,
+            followUpSheet = followUpSheet,
+            loanSheet = loanSheet,
+            edits = edits,
+            onMarkFollowUpDone = onMarkFollowUpDone,
+            onMarkLoanReturned = onMarkLoanReturned,
+            onDismissFollowUp = { followUpSheet = null },
+            onDismissLoan = { loanSheet = null },
         )
     }
     if (loaded != null && loaded.confirmingDelete) {
@@ -344,7 +378,50 @@ private fun OverflowMenu(archived: Boolean, onArchive: () -> Unit, onUnarchive: 
     }
 }
 
+/** A sheet open on no existing row: a new Gift idea, Follow-up or Loan. */
 private const val NEW_GIFT_IDEA = -1L
+
+/** The Follow-up sheet and the Loan sheet, whichever is open. */
+@Composable
+private fun TaskSheets(
+    uiState: PersonDetailUiState.Loaded,
+    followUpSheet: Long?,
+    loanSheet: Long?,
+    edits: PersonDetailEdits,
+    onMarkFollowUpDone: (id: Long) -> Unit,
+    onMarkLoanReturned: (id: Long) -> Unit,
+    onDismissFollowUp: () -> Unit,
+    onDismissLoan: () -> Unit,
+) {
+    val profile = uiState.profile
+    if (followUpSheet != null) {
+        val followUp = profile.followUps.firstOrNull { it.id == followUpSheet }
+        // A deleted one's sheet doesn't reopen as a new one.
+        if (followUp != null || followUpSheet == NEW_GIFT_IDEA) {
+            FollowUpSheet(
+                initial = followUp,
+                today = uiState.today,
+                onSave = edits::saveFollowUp,
+                onDelete = followUp?.let { { edits.deleteFollowUp(it.id) } },
+                onMarkDone = followUp?.takeUnless { it.isDone }?.let { { onMarkFollowUpDone(it.id) } },
+                onDismiss = onDismissFollowUp,
+            )
+        }
+    }
+    if (loanSheet != null) {
+        val loan = profile.loans.firstOrNull { it.id == loanSheet }
+        if (loan != null || loanSheet == NEW_GIFT_IDEA) {
+            LoanSheet(
+                initial = loan,
+                today = uiState.today,
+                onSave = edits::saveLoan,
+                onDelete = loan?.let { { edits.deleteLoan(it.id) } },
+                onMarkReturned = loan?.takeUnless { it.isReturned }?.let { { onMarkLoanReturned(it.id) } },
+                onDismiss = onDismissLoan,
+            )
+        }
+    }
+}
 
 /** The date sheet, the Gift idea sheet and the given-date sheet, whichever is open. */
 @Composable

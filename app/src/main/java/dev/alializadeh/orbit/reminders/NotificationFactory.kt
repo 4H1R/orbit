@@ -40,7 +40,28 @@ class NotificationFactory(
             is PlannedReminder -> reminder(notification, rendering, now)
             is PlannedDigest -> digest(notification, rendering)
             is PlannedOccasionReminder -> occasion(notification, rendering, now)
+            is PlannedTaskReminder -> task(notification, rendering)
         }
+
+    /** A Follow-up or Loan: stays until dismissed or done. Tapping opens the Person. */
+    private fun task(reminder: PlannedTaskReminder, rendering: NotificationRendering): Notification {
+        val person = reminder.task.person
+        val builder = base(ReminderChannel.FollowUps, texts.discreetTask(reminder), silent = reminder.silent)
+            .setContentIntent(intents.open(NotificationEntry.PersonDetail(person.id)))
+        if (rendering.detail == NotificationDetail.Detailed) {
+            builder.setText(texts.task(reminder))
+            builder.setLargeIcon(avatar(person))
+            contactAction(person)?.let(builder::addAction)
+            builder.addAction(
+                backgroundAction(
+                    NotificationActionTarget(NotificationActionType.MarkDone, reminder.key, person.id, restoreToken),
+                    R.string.action_mark_done,
+                    rendering,
+                ),
+            )
+        }
+        return builder.build()
+    }
 
     /** An Occasion Reminder: no actions; tapping opens the Occasion with its People. */
     private fun occasion(reminder: PlannedOccasionReminder, rendering: NotificationRendering, now: Instant): Notification {

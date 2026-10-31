@@ -56,6 +56,8 @@ fun WhyMatchedLine(match: FieldMatch, today: LocalDate, modifier: Modifier = Mod
         SearchField.Like -> stringResource(R.string.person_section_likes)
         SearchField.Dislike -> stringResource(R.string.person_section_dislikes)
         SearchField.GiftIdea -> stringResource(R.string.person_section_gift_ideas)
+        SearchField.FollowUp -> stringResource(R.string.person_section_follow_ups)
+        SearchField.Loan -> stringResource(R.string.person_section_loans)
         SearchField.HowWeMet -> stringResource(R.string.person_section_how_we_met)
         SearchField.ContactMethod -> stringResource(match.contactType?.nameRes ?: R.string.person_field_contact_method)
         SearchField.Notes -> stringResource(R.string.person_section_notes)

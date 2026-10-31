@@ -334,6 +334,35 @@ class NotificationTextsTest {
         assertEquals("An occasion is coming up · in 7 days", build(occasionReminder(7), NotificationRendering(NotificationDetail.Discreet)).title)
     }
 
+    private fun followUpTask() = PlannedTaskReminder(
+        dev.alializadeh.orbit.upcoming.UpcomingFollowUp(
+            person(),
+            dev.alializadeh.orbit.person.FollowUp(id = 3, personId = 1, text = "The interview", dueOn = today, createdAt = java.time.Instant.EPOCH),
+        ),
+    )
+
+    private fun loanTask(direction: dev.alializadeh.orbit.person.LoanDirection) = PlannedTaskReminder(
+        dev.alializadeh.orbit.upcoming.UpcomingLoan(
+            person(),
+            dev.alializadeh.orbit.person.Loan(id = 4, personId = 1, direction = direction, text = "The tent", returnBy = today, createdAt = java.time.Instant.EPOCH),
+        ),
+    )
+
+    @Test
+    fun followUpAndLoanTextsNameThePersonAndTheirDiscreetOnesDont() {
+        val english = texts(OrbitLanguage.English)
+        val followUp = english.task(followUpTask())
+        assertEquals("Follow up with Sara", followUp.title.plain())
+        assertEquals(listOf("The interview"), followUp.lines)
+        assertEquals("You have a follow-up", english.discreetTask(followUpTask()).title)
+
+        assertEquals("Ask Sara to return this", english.task(loanTask(dev.alializadeh.orbit.person.LoanDirection.Lent)).title.plain())
+        assertEquals("Return this to Sara", english.task(loanTask(dev.alializadeh.orbit.person.LoanDirection.Borrowed)).title.plain())
+        val discreet = english.discreetTask(loanTask(dev.alializadeh.orbit.person.LoanDirection.Lent))
+        assertEquals("It's time for something to be returned", discreet.title)
+        assertTrue(discreet.lines.isEmpty())
+    }
+
     @Test
     @Config(qualifiers = "fa")
     fun anOccasionReminderInPersian() {

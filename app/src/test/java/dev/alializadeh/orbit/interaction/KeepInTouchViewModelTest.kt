@@ -48,10 +48,38 @@ class KeepInTouchViewModelTest {
     private val preferences = FakePreferencesRepository(initialDeviceState = DeviceState(lastInteractionType = InteractionType.Message))
 
     private fun TestScope.viewModel(): KeepInTouchViewModel {
-        val viewModel = KeepInTouchViewModel(people, interactions, preferences, FakePhotoStore(), clock)
+        val viewModel = KeepInTouchViewModel(people, interactions, preferences, FakePhotoStore(), clock, ReminderPermissionAsks.None)
         // Keep the state flowing, as the screen does.
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         return viewModel
+    }
+
+    @Test
+    fun aFollowUpIsSavedForTheChosenPersonAndUpcomingCanCloseAndUndoIt() = runTest {
+        val viewModel = viewModel()
+        viewModel.saveFollowUp(reza.person.id, dev.alializadeh.orbit.person.FollowUpDraft(text = " Interview ", dueOn = today.plusDays(2)))
+        runCurrent()
+        val saved = people.profiles.value.getValue(reza.person.id).followUps.single()
+        assertEquals("Interview", saved.text)
+
+        var undo: (suspend () -> Unit)? = null
+        viewModel.markFollowUpDone(saved.id) { undo = it }
+        runCurrent()
+        assertEquals(today, people.profiles.value.getValue(reza.person.id).followUps.single().doneOn)
+        undo!!()
+        assertEquals(null, people.profiles.value.getValue(reza.person.id).followUps.single().doneOn)
+    }
+
+    @Test
+    fun aLoanCanBeMarkedReturnedAndUndone() = runTest {
+        val viewModel = viewModel()
+        val id = people.saveLoan(sara.person.id, dev.alializadeh.orbit.person.LoanDraft(direction = dev.alializadeh.orbit.person.LoanDirection.Lent, text = "Book"))
+        var undo: (suspend () -> Unit)? = null
+        viewModel.markLoanReturned(id) { undo = it }
+        runCurrent()
+        assertEquals(today, people.profiles.value.getValue(sara.person.id).loans.single().returnedOn)
+        undo!!()
+        assertEquals(null, people.profiles.value.getValue(sara.person.id).loans.single().returnedOn)
     }
 
     @Test

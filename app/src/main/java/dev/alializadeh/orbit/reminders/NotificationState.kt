@@ -40,6 +40,10 @@ data class NotificationState(
     val postedOccasionReminders: List<PostedOccasionReminder> = emptyList(),
     /** Like [showingReminders], for Occasions: at most one per Occasion. */
     val showingOccasionReminders: List<ShowingOccasionReminder> = emptyList(),
+    /** The Follow-ups and Loans already brought up, so they never are twice for the same day. */
+    val postedTaskReminders: List<PostedTaskReminder> = emptyList(),
+    /** Like [showingReminders], for Follow-ups and Loans: one per item. */
+    val showingTaskReminders: List<ShowingTaskReminder> = emptyList(),
 ) {
     /**
      * Only what [showing] says is still on screen: notifications the user dismissed are
@@ -49,6 +53,7 @@ data class NotificationState(
         showingReminders = showingReminders.filter { NotificationKey.DateReminder(it.dateId) in showing },
         digestPersonIds = if (NotificationKey.Digest in showing) digestPersonIds else emptyList(),
         showingOccasionReminders = showingOccasionReminders.filter { NotificationKey.OccasionReminder(it.occasionId) in showing },
+        showingTaskReminders = showingTaskReminders.filter { NotificationKey.fromTag(it.tag) in showing },
     )
 
     /** The notifications this state says are showing. */
@@ -56,8 +61,24 @@ data class NotificationState(
         showingReminders.forEach { add(NotificationKey.DateReminder(it.dateId)) }
         if (digestPersonIds.isNotEmpty()) add(NotificationKey.Digest)
         showingOccasionReminders.forEach { add(NotificationKey.OccasionReminder(it.occasionId)) }
+        showingTaskReminders.forEach { reminder -> NotificationKey.fromTag(reminder.tag)?.let(::add) }
     }
 }
+
+/** A Follow-up or Loan ([tag], its [NotificationKey.tag]) brought up for its day. */
+@Serializable
+data class PostedTaskReminder(
+    val tag: String,
+    val epochDay: Long,
+)
+
+/** A Follow-up or Loan notification on screen: for which day, and what it shows ([content]). */
+@Serializable
+data class ShowingTaskReminder(
+    val tag: String,
+    val epochDay: Long,
+    val content: String,
+)
 
 /** One Occasion Reminder: an Occasion's occurrence and one of its lead times. */
 @Serializable
@@ -118,18 +139,32 @@ sealed interface NotificationKey {
         override val tag: String get() = OCCASION_PREFIX + occasionId
     }
 
+    /** Each Follow-up has one slot. */
+    data class FollowUp(val followUpId: Long) : NotificationKey {
+        override val tag: String get() = FOLLOW_UP_PREFIX + followUpId
+    }
+
+    /** Each Loan has one slot. */
+    data class Loan(val loanId: Long) : NotificationKey {
+        override val tag: String get() = LOAN_PREFIX + loanId
+    }
+
     companion object {
         /** Orbit tells its notifications apart by tag; the id is always this. */
         const val ID = 1
 
         private const val DATE_PREFIX = "orbit.date."
         private const val OCCASION_PREFIX = "orbit.occasion."
+        private const val FOLLOW_UP_PREFIX = "orbit.followup."
+        private const val LOAN_PREFIX = "orbit.loan."
 
         fun fromTag(tag: String?): NotificationKey? = when {
             tag == null -> null
             tag == Digest.tag -> Digest
             tag.startsWith(DATE_PREFIX) -> tag.removePrefix(DATE_PREFIX).toLongOrNull()?.let(::DateReminder)
             tag.startsWith(OCCASION_PREFIX) -> tag.removePrefix(OCCASION_PREFIX).toLongOrNull()?.let(::OccasionReminder)
+            tag.startsWith(FOLLOW_UP_PREFIX) -> tag.removePrefix(FOLLOW_UP_PREFIX).toLongOrNull()?.let(::FollowUp)
+            tag.startsWith(LOAN_PREFIX) -> tag.removePrefix(LOAN_PREFIX).toLongOrNull()?.let(::Loan)
             else -> null
         }
     }
@@ -145,4 +180,7 @@ enum class ReminderChannel(val id: String) {
 
     /** Occasion Reminders (v1.1). */
     Occasions("occasions"),
+
+    /** Follow-ups and Loans. */
+    FollowUps("follow_ups"),
 }

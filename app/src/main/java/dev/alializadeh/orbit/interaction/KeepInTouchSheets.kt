@@ -62,10 +62,12 @@ import dev.alializadeh.orbit.due.SnoozeDuration
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.FollowUpDraft
 import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.dates.WheelDatePickerStateSaver
+import dev.alializadeh.orbit.person.dates.rememberFutureDateChoice
 import dev.alializadeh.orbit.person.sortByDisplayName
 import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
@@ -89,7 +91,13 @@ import java.time.LocalDate
 fun KeepInTouchSheets(viewModel: KeepInTouchViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     state.log?.let { log ->
-        LogInteractionSheet(state = log, onSave = viewModel::save, onDelete = viewModel::delete, onDismiss = viewModel::dismiss)
+        LogInteractionSheet(
+            state = log,
+            onSave = viewModel::save,
+            onDelete = viewModel::delete,
+            onDismiss = viewModel::dismiss,
+            onSaveFollowUp = viewModel::saveFollowUp,
+        )
     }
     state.snooze?.let { snooze ->
         val snackbars = LocalOrbitSnackbars.current
@@ -115,9 +123,10 @@ fun LogInteractionSheet(
     onSave: (InteractionDraft) -> Unit,
     onDelete: (interactionId: Long) -> Unit,
     onDismiss: () -> Unit,
+    onSaveFollowUp: (personId: Long, draft: FollowUpDraft) -> Unit = { _, _ -> },
 ) {
     OrbitBottomSheet(onDismiss = onDismiss) { sheet ->
-        LogInteractionSheetContent(state, onSave, onDelete, sheet = sheet)
+        LogInteractionSheetContent(state, onSave, onDelete, sheet = sheet, onSaveFollowUp = onSaveFollowUp)
     }
 }
 
@@ -126,8 +135,8 @@ private enum class DateChoice { Today, Yesterday, Pick }
 /**
  * The inside of [LogInteractionSheet]: Type (defaulting to the last type used), Date (Today,
  * Yesterday or a picked day, never in the future), People (the starting Person, "+ Add" for more,
- * never Archived ones), Note, then Save; Delete too when editing. Drawn by itself in screenshot
- * tests.
+ * never Archived ones), Note, then, for a new one, an optional Follow-up with one of them, and
+ * Save; Delete too when editing. Drawn by itself in screenshot tests.
  */
 @Composable
 internal fun LogInteractionSheetContent(
@@ -137,6 +146,7 @@ internal fun LogInteractionSheetContent(
     sheet: SheetCloser,
     /** Screenshot tests open the picker straight away. */
     startPicking: Boolean = false,
+    onSaveFollowUp: (personId: Long, draft: FollowUpDraft) -> Unit = { _, _ -> },
 ) {
     val formats = LocalOrbitFormats.current
     val today = state.today
@@ -163,7 +173,14 @@ internal fun LogInteractionSheetContent(
         DateChoice.Pick -> picker.date.let { CalendarDate(it.calendar, it.year!!, it.month, it.day).toLocalDate() }
     }
     val inFuture = date.isAfter(today)
-    val canSave = personIds.isNotEmpty() && !inFuture
+    var followingUp by rememberSaveable { mutableStateOf(false) }
+    var followUpChosen by rememberSaveable { mutableStateOf<Long?>(null) }
+    val followUpText = rememberTextFieldState()
+    val followUpDay = rememberFutureDateChoice(initial = null, today = today, allowNone = false)
+    // Whoever was chosen, while they're still in it; else the first.
+    val followUpPerson = followUpChosen?.takeIf { it in personIds } ?: personIds.firstOrNull()
+    val followUpReady = !followingUp || (followUpText.text.isNotBlank() && followUpDay.isValid)
+    val canSave = personIds.isNotEmpty() && !inFuture && followUpReady
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -242,6 +259,37 @@ internal fun LogInteractionSheetContent(
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             modifier = Modifier.fillMaxWidth(),
         )
+        if (state.interactionId == null) {
+            if (followingUp) {
+                if (personIds.size > 1) {
+                    FieldLabel(stringResource(R.string.follow_up_log_person))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        personIds.mapNotNull(known::get).forEach { person ->
+                            FilterChip(
+                                selected = person.id == followUpPerson,
+                                onClick = { followUpChosen = person.id },
+                                label = { Text(person.names.displayName(formats.language)) },
+                            )
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    state = followUpText,
+                    label = { Text(stringResource(R.string.follow_up_text)) },
+                    lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 3),
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                FieldLabel(stringResource(R.string.follow_up_date))
+                followUpDay.Field()
+            } else {
+                AssistChip(
+                    onClick = { followingUp = true },
+                    label = { Text(stringResource(R.string.follow_up_log_add)) },
+                    leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                )
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             val id = state.interactionId
             if (id != null) {
@@ -264,7 +312,12 @@ internal fun LogInteractionSheetContent(
                         note = note.text.toString(),
                         personIds = personIds,
                     ).normalised()
-                    sheet.close { onSave(draft) }
+                    val followUpFor = followUpPerson?.takeIf { followingUp }
+                    val followUp = followUpDay.date?.let { FollowUpDraft(text = followUpText.text.toString(), dueOn = it).normalised() }
+                    sheet.close {
+                        onSave(draft)
+                        if (followUpFor != null && followUp != null) onSaveFollowUp(followUpFor, followUp)
+                    }
                 },
                 modifier = Modifier.padding(start = 8.dp),
             ) {

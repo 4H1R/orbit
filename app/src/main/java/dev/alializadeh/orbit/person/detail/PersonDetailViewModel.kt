@@ -11,9 +11,11 @@ import dev.alializadeh.orbit.due.DueState
 import dev.alializadeh.orbit.due.keepInTouch
 import dev.alializadeh.orbit.interaction.InteractionRepository
 import dev.alializadeh.orbit.interaction.InteractionWithPeople
+import dev.alializadeh.orbit.person.FollowUpDraft
 import dev.alializadeh.orbit.person.GiftIdeaDraft
 import dev.alializadeh.orbit.person.ImportantDateDraft
 import dev.alializadeh.orbit.person.ImportantDateType
+import dev.alializadeh.orbit.person.LoanDraft
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonProfile
 import dev.alializadeh.orbit.person.PersonRepository
@@ -85,12 +87,16 @@ sealed interface PersonDetailUiState {
     }
 }
 
-/** Changes Person detail makes in place: Important dates (edit, delete) and Gift ideas. */
+/** Changes Person detail makes in place: Important dates (edit, delete), Gift ideas, Follow-ups and Loans. */
 interface PersonDetailEdits {
     fun saveImportantDate(draft: ImportantDateDraft)
     fun deleteImportantDate(id: Long)
     fun saveGiftIdea(draft: GiftIdeaDraft)
     fun deleteGiftIdea(id: Long)
+    fun saveFollowUp(draft: FollowUpDraft)
+    fun deleteFollowUp(id: Long)
+    fun saveLoan(draft: LoanDraft)
+    fun deleteLoan(id: Long)
 }
 
 @HiltViewModel(assistedFactory = PersonDetailViewModel.Factory::class)
@@ -190,6 +196,46 @@ class PersonDetailViewModel @AssistedInject constructor(
     override fun deleteGiftIdea(id: Long) {
         viewModelScope.launch { personRepository.deleteGiftIdea(id) }
     }
+
+    override fun saveFollowUp(draft: FollowUpDraft) {
+        if (draft.normalised().text.isEmpty()) return
+        viewModelScope.launch {
+            personRepository.saveFollowUp(personId, draft)
+            reminderAsks.remindersNeeded()
+        }
+    }
+
+    override fun deleteFollowUp(id: Long) {
+        viewModelScope.launch { personRepository.deleteFollowUp(id) }
+    }
+
+    override fun saveLoan(draft: LoanDraft) {
+        if (draft.normalised().text.isEmpty()) return
+        viewModelScope.launch {
+            personRepository.saveLoan(personId, draft)
+            if (draft.returnBy != null) reminderAsks.remindersNeeded()
+        }
+    }
+
+    override fun deleteLoan(id: Long) {
+        viewModelScope.launch { personRepository.deleteLoan(id) }
+    }
+
+    /** Marks the Follow-up done today. */
+    fun markFollowUpDone(id: Long) {
+        viewModelScope.launch { personRepository.setFollowUpDone(id, LocalDate.now(clock)) }
+    }
+
+    /** Undoes [markFollowUpDone]; safe to run after this ViewModel is gone (from the snackbar). */
+    val undoFollowUpDone: suspend (id: Long) -> Unit = { id -> personRepository.setFollowUpDone(id, null) }
+
+    /** Marks the Loan returned today. */
+    fun markLoanReturned(id: Long) {
+        viewModelScope.launch { personRepository.setLoanReturned(id, LocalDate.now(clock)) }
+    }
+
+    /** Undoes [markLoanReturned]; safe to run after this ViewModel is gone (from the snackbar). */
+    val undoLoanReturned: suspend (id: Long) -> Unit = { id -> personRepository.setLoanReturned(id, null) }
 
     /** The screen resumed: the day may have changed (Due, years counts, "today"). */
     fun checkDate() {

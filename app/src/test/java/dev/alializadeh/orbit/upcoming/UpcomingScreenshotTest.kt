@@ -79,6 +79,32 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
         Screen(UpcomingUiState.Loaded(today = today, feed = UpcomingFeed.of(people, today, occasions)))
     }
 
+    /** Follow-ups and returns: one overdue, one today, one in a few days. */
+    @Test
+    fun upcomingTasks() = captureScreen("upcoming_tasks", variant, tall = true) {
+        val first = people.first()
+        val followUp = { id: Long, on: LocalDate, text: String ->
+            dev.alializadeh.orbit.person.FollowUp(id = id, personId = first.id, text = text, dueOn = on, createdAt = java.time.Instant.EPOCH)
+        }
+        val withTasks = first.copy(
+            openFollowUps = listOf(
+                followUp(1, today.minusDays(2), if (variant.persian) "بپرسم مصاحبه چطور بود" else "Ask how the interview went"),
+                followUp(2, today.plusDays(3), if (variant.persian) "قرار شام را نهایی کنیم" else "Settle the dinner plan"),
+            ),
+            openLoans = listOf(
+                dev.alializadeh.orbit.person.Loan(
+                    id = 3,
+                    personId = first.id,
+                    direction = dev.alializadeh.orbit.person.LoanDirection.Lent,
+                    text = if (variant.persian) "کتاب بوف کور" else "The blue hiking tent",
+                    returnBy = today,
+                    createdAt = java.time.Instant.EPOCH,
+                ),
+            ),
+        )
+        Screen(loaded(listOf(withTasks)))
+    }
+
     @Test
     fun upcomingNoPeople() = captureScreen("upcoming_no_people", variant) {
         Screen(loaded(emptyList()))
