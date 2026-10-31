@@ -129,6 +129,19 @@ class WheelDatePickerStateTest {
         assertEquals(state, state.withCalendar(Gregorian))
     }
 
+    /** Follow-ups and Loans look ahead; birthdays never do. */
+    @Test
+    fun futureYearsAreOfferedOnlyWhenAskedFor() {
+        val plain = WheelDatePickerState.forNewDate(Gregorian, today, allowNoYear = false)
+        assertEquals(2026, plain.yearOptions.first())
+
+        val ahead = plain.copy(futureYears = 2)
+        assertEquals(listOf<Int?>(2028, 2027, 2026), ahead.yearOptions.take(3))
+        assertEquals(2028, ahead.withYear(2028).year)
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { ahead.withYear(2029) }
+        assertEquals(2, ahead.withYear(2027).withCalendar(SolarHijri).futureYears)
+    }
+
     @Test
     fun aConvertedYearOutsideTheRangeStaysSelectable() {
         // 10 Esfand 1405 is 1 March 2027: a future Gregorian year.

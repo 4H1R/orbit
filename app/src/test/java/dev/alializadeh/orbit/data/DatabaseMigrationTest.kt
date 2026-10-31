@@ -98,6 +98,32 @@ class DatabaseMigrationTest {
         }
     }
 
+    /** Follow-ups and Loans arrive empty, the data stays, and they go with a deleted Person. */
+    @Test
+    fun version3To4AddsFollowUpsAndLoans() = runTest {
+        val file = File(temp.root, "v3.db")
+        SchemaMigrations.createDatabase(3, file) { connection ->
+            connection.execSQL("INSERT INTO ring (id, name, position, cadence_count, cadence_unit) VALUES (1, 'Close', 0, 30, 'DAYS')")
+            connection.execSQL("INSERT INTO person (id, name, ringId, hasOwnCadence, createdAt) VALUES (1, 'Sara', 1, 0, 0)")
+        }
+
+        val database = SchemaMigrations.openWithRoom(file)
+        try {
+            val dao = database.personDao()
+            assertEquals(listOf("Sara"), dao.getAll().map { it.name })
+            assertTrue(dao.getWithDetails(1)!!.followUps.isEmpty())
+            val date = java.time.LocalDate.of(2026, 11, 1)
+            val followUp = dao.insertFollowUp(dev.alializadeh.orbit.person.FollowUp(personId = 1, text = "Interview", dueOn = date, createdAt = java.time.Instant.EPOCH))
+            val loan = dao.insertLoan(dev.alializadeh.orbit.person.Loan(personId = 1, direction = dev.alializadeh.orbit.person.LoanDirection.Lent, text = "Book", createdAt = java.time.Instant.EPOCH))
+            assertEquals(date, dao.getFollowUp(followUp)!!.dueOn)
+            dao.delete(1)
+            assertEquals(null, dao.getFollowUp(followUp))
+            assertEquals(null, dao.getLoan(loan))
+        } finally {
+            database.close()
+        }
+    }
+
     /** Runs every migration path to the current version; Room validates each result. */
     @Test
     fun everyOlderVersionMigratesToTheCurrentOne() = runTest {

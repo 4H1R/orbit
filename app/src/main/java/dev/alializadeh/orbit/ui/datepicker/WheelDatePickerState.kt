@@ -12,8 +12,9 @@ import java.time.LocalDate
  * - Day · month · year, where the year can be "No year" ([year] null) when [allowNoYear].
  * - Month lengths come from the converter. 30 Esfand / 29 Feb can be picked with "No year" or a
  *   leap year only; picking a year that lacks the day moves it to the month's last day.
- * - Years run from the Calendar's [CalendarSystem.minYear] up to the current year; future years
- *   are rejected. A year outside that range that a Calendar flip produced stays selectable.
+ * - Years run from the Calendar's [CalendarSystem.minYear] up to the current year plus
+ *   [futureYears] (none unless asked for); later years are rejected. A year outside that range that
+ *   a Calendar flip produced stays selectable.
  * - Flipping the Calendar converts the selection: exactly with a year, otherwise through this
  *   year's occurrence, recorded in [convertedViaYear] for the "Converted using 1405" hint.
  */
@@ -26,6 +27,8 @@ data class WheelDatePickerState(
     val allowNoYear: Boolean,
     /** The source Calendar's year the last flip converted a year-less date through. */
     val convertedViaYear: Int? = null,
+    /** How many years after the current one the year wheel offers. */
+    val futureYears: Int = 0,
 ) {
     init {
         require(year != null || allowNoYear) { "This picker needs a year" }
@@ -41,12 +44,14 @@ data class WheelDatePickerState(
 
     val currentYear: Int get() = calendar.yearOf(today)
 
+    private val lastYear: Int get() = currentYear + futureYears
+
     /** The year wheel, top to bottom: "No year" (null) if allowed, then the newest year first. */
     val yearOptions: List<Int?>
         get() {
             val years = buildList {
-                if (year != null && year > currentYear) add(year)
-                addAll(currentYear downTo calendar.minYear)
+                if (year != null && year > lastYear) add(year)
+                addAll(lastYear downTo calendar.minYear)
                 if (year != null && year < calendar.minYear) add(year)
             }
             return if (allowNoYear) listOf(null) + years else years
@@ -58,7 +63,7 @@ data class WheelDatePickerState(
 
     fun withYear(year: Int?): WheelDatePickerState {
         require(year != null || allowNoYear) { "This picker needs a year" }
-        require(year == null || year <= currentYear || year == this.year) { "$year is in the future" }
+        require(year == null || year <= lastYear || year == this.year) { "$year is in the future" }
         return adjusted(month = month, year = year)
     }
 

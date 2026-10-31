@@ -51,6 +51,43 @@ class UpcomingFeedTest {
 
     private fun UpcomingFeed.days(list: List<UpcomingDate>) = list.map { it.date }
 
+    private fun followUp(id: Long, on: LocalDate) =
+        dev.alializadeh.orbit.person.FollowUp(id = id, personId = 1, text = "Follow-up $id", dueOn = on, createdAt = java.time.Instant.EPOCH)
+
+    private fun loan(id: Long, on: LocalDate?) = dev.alializadeh.orbit.person.Loan(
+        id = id,
+        personId = 1,
+        direction = dev.alializadeh.orbit.person.LoanDirection.Lent,
+        text = "Loan $id",
+        returnBy = on,
+        createdAt = java.time.Instant.EPOCH,
+    )
+
+    /** Overdue, today and the next week show, earliest first; a day's Follow-ups before its Loans. */
+    @Test
+    fun tasksListWhatsCameOrWithinAWeekEarliestFirst() {
+        val sara = person(1).copy(
+            openFollowUps = listOf(followUp(1, today), followUp(2, today.plusDays(7)), followUp(3, today.plusDays(8)), followUp(4, today.minusDays(5))),
+            openLoans = listOf(loan(5, today), loan(6, null)),
+        )
+        val feed = UpcomingFeed.of(listOf(sara), today)
+        assertEquals(listOf("Follow-up 4", "Follow-up 1", "Loan 5", "Follow-up 2"), feed.tasks.map { it.text })
+        assertFalse(feed.isEmpty)
+    }
+
+    @Test
+    fun anArchivedPersonsTasksAreLeftOut() {
+        val archived = person(1, archived = true).copy(openFollowUps = listOf(followUp(1, today)))
+        assertTrue(UpcomingFeed.of(listOf(archived), today).tasks.isEmpty())
+    }
+
+    /** A Follow-up doesn't make them Due: Cadence is a separate thing. */
+    @Test
+    fun aFollowUpDoesntMakeSomeoneDue() {
+        val feed = UpcomingFeed.of(listOf(person(1).copy(openFollowUps = listOf(followUp(1, today.minusDays(9))))), today)
+        assertTrue(feed.due.isEmpty())
+    }
+
     @Test
     fun todayComingUpAndBeyondAreSplitByDaysAway() {
         val feed = UpcomingFeed.of(

@@ -217,8 +217,9 @@ private class ButtonSpec(
 )
 
 /**
- * The sections in order: Important dates (when there are any), Gift ideas (always), then the
- * others that have content, then Interactions (always).
+ * The sections in order: Follow-ups and Loans first while any is open (what to bring up when you
+ * talk), Important dates (when there are any), Gift ideas (always), Follow-ups and Loans here when
+ * none is open, then the others that have content, then Interactions (always).
  */
 @Composable
 internal fun PersonSections(
@@ -233,8 +234,22 @@ internal fun PersonSections(
     onCopy: (String) -> Unit,
     onSearchPeople: (String) -> Unit,
     onSendWishes: (dateId: Long) -> Unit = {},
+    onAddFollowUp: () -> Unit = {},
+    onOpenFollowUp: (id: Long) -> Unit = {},
+    onMarkFollowUpDone: (id: Long) -> Unit = {},
+    onAddLoan: () -> Unit = {},
+    onOpenLoan: (id: Long) -> Unit = {},
+    onMarkLoanReturned: (id: Long) -> Unit = {},
 ) {
     val profile = uiState.profile
+    val followUps = @Composable {
+        FollowUpsSection(profile.openFollowUps, profile.doneFollowUps, uiState.today, onAddFollowUp, onOpenFollowUp, onMarkFollowUpDone)
+    }
+    val loans = @Composable {
+        LoansSection(profile.openLoans, profile.returnedLoans, uiState.today, onAddLoan, onOpenLoan, onMarkLoanReturned)
+    }
+    if (profile.openFollowUps.isNotEmpty()) followUps()
+    if (profile.openLoans.isNotEmpty()) loans()
     // An Archived Person is left out of Upcoming and Reminders, so they get no Wishes either.
     ImportantDatesSection(
         dates = profile.importantDates,
@@ -251,6 +266,8 @@ internal fun PersonSections(
         onMarkGiven = onMarkGiven,
         onOpenLink = onOpenLink,
     )
+    if (profile.openFollowUps.isEmpty()) followUps()
+    if (profile.openLoans.isEmpty()) loans()
     if (profile.contactMethods.isNotEmpty()) {
         Column {
             OrbitSectionTitle(stringResource(R.string.person_section_contact_methods), horizontalPadding = 4.dp)

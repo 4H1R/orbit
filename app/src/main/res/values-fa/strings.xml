@@ -840,4 +840,53 @@
         <item quantity="one">%1$s نفر در موعد ارتباط</item>
         <item quantity="other">%1$s نفر در موعد ارتباط</item>
     </plurals>
+
+    <!-- Follow-ups -->
+    <string name="person_section_follow_ups">پیگیری‌ها</string>
+    <string name="follow_up_add">پیگیری</string>
+    <string name="follow_up_sheet_new">پیگیری جدید</string>
+    <string name="follow_up_sheet_edit">پیگیری</string>
+    <string name="follow_up_text">چه چیزی را پیگیری کنید</string>
+    <string name="follow_up_date">چه زمانی</string>
+    <string name="follow_up_mark_done">انجام شد</string>
+    <string name="follow_up_marked_done">به‌عنوان انجام‌شده ثبت شد</string>
+    <string name="follow_up_done_section">انجام‌شده (%1$s)</string>
+    <string name="follow_up_done_on">انجام‌شده در %1$s</string>
+    <string name="follow_up_log_add">افزودن پیگیری</string>
+    <string name="follow_up_log_person">پیگیری با</string>
+    <string name="date_choice_none">بدون تاریخ</string>
+    <string name="date_choice_week">یک هفتهٔ دیگر</string>
+    <string name="date_choice_month">یک ماه دیگر</string>
+    <string name="date_choice_pick">انتخاب…</string>
+    <string name="date_choice_past">امروز یا روزی پس از آن را انتخاب کنید</string>
+
+    <!-- Lent and borrowed -->
+    <string name="person_section_loans">قرض و امانت</string>
+    <string name="loan_add">قرض یا امانت</string>
+    <string name="loan_sheet_new">قرض یا امانت جدید</string>
+    <string name="loan_sheet_edit">قرض یا امانت</string>
+    <string name="loan_direction_lent">من داده‌ام</string>
+    <string name="loan_direction_borrowed">من گرفته‌ام</string>
+    <string name="loan_text">چه چیزی</string>
+    <string name="loan_return_by">موعد بازگرداندن</string>
+    <string name="loan_return_by_date">بازگرداندن تا %1$s</string>
+    <string name="loan_mark_returned">بازگردانده شد</string>
+    <string name="loan_marked_returned">به‌عنوان بازگردانده‌شده ثبت شد</string>
+    <string name="loan_returned_section">بازگردانده‌شده (%1$s)</string>
+    <string name="loan_returned_on">بازگردانده‌شده در %1$s</string>
+
+    <!-- Follow-ups and Loans: Upcoming and notifications -->
+    <string name="upcoming_section_tasks">پیگیری‌ها و بازگرداندن‌ها</string>
+    <string name="channel_follow_ups_name">پیگیری‌ها و بازگرداندن‌ها</string>
+    <string name="channel_follow_ups_description">وقتی زمان پیگیری یا بازگرداندن چیزی می‌رسد</string>
+    <string name="reminder_follow_up_title">پیگیری با %1$s</string>
+    <string name="reminder_loan_lent_title">از %1$s پس بگیرید</string>
+    <string name="reminder_loan_borrowed_title">به %1$s بازگردانید</string>
+    <string name="discreet_follow_up">یک پیگیری دارید</string>
+    <string name="discreet_loan">زمان بازگرداندن چیزی رسیده است</string>
+    <string name="action_mark_done">انجام شد</string>
+
+    <!-- Add from phone contacts -->
+    <string name="person_form_add_from_contacts">افزودن از مخاطبان</string>
+    <string name="person_form_contact_import_failed">خواندن این مخاطب ممکن نشد</string>
 </resources>

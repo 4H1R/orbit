@@ -92,12 +92,12 @@ _Persian_: تبریک (Send wishes فرستادن تبریک)
 _Avoid_: Greeting card, congratulations, share
 
 **Reminder**:
-A notification ahead of, or on, an Important date. When it comes is set by the date's **lead times** (e.g. 7 days before and on the day), which are the user's defaults unless the date overrides them, and every Reminder arrives at the one **Reminder time** of day.
+A notification ahead of, or on, an Important date, or on the day of a Follow-up or Loan. For an Important date, when it comes is set by the date's **lead times** (e.g. 7 days before and on the day), which are the user's defaults unless the date overrides them, and every Reminder arrives at the one **Reminder time** of day.
 _Persian_: یادآوری
 _Avoid_: Alert, alarm, notification (for this specific meaning)
 
 **Upcoming**:
-The Home screen: the Important dates coming soon, the People who are Due, and anything needing the user's attention.
+The Home screen: the Important dates coming soon, the People who are Due, Follow-ups and Loans whose day is near, and anything needing the user's attention.
 _Persian_: پیش رو
 _Avoid_: Feed, dashboard, timeline
 
@@ -110,6 +110,16 @@ _Avoid_: Map, radar, galaxy
 A possible present noted for a Person, either still an idea or **given** (on a date).
 _Persian_: ایدهٔ هدیه
 _Avoid_: Wishlist
+
+**Follow-up**:
+Something specific to come back to with one Person on a chosen day, such as asking how an interview went. It is open until marked **done**, comes up in Upcoming and as a Reminder on its day, and doesn't change their Cadence or whether they're Due.
+_Persian_: پیگیری
+_Avoid_: Task, to-do, Reminder (a Reminder is the notification)
+
+**Loan**:
+Something **lent** to or **borrowed** from one Person, an object or an amount written as plain text, with an optional day to return it by. It is open until marked **returned**. Orbit does no sums.
+_Persian_: قرض و امانت (Lent من داده‌ام, Borrowed من گرفته‌ام, Returned بازگردانده‌شده)
+_Avoid_: Debt, ledger, exchange
 
 ## Safety
 

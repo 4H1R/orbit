@@ -8,11 +8,14 @@ import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.text
 import dev.alializadeh.orbit.occasion.occasionName
 import dev.alializadeh.orbit.person.ImportantDateType
+import dev.alializadeh.orbit.person.LoanDirection
 import dev.alializadeh.orbit.person.dates.giftIdeasLine
 import dev.alializadeh.orbit.person.dates.importantDateName
 import dev.alializadeh.orbit.person.dates.todayTitle
 import dev.alializadeh.orbit.person.dates.yearsCountText
 import dev.alializadeh.orbit.upcoming.DuePerson
+import dev.alializadeh.orbit.upcoming.UpcomingFollowUp
+import dev.alializadeh.orbit.upcoming.UpcomingLoan
 import java.time.LocalDate
 
 /** A notification's words: a title and its body lines (each line on its own when expanded). */
@@ -79,6 +82,33 @@ class NotificationTexts(private val resources: Resources, private val formats: O
             )
         }
     }
+
+    /** "Follow up with Sara", "Ask Sara to return this" or "Return this to Sara", then what it's about. */
+    fun task(reminder: PlannedTaskReminder): NotificationText {
+        val task = reminder.task
+        val name = bidiIsolate(task.person.names.displayName(formats.language))
+        val title = when (task) {
+            is UpcomingFollowUp -> resources.getString(R.string.reminder_follow_up_title, name)
+            is UpcomingLoan -> resources.getString(
+                when (task.loan.direction) {
+                    LoanDirection.Lent -> R.string.reminder_loan_lent_title
+                    LoanDirection.Borrowed -> R.string.reminder_loan_borrowed_title
+                },
+                name,
+            )
+        }
+        return NotificationText(title, listOf(task.text))
+    }
+
+    /** No name, and nothing of what it's about. */
+    fun discreetTask(reminder: PlannedTaskReminder): NotificationText = NotificationText(
+        resources.getString(
+            when (reminder.task) {
+                is UpcomingFollowUp -> R.string.discreet_follow_up
+                is UpcomingLoan -> R.string.discreet_loan
+            },
+        ),
+    )
 
     /** "An occasion is coming up · in 7 days", "There's an occasion today": no name. */
     fun discreetOccasion(reminder: PlannedOccasionReminder): NotificationText = NotificationText(

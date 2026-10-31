@@ -1,12 +1,18 @@
 package dev.alializadeh.orbit.testing
 
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.FollowUp
+import dev.alializadeh.orbit.person.FollowUpDraft
+import dev.alializadeh.orbit.person.FollowUpOrder
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.GiftIdeaDraft
 import dev.alializadeh.orbit.person.GiftIdeaOrder
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.ImportantDateDraft
 import dev.alializadeh.orbit.person.ImportantDateOrder
+import dev.alializadeh.orbit.person.Loan
+import dev.alializadeh.orbit.person.LoanDraft
+import dev.alializadeh.orbit.person.LoanOrder
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonDraft
 import dev.alializadeh.orbit.person.PersonItemKind
@@ -130,12 +136,16 @@ class FakePersonRepository(
                 )
             }.sortedWith(ImportantDateOrder),
             giftIdeas = profiles.value[id]?.giftIdeas.orEmpty(),
+            followUps = profiles.value[id]?.followUps.orEmpty(),
+            loans = profiles.value[id]?.loans.orEmpty(),
         )
         return id
     }
 
     private var nextDateId = 1000L
     private var nextGiftId = 1L
+    private var nextFollowUpId = 1L
+    private var nextLoanId = 1L
 
     private fun update(personId: Long, transform: (PersonProfile) -> PersonProfile) {
         val profile = profiles.value[personId] ?: return
@@ -191,6 +201,54 @@ class FakePersonRepository(
     override suspend fun deleteGiftIdea(id: Long) {
         val owner = ownerOf { profile -> profile.giftIdeas.any { it.id == id } } ?: return
         update(owner) { profile -> profile.copy(giftIdeas = profile.giftIdeas.filter { it.id != id }) }
+    }
+
+    override suspend fun saveFollowUp(personId: Long, draft: FollowUpDraft): Long {
+        val d = draft.normalised()
+        require(d.text.isNotEmpty())
+        val current = profiles.value[personId]?.followUps?.firstOrNull { it.id == d.id }
+        val followUp = current?.copy(text = d.text, dueOn = d.dueOn)
+            ?: FollowUp(id = nextFollowUpId++, personId = personId, text = d.text, dueOn = d.dueOn, createdAt = Instant.EPOCH)
+        update(personId) { profile ->
+            profile.copy(followUps = (profile.followUps.filter { it.id != followUp.id } + followUp).sortedWith(FollowUpOrder))
+        }
+        return followUp.id
+    }
+
+    override suspend fun setFollowUpDone(id: Long, date: LocalDate?) {
+        val owner = ownerOf { profile -> profile.followUps.any { it.id == id } } ?: return
+        update(owner) { profile ->
+            profile.copy(followUps = profile.followUps.map { if (it.id == id) it.copy(doneOn = date) else it })
+        }
+    }
+
+    override suspend fun deleteFollowUp(id: Long) {
+        val owner = ownerOf { profile -> profile.followUps.any { it.id == id } } ?: return
+        update(owner) { profile -> profile.copy(followUps = profile.followUps.filter { it.id != id }) }
+    }
+
+    override suspend fun saveLoan(personId: Long, draft: LoanDraft): Long {
+        val d = draft.normalised()
+        require(d.text.isNotEmpty())
+        val current = profiles.value[personId]?.loans?.firstOrNull { it.id == d.id }
+        val loan = current?.copy(direction = d.direction, text = d.text, returnBy = d.returnBy)
+            ?: Loan(id = nextLoanId++, personId = personId, direction = d.direction, text = d.text, returnBy = d.returnBy, createdAt = Instant.EPOCH)
+        update(personId) { profile ->
+            profile.copy(loans = (profile.loans.filter { it.id != loan.id } + loan).sortedWith(LoanOrder))
+        }
+        return loan.id
+    }
+
+    override suspend fun setLoanReturned(id: Long, date: LocalDate?) {
+        val owner = ownerOf { profile -> profile.loans.any { it.id == id } } ?: return
+        update(owner) { profile ->
+            profile.copy(loans = profile.loans.map { if (it.id == id) it.copy(returnedOn = date) else it })
+        }
+    }
+
+    override suspend fun deleteLoan(id: Long) {
+        val owner = ownerOf { profile -> profile.loans.any { it.id == id } } ?: return
+        update(owner) { profile -> profile.copy(loans = profile.loans.filter { it.id != id }) }
     }
 
     override suspend fun setArchived(id: Long, archived: Boolean) {

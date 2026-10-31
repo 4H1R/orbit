@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,11 +37,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -51,11 +54,19 @@ import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonField
+import dev.alializadeh.orbit.person.contact.PickContactPhone
+import dev.alializadeh.orbit.person.contact.readPickedContact
 import dev.alializadeh.orbit.person.dates.ImportantDateSheet
 import dev.alializadeh.orbit.person.photo.PhotoCropScreen
 import dev.alializadeh.orbit.settings.MaxContentWidth
+import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
+import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.android.awaitFrame
 
 /**
@@ -90,6 +101,26 @@ fun PersonFormRoute(
             }
         }
     }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbars = LocalOrbitSnackbars.current
+    val importFailed = stringResource(R.string.person_form_contact_import_failed)
+    val noApp = stringResource(R.string.contact_no_app)
+    val pickContact = rememberLauncherForActivityResult(PickContactPhone()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val picked = withContext(Dispatchers.IO) { readPickedContact(context.contentResolver, uri) }
+                if (picked != null) viewModel.applyContact(picked) else snackbars?.show(importFailed)
+            }
+        }
+    }
+    val addFromContacts: () -> Unit = {
+        try {
+            pickContact.launch(Unit)
+        } catch (_: ActivityNotFoundException) {
+            snackbars?.show(noApp)
+        }
+    }
     val requestClose = { if (viewModel.requestClose()) onClose() }
     BackHandler(onBack = requestClose)
 
@@ -103,6 +134,7 @@ fun PersonFormRoute(
             fields = viewModel.fields,
             actions = viewModel,
             onChoosePhoto = choosePhoto,
+            onAddFromContacts = addFromContacts,
             onClose = requestClose,
             onDiscard = {
                 viewModel.discard()
@@ -132,6 +164,7 @@ fun PersonFormScreen(
     onClose: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddFromContacts: () -> Unit = {},
 ) {
     var photoSheet by rememberSaveable { mutableStateOf(false) }
     var cadenceSheet by rememberSaveable { mutableStateOf(false) }
@@ -140,6 +173,7 @@ fun PersonFormScreen(
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { OrbitSnackbarHost() },
         topBar = {
             OrbitTopAppBar(
                 title = stringResource(if (uiState.isNew) R.string.person_add_title else R.string.person_edit_title),
@@ -191,6 +225,18 @@ fun PersonFormScreen(
                     },
                     modifier = Modifier.align(Alignment.CenterHorizontally).bringIntoViewRequester(focus.bringer(PersonField.Photo)),
                 )
+                if (uiState.isNew) {
+                    OutlinedButton(
+                        onClick = {
+                            focusManager.clearFocus()
+                            onAddFromContacts()
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
+                        Icon(OrbitIcons.People, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text(stringResource(R.string.person_form_add_from_contacts))
+                    }
+                }
                 NameField(fields.name, focus.requester(null), onDone = actions::save)
                 RingSection(
                     uiState = uiState,

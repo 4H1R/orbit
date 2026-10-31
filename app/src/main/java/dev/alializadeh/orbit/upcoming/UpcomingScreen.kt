@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -74,7 +75,9 @@ import dev.alializadeh.orbit.person.dates.dateTitle
 import dev.alializadeh.orbit.person.dates.giftIdeasLine
 import dev.alializadeh.orbit.person.dates.todayTitle
 import dev.alializadeh.orbit.person.dates.yearsCountText
+import dev.alializadeh.orbit.person.detail.taskWhen
 import dev.alializadeh.orbit.person.list.NewPersonFab
+import dev.alializadeh.orbit.person.loans.displayName
 import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
@@ -111,6 +114,9 @@ enum class UpcomingSection {
     /** The Backup nudge card. */
     BackupNudge,
     Today,
+
+    /** Follow-ups and Loans to come back. */
+    Tasks,
     Due,
     ComingUp,
 }
@@ -149,6 +155,9 @@ fun UpcomingRoute(
     val context = LocalContext.current
     val snackbars = LocalOrbitSnackbars.current
     val noApp = stringResource(R.string.contact_no_app)
+    val markedDone = stringResource(R.string.follow_up_marked_done)
+    val markedReturned = stringResource(R.string.loan_marked_returned)
+    val undoLabel = stringResource(R.string.common_undo)
     KeepInTouchSheets(keepInTouch)
     UpcomingScreen(
         uiState = uiState,
@@ -164,6 +173,12 @@ fun UpcomingRoute(
         onLogInteraction = keepInTouch::logInteraction,
         onSnooze = keepInTouch::openSnooze,
         onShowAllDue = viewModel::showAllDue,
+        onCloseTask = { task ->
+            when (task) {
+                is UpcomingFollowUp -> keepInTouch.markFollowUpDone(task.followUp.id) { undo -> snackbars?.show(markedDone, undoLabel, undo) }
+                is UpcomingLoan -> keepInTouch.markLoanReturned(task.loan.id) { undo -> snackbars?.show(markedReturned, undoLabel, undo) }
+            }
+        },
         onSendWishes = onSendWishes,
         onOccasionClick = onOccasionClick,
         backupNudge = nudge,
@@ -203,6 +218,7 @@ fun UpcomingScreen(
     onSetScreenLock: () -> Unit = {},
     scrollToDue: Boolean = false,
     onScrolledToDue: () -> Unit = {},
+    onCloseTask: (UpcomingTask) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val pausedCard: (@Composable (Modifier) -> Unit)? = if (appLockPaused) {
@@ -291,6 +307,7 @@ fun UpcomingScreen(
                             }
                             UpcomingSection.Today ->
                                 todaySection(uiState, onPersonClick, onContactAction, onLogInteraction, onSendWishes, onOccasionClick)
+                            UpcomingSection.Tasks -> tasksSection(uiState, onPersonClick, onCloseTask)
                             UpcomingSection.Due ->
                                 dueSection(uiState, onPersonClick, onContactAction, onLogInteraction, onSnooze, onShowAllDue)
                             UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick, onOccasionClick)
@@ -307,6 +324,7 @@ private fun dueTitleIndex(uiState: UpcomingUiState.Loaded, vararg cards: Boolean
     var index = cards.count { it }
     val today = uiState.feed.today.size + uiState.feed.todayOccasions.size
     if (today > 0) index += 1 + today
+    if (uiState.feed.tasks.isNotEmpty()) index += 1 + uiState.feed.tasks.size
     return index
 }
 
@@ -359,6 +377,80 @@ private fun LazyListScope.todaySection(
             onSendWishes = { onSendWishes(date.person.id, date.importantDate.id) },
             modifier = if (index == 0) Modifier.padding(top = 8.dp) else Modifier,
         )
+    }
+}
+
+/** Follow-ups and Loans whose day has come or is within a week, earliest first. */
+private fun LazyListScope.tasksSection(
+    uiState: UpcomingUiState.Loaded,
+    onPersonClick: (Long) -> Unit,
+    onClose: (UpcomingTask) -> Unit,
+) {
+    val tasks = uiState.feed.tasks
+    if (tasks.isEmpty()) return
+    item(key = "tasks_title") { SectionTitle(stringResource(R.string.upcoming_section_tasks)) }
+    itemsIndexed(
+        tasks,
+        key = { _, it ->
+            when (it) {
+                is UpcomingFollowUp -> "follow_up_${it.followUp.id}"
+                is UpcomingLoan -> "loan_${it.loan.id}"
+            }
+        },
+    ) { index, task ->
+        TaskRow(
+            task = task,
+            photo = uiState.photos[task.person.id],
+            today = uiState.today,
+            index = index,
+            count = tasks.size,
+            onClick = { onPersonClick(task.person.id) },
+            onClose = { onClose(task) },
+        )
+    }
+}
+
+/**
+ * A Follow-up or Loan: what it is, then whose and when ("Sara · I lent · 3 days ago"), and the
+ * button that closes it. Tapping opens Person detail.
+ */
+@Composable
+private fun TaskRow(
+    task: UpcomingTask,
+    photo: File?,
+    today: LocalDate,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val formats = LocalOrbitFormats.current
+    val name = task.person.names.displayName(formats.language)
+    val supporting = listOfNotNull(
+        bidiIsolate(name),
+        (task as? UpcomingLoan)?.loan?.direction?.displayName(),
+        taskWhen(task.date, today),
+    ).joinToString(stringResource(R.string.separator))
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = { PersonAvatar(name = name, photo = photo) },
+        supportingContent = {
+            Text(
+                supporting,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = if (task.date.isBefore(today)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        trailingContent = {
+            val label = stringResource(if (task is UpcomingLoan) R.string.loan_mark_returned else R.string.follow_up_mark_done)
+            IconButton(onClick = onClose) { Icon(Icons.Filled.Check, contentDescription = label) }
+        },
+        modifier = Modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+    ) {
+        Text(task.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -4,6 +4,8 @@ import dev.alializadeh.orbit.calendar.RecurringDate
 import dev.alializadeh.orbit.due.DueState
 import dev.alializadeh.orbit.due.KeepInTouch
 import dev.alializadeh.orbit.person.ContactMethod
+import dev.alializadeh.orbit.person.FollowUp
+import dev.alializadeh.orbit.person.Loan
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.occasion.OccasionWithAudience
 import dev.alializadeh.orbit.occasion.audience
@@ -29,7 +31,33 @@ data class UpcomingPerson(
     /** Their Ring and Tags: who an Occasion reaches. */
     val ringId: Long? = null,
     val tagIds: Set<Long> = emptySet(),
-)
+    /** Their open Follow-ups. */
+    val openFollowUps: List<FollowUp> = emptyList(),
+    /** Their open Loans, with or without a day to come back. */
+    val openLoans: List<Loan> = emptyList(),
+) {
+    /** Their open Follow-ups and the open Loans that have a day to come back. */
+    val tasks: List<UpcomingTask>
+        get() = openFollowUps.map { UpcomingFollowUp(this, it) } +
+            openLoans.filter { it.returnBy != null }.map { UpcomingLoan(this, it) }
+}
+
+/** Something open with a Person that has a day: Upcoming lists it, and a Reminder brings it up. */
+sealed interface UpcomingTask {
+    val person: UpcomingPerson
+    val date: LocalDate
+    val text: String
+}
+
+data class UpcomingFollowUp(override val person: UpcomingPerson, val followUp: FollowUp) : UpcomingTask {
+    override val date: LocalDate get() = followUp.dueOn
+    override val text: String get() = followUp.text
+}
+
+data class UpcomingLoan(override val person: UpcomingPerson, val loan: Loan) : UpcomingTask {
+    override val date: LocalDate get() = loan.returnBy!!
+    override val text: String get() = loan.text
+}
 
 /** A Person who is Due today, with where they stand. */
 data class DuePerson(val person: UpcomingPerson, val state: DueState)
@@ -82,6 +110,11 @@ data class UpcomingFeed(
     val todayOccasions: List<UpcomingOccasion> = emptyList(),
     /** Occasions 1 to 30 days away that reach anyone, soonest first. */
     val comingUpOccasions: List<UpcomingOccasion> = emptyList(),
+    /**
+     * Follow-ups and Loans to come back from today or earlier, or in the next [TASK_DAYS_AHEAD]
+     * days: earliest first. Later ones wait on the Person's page.
+     */
+    val tasks: List<UpcomingTask> = emptyList(),
 ) {
     /** Coming up as shown: dates and Occasions by day, a day's dates before its Occasions. */
     val comingUpEntries: List<UpcomingEntry>
@@ -89,11 +122,14 @@ data class UpcomingFeed(
 
     /** Nothing today, nobody Due, nothing coming up. */
     val isEmpty: Boolean
-        get() = today.isEmpty() && todayOccasions.isEmpty() && due.isEmpty() && comingUp.isEmpty() && comingUpOccasions.isEmpty()
+        get() = today.isEmpty() && todayOccasions.isEmpty() && due.isEmpty() && comingUp.isEmpty() && comingUpOccasions.isEmpty() && tasks.isEmpty()
 
     companion object {
         /** Coming up covers the days 1 to 30 from today. */
         const val COMING_UP_DAYS = 30
+
+        /** Upcoming lists Follow-ups and Loans this many days ahead. */
+        const val TASK_DAYS_AHEAD = 7L
 
         val Empty = UpcomingFeed(hasPeople = false, today = emptyList(), due = emptyList(), comingUp = emptyList(), next = null)
 
@@ -141,6 +177,9 @@ data class UpcomingFeed(
                 next = listOfNotNull(nextDate, nextOccasion).minByOrNull(UpcomingEntry::daysAway),
                 todayOccasions = occasionDays.filter { it.daysAway == 0 },
                 comingUpOccasions = occasionDays.filter { it.daysAway in 1..COMING_UP_DAYS },
+                tasks = active.flatMap(UpcomingPerson::tasks)
+                    .filter { !it.date.isAfter(today.plusDays(TASK_DAYS_AHEAD)) }
+                    .sortedWith(compareBy<UpcomingTask> { it.date }.thenBy { it is UpcomingLoan }.thenBy { it.person.id }),
             )
         }
     }

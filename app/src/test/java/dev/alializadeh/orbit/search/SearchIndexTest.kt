@@ -93,17 +93,17 @@ class SearchIndexTest {
     }
 
     @Test
-    fun tiersRankNamesThenTagsThenDetailsThenNotes() {
+    fun tiersRankNamesThenCanHelpWithThenTagsThenDetailsThenNotes() {
         val photo = index.search("photo")!!
-        // Ali: Can help with (tier 2) beats his note; Sara: her Tag (tier 2).
+        // Ali: Can help with (tier 2) beats his note, and Sara's Tag (tier 3).
         assertEquals(2, photo.getValue(1).rank)
         assertEquals(SearchField.CanHelpWith, photo.getValue(1).matches.first().field)
-        assertEquals(2, photo.getValue(2).rank)
+        assertEquals(3, photo.getValue(2).rank)
 
         val berlin = index.search("berlin")!!.getValue(2)
-        assertEquals(4, berlin.rank)
+        assertEquals(5, berlin.rank)
         val music = index.search("music")!!.getValue(2)
-        assertEquals(3, music.rank)
+        assertEquals(4, music.rank)
     }
 
     @Test
@@ -112,7 +112,7 @@ class SearchIndexTest {
         assertEquals(0, hits.getValue(1).rank)
         assertEquals(1, hits.getValue(3).rank)
         // Sara matched only "through Ali" in How we met.
-        assertEquals(3, hits.getValue(2).rank)
+        assertEquals(4, hits.getValue(2).rank)
     }
 
     @Test

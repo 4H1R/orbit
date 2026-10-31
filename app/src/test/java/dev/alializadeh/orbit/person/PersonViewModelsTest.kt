@@ -138,6 +138,32 @@ class PersonViewModelsTest {
 
     private val PersonFormViewModel.state get() = uiState.value
 
+    /** Add from contacts fills an empty form: the name, and the number as the primary Contact method. */
+    @Test
+    fun aPickedContactFillsTheNameAndAddsThePhone() = runTest {
+        val viewModel = form()
+        viewModel.applyContact(dev.alializadeh.orbit.person.contact.PickedContact("Sara Ahmadi", "۰۹۱۲ 345 6789"))
+        settle()
+        assertEquals("Sara Ahmadi", viewModel.fields.name.text.toString())
+        val row = viewModel.uiState.value.contacts.single()
+        assertEquals(dev.alializadeh.orbit.person.contact.ContactType.Phone, row.type)
+        assertTrue(row.isPrimary)
+        assertEquals(dev.alializadeh.orbit.person.contact.ContactType.Phone.normalise("۰۹۱۲ 345 6789"), row.value.text.toString())
+    }
+
+    @Test
+    fun aPickedContactKeepsATypedNameAndNeverRepeatsANumber() = runTest {
+        val viewModel = form()
+        type(viewModel.fields.name, "Sara")
+        val picked = dev.alializadeh.orbit.person.contact.PickedContact("Someone else", "0912")
+        viewModel.applyContact(picked)
+        viewModel.applyContact(picked)
+        viewModel.applyContact(dev.alializadeh.orbit.person.contact.PickedContact(null, null))
+        settle()
+        assertEquals("Sara", viewModel.fields.name.text.toString())
+        assertEquals(1, viewModel.uiState.value.contacts.size)
+    }
+
     @Test
     fun aNewPersonStartsInTheOutermostRingAndNeedsAName() = runTest {
         val viewModel = form()

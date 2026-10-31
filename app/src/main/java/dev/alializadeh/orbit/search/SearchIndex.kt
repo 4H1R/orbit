@@ -20,6 +20,10 @@ data class SearchDocument(
     val dislikes: List<String> = emptyList(),
     /** The ideas' text, open and given. */
     val giftIdeas: List<String> = emptyList(),
+    /** Their Follow-ups' text, open and done. */
+    val followUps: List<String> = emptyList(),
+    /** Their Loans' text, open and returned. */
+    val loans: List<String> = emptyList(),
     val howWeMet: String? = null,
     val contactMethods: List<SearchContact> = emptyList(),
     val notes: String? = null,
@@ -32,15 +36,17 @@ enum class SearchField(val tier: Int) {
     Name(1),
     OtherScriptName(1),
     Nickname(1),
-    Tag(2),
     CanHelpWith(2),
-    Like(3),
-    Dislike(3),
-    GiftIdea(3),
-    HowWeMet(3),
-    ContactMethod(3),
-    Notes(4),
-    InteractionNote(4),
+    Tag(3),
+    Like(4),
+    Dislike(4),
+    GiftIdea(4),
+    FollowUp(4),
+    Loan(4),
+    HowWeMet(4),
+    ContactMethod(4),
+    Notes(5),
+    InteractionNote(5),
 }
 
 /**
@@ -60,7 +66,7 @@ data class FieldMatch(
     /** An Interaction note: how many older Interaction notes of theirs matched too ("+N more"). */
     val more: Int = 0,
 ) {
-    /** 0: a name, at a word start; 1: a name, mid-word; 2 to 4: tiers 2 to 4. */
+    /** 0: a name, at a word start; 1: a name, mid-word; 2 to 5: tiers 2 to 5. */
     val rank: Int get() = if (this.field.tier == 1) (if (wordStart) 0 else 1) else this.field.tier
 }
 
@@ -75,8 +81,9 @@ data class SearchHit(val personId: Long, val rank: Int, val matches: List<FieldM
  *   may match a different field ("ali gym" finds Ali tagged Gym).
  * - A query of digits and phone punctuation also looks for its digits in Contact methods,
  *   ignoring their punctuation ([SearchText.phoneDigits]).
- * - A hit's rank is its best field's: names (a word-start match beats a mid-word one), then Tags and
- *   Can help with, then Likes, Dislikes, Gift ideas, How we met and Contact methods, then Notes and
+ * - A hit's rank is its best field's: names (a word-start match beats a mid-word one), then Can help
+ *   with ("who can do X?" is what most searches for a skill are asking), then Tags, then Likes,
+ *   Dislikes, Gift ideas, Follow-ups, Loans, How we met and Contact methods, then Notes and
  *   Interaction notes. The list orders a rank by displayed name.
  * - Interaction notes make one match: the newest matching note, with how many more matched.
  */
@@ -125,6 +132,8 @@ class SearchIndex(documents: List<SearchDocument>) {
             likes.forEach { add(SearchField.Like, it) }
             dislikes.forEach { add(SearchField.Dislike, it) }
             giftIdeas.forEach { add(SearchField.GiftIdea, it) }
+            followUps.forEach { add(SearchField.FollowUp, it) }
+            loans.forEach { add(SearchField.Loan, it) }
             add(SearchField.HowWeMet, howWeMet)
             contactMethods.forEach { add(SearchField.ContactMethod, it.value, contactType = it.type) }
             add(SearchField.Notes, notes)

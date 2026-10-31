@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.due.SnoozeDuration
+import dev.alializadeh.orbit.person.FollowUpDraft
 import dev.alializadeh.orbit.person.Person
 import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.person.PersonRepository
 import dev.alializadeh.orbit.person.names
 import dev.alializadeh.orbit.person.photo.PhotoStore
+import dev.alializadeh.orbit.reminders.ReminderPermissionAsks
 import java.io.File
 import java.time.Clock
 import java.time.LocalDate
@@ -78,6 +80,7 @@ class KeepInTouchViewModel @Inject constructor(
     private val preferencesRepository: PreferencesRepository,
     private val photoStore: PhotoStore,
     private val clock: Clock,
+    private val reminderAsks: ReminderPermissionAsks,
 ) : ViewModel() {
 
     private val sheet = MutableStateFlow<KeepInTouchSheet?>(null)
@@ -167,6 +170,33 @@ class KeepInTouchViewModel @Inject constructor(
         viewModelScope.launch {
             interactionRepository.save(d)
             preferencesRepository.updateDeviceState { it.copy(lastInteractionType = d.type) }
+        }
+    }
+
+    /** The Follow-up added along with a logged Interaction. */
+    fun saveFollowUp(personId: Long, draft: FollowUpDraft) {
+        if (draft.normalised().text.isEmpty()) return
+        viewModelScope.launch {
+            personRepository.saveFollowUp(personId, draft)
+            reminderAsks.remindersNeeded()
+        }
+    }
+
+    /** Marks a Follow-up done today, then hands [onDone] the Undo, safe after this ViewModel is gone. */
+    fun markFollowUpDone(id: Long, onDone: (undo: suspend () -> Unit) -> Unit = {}) {
+        val repository = personRepository
+        viewModelScope.launch {
+            repository.setFollowUpDone(id, LocalDate.now(clock))
+            onDone { repository.setFollowUpDone(id, null) }
+        }
+    }
+
+    /** Marks a Loan returned today, then hands [onDone] the Undo, safe after this ViewModel is gone. */
+    fun markLoanReturned(id: Long, onDone: (undo: suspend () -> Unit) -> Unit = {}) {
+        val repository = personRepository
+        viewModelScope.launch {
+            repository.setLoanReturned(id, LocalDate.now(clock))
+            onDone { repository.setLoanReturned(id, null) }
         }
     }
 

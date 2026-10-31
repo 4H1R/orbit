@@ -20,6 +20,11 @@ import dev.alializadeh.orbit.person.contact.ContactType
 import dev.alializadeh.orbit.person.detail.PersonDetailKeepInTouch
 import dev.alializadeh.orbit.person.edit.DateRow
 import dev.alializadeh.orbit.person.detail.PersonDetailEdits
+import dev.alializadeh.orbit.person.FollowUp
+import dev.alializadeh.orbit.person.FollowUpDraft
+import dev.alializadeh.orbit.person.Loan
+import dev.alializadeh.orbit.person.LoanDirection
+import dev.alializadeh.orbit.person.LoanDraft
 import dev.alializadeh.orbit.person.detail.PersonDetailScreen
 import dev.alializadeh.orbit.person.detail.PersonDetailUiState
 import dev.alializadeh.orbit.person.edit.ContactRow
@@ -98,6 +103,30 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
         Detail(
             PersonDetailUiState.Loaded(
                 data.sparseProfile,
+                today = ScreenshotToday,
+                due = keepInTouch(cadence = null, lastDaysAgo = null).on(ScreenshotToday),
+            ),
+        )
+    }
+
+    /** Open Follow-ups and Loans come first, one overdue; done and returned ones are folded away. */
+    @Test
+    fun personDetailTasks() = captureScreen("person_detail_tasks", variant, tall = true) {
+        val interview = if (variant.persian) "بپرسم مصاحبه چطور بود" else "Ask how the interview went"
+        val tent = if (variant.persian) "کتاب بوف کور" else "The blue hiking tent"
+        val profile = data.sparseProfile.copy(
+            followUps = listOf(
+                FollowUp(id = 1, personId = 1, text = interview, dueOn = ScreenshotToday.minusDays(2), createdAt = Instant.EPOCH),
+                FollowUp(id = 2, personId = 1, text = interview, dueOn = ScreenshotToday.minusDays(9), doneOn = ScreenshotToday.minusDays(8), createdAt = Instant.EPOCH),
+            ),
+            loans = listOf(
+                Loan(id = 1, personId = 1, direction = LoanDirection.Lent, text = tent, returnBy = ScreenshotToday.plusDays(10), createdAt = Instant.EPOCH),
+                Loan(id = 2, personId = 1, direction = LoanDirection.Borrowed, text = tent, createdAt = Instant.EPOCH),
+            ),
+        )
+        Detail(
+            PersonDetailUiState.Loaded(
+                profile,
                 today = ScreenshotToday,
                 due = keepInTouch(cadence = null, lastDaysAgo = null).on(ScreenshotToday),
             ),
@@ -313,6 +342,10 @@ private object NoEdits : PersonDetailEdits {
     override fun deleteImportantDate(id: Long) = Unit
     override fun saveGiftIdea(draft: GiftIdeaDraft) = Unit
     override fun deleteGiftIdea(id: Long) = Unit
+    override fun saveFollowUp(draft: FollowUpDraft) = Unit
+    override fun deleteFollowUp(id: Long) = Unit
+    override fun saveLoan(draft: LoanDraft) = Unit
+    override fun deleteLoan(id: Long) = Unit
 }
 
 /** A 1200 × 800 gradient with a few discs: something to see under the crop circle. */

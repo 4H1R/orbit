@@ -74,6 +74,8 @@ data class ReminderPlan(
         val postedBefore = previous.postedReminders.toSet()
         val missedOccasions = missed.mapNotNull { (it.key as? NotificationKey.OccasionReminder)?.occasionId }.toSet()
         val occasionsPostedBefore = previous.postedOccasionReminders.toSet()
+        val missedTasks = missed.filterIsInstance<PlannedTaskReminder>().map { it.key.tag }.toSet()
+        val tasksPostedBefore = previous.postedTaskReminders.toSet()
         return state.copy(
             postedReminders = state.postedReminders.filter { it.dateId !in missedDates || it in postedBefore },
             showingReminders = state.showingReminders.filter { it.dateId !in missedDates } +
@@ -83,6 +85,9 @@ data class ReminderPlan(
             },
             showingOccasionReminders = state.showingOccasionReminders.filter { it.occasionId !in missedOccasions } +
                 previous.showingOccasionReminders.filter { it.occasionId in missedOccasions },
+            postedTaskReminders = state.postedTaskReminders.filter { it.tag !in missedTasks || it in tasksPostedBefore },
+            showingTaskReminders = state.showingTaskReminders.filter { it.tag !in missedTasks } +
+                previous.showingTaskReminders.filter { it.tag in missedTasks },
             lastDigestEpochDay = if (missedDigest?.silent == false) previous.lastDigestEpochDay else state.lastDigestEpochDay,
             digestPersonIds = if (missedDigest != null) previous.digestPersonIds else state.digestPersonIds,
             renderedAs = if (missedDigest != null) previous.renderedAs else state.renderedAs,
@@ -162,6 +167,8 @@ data class PlannedDigest(
  *
  * A channel that's off posts nothing and records nothing, so turning it back on catches up (the
  * same day for Reminders).
+ *
+ * **Follow-ups and Loans**: see [TaskReminderPlanner].
  *
  * **Rendering** (App lock): when [PlannerInput.rendering] differs from how the showing
  * notifications were posted (each Reminder's [ShowingReminder.content], the digest's
@@ -292,6 +299,20 @@ object ReminderPlanner {
         cancel += occasionPlan.cancel
         occasionPlan.wakeAt.forEach(::consider)
 
+        // Follow-ups and Loans.
+        val taskPlan = TaskReminderPlanner.plan(
+            people = active,
+            today = today,
+            timeHasCome = timeHasCome,
+            canRemind = ReminderChannel.FollowUps in input.channelsOn,
+            state = input.state,
+            rendering = input.rendering,
+            slot = ::slot,
+        )
+        post += taskPlan.post
+        cancel += taskPlan.cancel
+        taskPlan.wakeAt.forEach(::consider)
+
         // The Cadence digest: at most one per local day.
         val due = UpcomingFeed.of(input.people, today).due
         val lastDigest = input.state.lastDigestEpochDay?.let(LocalDate::ofEpochDay)
@@ -367,6 +388,8 @@ object ReminderPlanner {
                 renderedAs = input.rendering,
                 postedOccasionReminders = occasionPlan.posted,
                 showingOccasionReminders = occasionPlan.showing,
+                postedTaskReminders = taskPlan.posted,
+                showingTaskReminders = taskPlan.showing,
             ),
             clearNotified = clearNotified,
             previous = input.state,

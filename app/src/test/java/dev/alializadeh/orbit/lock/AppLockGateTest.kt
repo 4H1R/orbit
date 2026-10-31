@@ -240,6 +240,7 @@ class AppLockGateTest {
         preferencesRepository = FakePreferencesRepository(),
         photoStore = photoStore,
         clock = clock,
+        reminderAsks = ReminderPermissionAsks.None,
     ).also { keepInTouch += it }
 
     private fun text(id: Int): String = context.getString(id)

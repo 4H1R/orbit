@@ -233,7 +233,7 @@ private const val DEFAULT_LEAD_TIMES = "default"
 /** Keeps a picker's selection across configuration changes and process death. */
 val WheelDatePickerStateSaver: Saver<WheelDatePickerState, Any> = listSaver(
     save = {
-        listOf(it.calendar.name, it.month, it.day, it.year ?: NO_YEAR, it.today.toEpochDay(), it.allowNoYear, it.convertedViaYear ?: NO_YEAR)
+        listOf(it.calendar.name, it.month, it.day, it.year ?: NO_YEAR, it.today.toEpochDay(), it.allowNoYear, it.convertedViaYear ?: NO_YEAR, it.futureYears)
     },
     restore = {
         WheelDatePickerState(
@@ -244,6 +244,7 @@ val WheelDatePickerStateSaver: Saver<WheelDatePickerState, Any> = listSaver(
             today = LocalDate.ofEpochDay(it[4] as Long),
             allowNoYear = it[5] as Boolean,
             convertedViaYear = (it[6] as Int).takeIf { year -> year != NO_YEAR },
+            futureYears = it[7] as Int,
         )
     },
 )

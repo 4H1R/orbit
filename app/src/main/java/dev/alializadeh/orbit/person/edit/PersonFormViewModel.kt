@@ -27,6 +27,7 @@ import dev.alializadeh.orbit.person.PersonItemKind
 import dev.alializadeh.orbit.person.PersonRepository
 import dev.alializadeh.orbit.person.Tag
 import dev.alializadeh.orbit.person.contact.ContactType
+import dev.alializadeh.orbit.person.contact.PickedContact
 import dev.alializadeh.orbit.person.nameKey
 import dev.alializadeh.orbit.person.photo.CropImage
 import dev.alializadeh.orbit.person.photo.CropRect
@@ -417,6 +418,17 @@ class PersonFormViewModel @AssistedInject constructor(
 
     override fun setContactType(key: Long, type: ContactType) {
         contacts.firstOrNull { it.key == key }?.type = type
+    }
+
+    /**
+     * Add from contacts: their name, unless one's been typed, and their number as a Contact method,
+     * primary if there's none yet. A number the form already has isn't added again.
+     */
+    fun applyContact(picked: PickedContact) {
+        picked.name?.trim()?.takeIf { it.isNotEmpty() && name.text.isBlank() }?.let(name::setTextAndPlaceCursorAtEnd)
+        val phone = picked.phone?.let(ContactType.Phone::normalise)?.takeIf(String::isNotEmpty) ?: return
+        if (contacts.any { it.type == ContactType.Phone && ContactType.Phone.normalise(it.value.text.toString()) == phone }) return
+        contacts += ContactRow(nextContactKey++, ContactType.Phone, isPrimary = contacts.none(ContactRow::isPrimary), value = phone)
     }
 
     // Important dates

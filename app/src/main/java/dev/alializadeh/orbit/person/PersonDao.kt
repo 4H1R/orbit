@@ -30,6 +30,10 @@ data class PersonWithDetails(
     val importantDates: List<ImportantDate>,
     @Relation(parentColumns = ["id"], entityColumns = ["personId"])
     val giftIdeas: List<GiftIdea>,
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val followUps: List<FollowUp> = emptyList(),
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val loans: List<Loan> = emptyList(),
 )
 
 /** A Person with what Upcoming needs about them, read in one transaction. */
@@ -44,6 +48,10 @@ data class PersonWithDates(
     /** Their Tags (Occasions reach People by Tag). */
     @Relation(parentColumns = ["id"], entityColumns = ["personId"])
     val tags: List<PersonTag> = emptyList(),
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val followUps: List<FollowUp> = emptyList(),
+    @Relation(parentColumns = ["id"], entityColumns = ["personId"])
+    val loans: List<Loan> = emptyList(),
 )
 
 @Dao
@@ -109,8 +117,8 @@ interface PersonDao {
     fun observeAllWithDetails(): Flow<List<PersonWithDetails>>
 
     /**
-     * Deletes the Person; their items, Tags links, Contact methods, Important dates and Gift ideas
-     * go with them (CASCADE), and so do their places in Interactions (the repository then deletes the
+     * Deletes the Person; their items, Tags links, Contact methods, Important dates, Gift ideas,
+     * Follow-ups and Loans go with them (CASCADE), and so do their places in Interactions (the repository then deletes the
      * Interactions left with nobody).
      */
     @Query("DELETE FROM person WHERE id = :id")
@@ -169,6 +177,40 @@ interface PersonDao {
 
     @Query("DELETE FROM gift_idea WHERE id = :id")
     suspend fun deleteGiftIdea(id: Long)
+
+    // Follow-ups
+
+    @Query("SELECT * FROM follow_up WHERE id = :id")
+    suspend fun getFollowUp(id: Long): FollowUp?
+
+    @Insert
+    suspend fun insertFollowUp(followUp: FollowUp): Long
+
+    @Update
+    suspend fun updateFollowUp(followUp: FollowUp)
+
+    @Query("UPDATE follow_up SET doneOn = :doneOn WHERE id = :id")
+    suspend fun setFollowUpDoneOn(id: Long, doneOn: LocalDate?)
+
+    @Query("DELETE FROM follow_up WHERE id = :id")
+    suspend fun deleteFollowUp(id: Long)
+
+    // Lent and borrowed
+
+    @Query("SELECT * FROM loan WHERE id = :id")
+    suspend fun getLoan(id: Long): Loan?
+
+    @Insert
+    suspend fun insertLoan(loan: Loan): Long
+
+    @Update
+    suspend fun updateLoan(loan: Loan)
+
+    @Query("UPDATE loan SET returnedOn = :returnedOn WHERE id = :id")
+    suspend fun setLoanReturnedOn(id: Long, returnedOn: LocalDate?)
+
+    @Query("DELETE FROM loan WHERE id = :id")
+    suspend fun deleteLoan(id: Long)
 
     // Tags on a Person
 

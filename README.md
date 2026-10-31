@@ -19,7 +19,10 @@ Orbit remembers the people in your life: their birthdays and other important dat
 - **Reminders and a home-screen widget.** Notifications on the day or ahead of it, a daily digest of who's Due, and an Upcoming widget.
 - **Send wishes.** A ready-made message in English or Persian, sent by SMS, WhatsApp, Telegram, Signal, email or any other app, and logged for you.
 - **Gift ideas** for each Person, kept until you mark them as given.
-- **Search and filters.** Search names, notes and details, Persian or English, and filter by Ring, Tag, Due or an upcoming date.
+- **Follow-ups.** Note what to come back to with someone ("ask how the interview went") and when, on its own or as you log an interaction. It comes up on Upcoming and as a notification on the day.
+- **Lent and borrowed.** Keep track of what you've lent or borrowed, with an optional day for it to come back.
+- **Add from contacts.** Start a new Person from the phone's contact picker. Orbit asks for no contacts permission and only sees the one name and number you pick.
+- **Search and filters.** Search names, notes and details, Persian or English, and filter by Ring, Tag, Due or an upcoming date. Search for a skill and the people who can help with it come first.
 - **Three calendars.** Gregorian, Solar Hijri and Lunar Hijri. Each date stays in the calendar it was entered in, so a Persian birthday comes round on the right day every year.
 - **Fully bilingual.** English and Persian, right to left, with Persian digits.
 - **Private by design.** An optional App lock uses your phone's screen lock. Notifications never show names on the lock screen, and with App lock on they don't show them anywhere.

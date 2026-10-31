@@ -17,6 +17,10 @@ data class PersonProfile(
     val importantDates: List<ImportantDate> = emptyList(),
     /** Oldest first, open and given ones together. */
     val giftIdeas: List<GiftIdea> = emptyList(),
+    /** Soonest first, open and done ones together. */
+    val followUps: List<FollowUp> = emptyList(),
+    /** Those with a return day first, soonest first; open and returned ones together. */
+    val loans: List<Loan> = emptyList(),
 ) {
     val names: PersonNames get() = person.names
 
@@ -27,6 +31,18 @@ data class PersonProfile(
     /** Given ideas, most recently given first. */
     val givenGiftIdeas: List<GiftIdea>
         get() = giftIdeas.filter(GiftIdea::isGiven).sortedWith(compareByDescending<GiftIdea> { it.givenOn }.thenByDescending { it.id })
+
+    val openFollowUps: List<FollowUp> get() = followUps.filterNot(FollowUp::isDone)
+
+    /** Done Follow-ups, most recently done first. */
+    val doneFollowUps: List<FollowUp>
+        get() = followUps.filter(FollowUp::isDone).sortedWith(compareByDescending<FollowUp> { it.doneOn }.thenByDescending { it.id })
+
+    val openLoans: List<Loan> get() = loans.filterNot(Loan::isReturned)
+
+    /** Returned Loans, most recently returned first. */
+    val returnedLoans: List<Loan>
+        get() = loans.filter(Loan::isReturned).sortedWith(compareByDescending<Loan> { it.returnedOn }.thenByDescending { it.id })
 
     val primaryContactMethod: ContactMethod? get() = contactMethods.firstOrNull(ContactMethod::isPrimary)
 
@@ -51,6 +67,8 @@ data class PersonProfile(
                 dislikes = texts(PersonItemKind.Dislike),
                 importantDates = details.importantDates.sortedWith(ImportantDateOrder),
                 giftIdeas = details.giftIdeas.sortedWith(GiftIdeaOrder),
+                followUps = details.followUps.sortedWith(FollowUpOrder),
+                loans = details.loans.sortedWith(LoanOrder),
             )
         }
     }
