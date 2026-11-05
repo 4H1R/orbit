@@ -45,6 +45,12 @@ class UpcomingScreenshotTest(private val variant: ScreenshotVariant) {
         Screen(loaded(people))
     }
 
+    /** The same Upcoming at phone height, as it first opens: the README shows this one. */
+    @Test
+    fun upcomingPhone() = captureScreen("upcoming_phone", variant) {
+        Screen(loaded(people))
+    }
+
     /** "Show all (6)" tapped: every Due row, then "Show fewer". */
     @Test
     fun upcomingDueShowAll() = captureScreen("upcoming_due_all", variant, tall = true) {

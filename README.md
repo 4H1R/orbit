@@ -5,10 +5,11 @@
 Orbit remembers the people in your life: their birthdays and other important dates, gift ideas, what they like, what they can help with, and when you last talked. It tells you who you haven't been in touch with for a while. There's no account, no server and no internet permission. Everything stays on your phone.
 
 <p align="center">
-  <img src="app/src/test/screenshots/orbit_few_en_dark.png" width="200" alt="The Orbit view: People placed on rings around You, closest inside">
-  <img src="app/src/test/screenshots/people_list_en_light.png" width="200" alt="The People list with search, filters and Due badges">
-  <img src="app/src/test/screenshots/person_detail_due_fa_light.png" width="200" alt="A Person's page in Persian, with Solar Hijri dates">
-  <img src="app/src/test/screenshots/wishes_sheet_en_light.png" width="200" alt="Sending birthday wishes through WhatsApp">
+  <img src="app/src/test/screenshots/upcoming_phone_en_light.png" width="160" alt="Upcoming: today's birthday with Call and Send wishes, then who is Due, each with a contact and a Log interaction button">
+  <img src="app/src/test/screenshots/orbit_few_en_dark.png" width="160" alt="The Orbit view: People placed on rings around You, closest inside">
+  <img src="app/src/test/screenshots/person_detail_due_fa_light.png" width="160" alt="A Person's page in Persian: the keep-in-touch card with Due, Snooze and Log interaction">
+  <img src="app/src/test/screenshots/people_list_en_dark.png" width="160" alt="The People list in dark: search, filters, a count with Sort, and Due and date markers">
+  <img src="app/src/test/screenshots/wishes_sheet_en_light.png" width="160" alt="Sending birthday wishes through WhatsApp">
 </p>
 
 ## Features
