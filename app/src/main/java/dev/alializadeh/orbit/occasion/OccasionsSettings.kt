@@ -1,5 +1,7 @@
 package dev.alializadeh.orbit.occasion
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,23 +11,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -35,11 +36,18 @@ import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
+import dev.alializadeh.orbit.format.RelativeDays
 import dev.alializadeh.orbit.format.bidiIsolate
+import dev.alializadeh.orbit.format.text
+import dev.alializadeh.orbit.person.dates.DateBadge
+import dev.alializadeh.orbit.settings.AddRow
 import dev.alializadeh.orbit.settings.OrbitSettingsScaffold
-import dev.alializadeh.orbit.ui.components.NavigationRow
+import dev.alializadeh.orbit.settings.SettingsFooter
+import dev.alializadeh.orbit.ui.components.OrbitEmptyState
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.UpcomingRepository
 import dev.alializadeh.orbit.upcoming.todayFlow
 import java.time.Clock
@@ -67,6 +75,7 @@ sealed interface OccasionsSettingsUiState {
         val items: List<OccasionListItem>,
         /** The built-in Occasions not added yet, in the list's order. */
         val addable: List<BuiltInOccasion>,
+        val today: LocalDate,
     ) : OccasionsSettingsUiState
 }
 
@@ -87,6 +96,7 @@ class OccasionsSettingsViewModel @Inject constructor(
                 .map { OccasionListItem(it, daysAway(it, today), it.audience(people).size) }
                 .sortedWith(compareBy<OccasionListItem> { it.daysAway }.thenBy { it.occasion.id }),
             addable = BuiltInOccasion.entries - occasions.mapNotNull { it.occasion.builtIn }.toSet(),
+            today = today,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OccasionsSettingsUiState.Loading)
 
@@ -118,36 +128,61 @@ fun OccasionsSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     var adding by rememberSaveable { mutableStateOf(false) }
-    OrbitSettingsScaffold(title = stringResource(R.string.settings_occasions_title), onBack = onBack, modifier = modifier) {
+    val empty = (uiState as? OccasionsSettingsUiState.Loaded)?.items?.isEmpty() == true
+    OrbitSettingsScaffold(
+        title = stringResource(R.string.settings_occasions_title),
+        onBack = onBack,
+        modifier = modifier,
+        emptyState = if (empty) {
+            {
+                OrbitEmptyState(
+                    icon = OrbitIcons.Sparkle,
+                    title = stringResource(R.string.settings_occasions_none),
+                    body = stringResource(R.string.occasions_empty),
+                    action = {
+                        Button(onClick = { adding = true }) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                            Text(stringResource(R.string.occasions_add), modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
+                        }
+                    },
+                )
+            }
+        } else {
+            null
+        },
+    ) {
         if (uiState !is OccasionsSettingsUiState.Loaded) return@OrbitSettingsScaffold
         val formats = LocalOrbitFormats.current
         val separator = stringResource(R.string.separator)
-        if (uiState.items.isEmpty()) {
-            Text(
-                stringResource(R.string.occasions_empty),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
-            )
-        } else {
-            OrbitListGroup(title = null) {
-                uiState.items.forEachIndexed { index, item ->
-                    val occasion = item.occasion.occasion
-                    NavigationRow(
-                        title = occasionName(occasion),
-                        summary = listOf(formats.dates.format(occasion.date), reachText(occasion.forEveryone, item.reach))
-                            .joinToString(separator),
-                        index = index,
-                        count = uiState.items.size,
-                        onClick = { onOpen(occasion.id) },
-                    )
+        val count = uiState.items.size + 1
+        OrbitListGroup(title = null) {
+            uiState.items.forEachIndexed { index, item ->
+                val occasion = item.occasion.occasion
+                SegmentedListItem(
+                    onClick = { onOpen(occasion.id) },
+                    shapes = ListItemDefaults.segmentedShapes(index, count),
+                    leadingContent = {
+                        DateBadge(
+                            day = formats.numbers.format(occasion.date.day),
+                            month = formats.dates.monthName(occasion.date.calendar, occasion.date.month),
+                            size = 48.dp,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            listOfNotNull(
+                                RelativeDays.ahead(uiState.today.plusDays(item.daysAway.toLong()), uiState.today)?.text(),
+                                reachText(occasion.forEveryone, item.reach),
+                            ).joinToString(separator),
+                        )
+                    },
+                ) {
+                    Text(occasionName(occasion))
                 }
             }
+            AddRow(title = stringResource(R.string.occasions_add), index = count - 1, count = count, onClick = { adding = true })
         }
-        FilledTonalButton(onClick = { adding = true }, modifier = Modifier.padding(top = 16.dp)) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.occasions_add), modifier = Modifier.padding(start = 8.dp))
-        }
+        SettingsFooter(stringResource(R.string.occasions_footer))
     }
     if (adding && uiState is OccasionsSettingsUiState.Loaded) {
         OrbitBottomSheet(onDismiss = { adding = false }) { sheet ->
@@ -167,30 +202,42 @@ internal fun reachText(forEveryone: Boolean, reach: Int): String = when {
 /** Add occasion: the built-in ones not added yet, each with its day, then the user's own. */
 @Composable
 internal fun AddOccasionSheetContent(addable: List<BuiltInOccasion>, onPick: (BuiltInOccasion?) -> Unit) {
-    val dates = LocalOrbitFormats.current.dates
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
-        Text(
-            stringResource(R.string.occasions_add),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp).semantics { heading() },
-        )
-        addable.forEach { builtIn ->
-            ListItem(
-                onClick = { onPick(builtIn) },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                supportingContent = { Text(dates.format(builtIn.date)) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            ) {
-                Text(stringResource(builtIn.nameRes))
+    val formats = LocalOrbitFormats.current
+    val count = addable.size + 1
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+        OrbitSheetTitle(stringResource(R.string.occasions_add), Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+            addable.forEachIndexed { index, builtIn ->
+                SegmentedListItem(
+                    onClick = { onPick(builtIn) },
+                    shapes = ListItemDefaults.segmentedShapes(index, count),
+                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    leadingContent = {
+                        DateBadge(
+                            day = formats.numbers.format(builtIn.date.day),
+                            month = formats.dates.monthName(builtIn.date.calendar, builtIn.date.month),
+                            size = 44.dp,
+                        )
+                    },
+                    supportingContent = { Text(formats.dates.format(builtIn.date)) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(builtIn.nameRes))
+                }
             }
-        }
-        ListItem(
-            onClick = { onPick(null) },
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            leadingContent = { Icon(Icons.Filled.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-        ) {
-            Text(stringResource(R.string.occasion_custom), color = MaterialTheme.colorScheme.primary)
+            SegmentedListItem(
+                onClick = { onPick(null) },
+                shapes = ListItemDefaults.segmentedShapes(count - 1, count),
+                colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                leadingContent = {
+                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.occasion_custom), color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package dev.alializadeh.orbit.lock
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,7 +41,9 @@ class AppLockWarningViewModel @Inject constructor(
 @Composable
 fun AppLockPausedCard(onSetScreenLock: () -> Unit, modifier: Modifier = Modifier) {
     OrbitWarningCard(
-        text = stringResource(R.string.app_lock_paused),
+        icon = Icons.Filled.Lock,
+        title = stringResource(R.string.app_lock_paused_title),
+        body = stringResource(R.string.app_lock_paused_body),
         actionLabel = stringResource(R.string.app_lock_set_screen_lock),
         onAction = onSetScreenLock,
         modifier = modifier,

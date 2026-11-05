@@ -4,17 +4,23 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -29,8 +35,11 @@ import dev.alializadeh.orbit.IoDispatcher
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolateLtr
+import dev.alializadeh.orbit.lock.OrbitMark
+import dev.alializadeh.orbit.settings.DestructiveRow
 import dev.alializadeh.orbit.settings.OrbitSettingsScaffold
-import dev.alializadeh.orbit.ui.components.ContentRow
+import dev.alializadeh.orbit.settings.SettingsFooter
+import dev.alializadeh.orbit.settings.SettingsGroupGap
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.NavigationRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
@@ -119,28 +128,39 @@ fun AboutScreen(
     modifier: Modifier = Modifier,
 ) {
     OrbitSettingsScaffold(title = stringResource(R.string.settings_about_title), onBack = onBack, modifier = modifier) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 24.dp)
+                .semantics(mergeDescendants = true) {},
+        ) {
+            OrbitMark(Modifier.padding(bottom = 12.dp))
+            Text(stringResource(R.string.about_product_name), style = MaterialTheme.typography.headlineSmall)
+            Text(
+                text = stringResource(R.string.about_version) + stringResource(R.string.separator) + versionText(uiState.version),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.welcome_line),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         OrbitListGroup(title = null) {
-            ContentRow(index = 0, count = 2, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-                Column {
-                    Text(stringResource(R.string.about_version), style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        text = versionText(uiState.version),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
             NavigationRow(
                 title = stringResource(R.string.about_licences),
                 summary = stringResource(R.string.about_licences_summary),
-                index = 1,
-                count = 2,
+                index = 0,
+                count = 1,
                 onClick = onOpenLicences,
             )
         }
         val crashes = uiState.crashes ?: 0
-        OrbitListGroup(title = stringResource(R.string.about_crash_log_title), modifier = Modifier.padding(top = 8.dp)) {
-            val rows = if (crashes > 0) 2 else 1
+        OrbitListGroup(title = stringResource(R.string.about_crash_log_title)) {
             NavigationRow(
                 title = stringResource(R.string.about_crash_log_share),
                 summary = if (crashes == 0) {
@@ -149,26 +169,24 @@ fun AboutScreen(
                     pluralStringResource(R.plurals.about_crash_log_count, crashes, LocalOrbitFormats.current.numbers.format(crashes))
                 },
                 index = 0,
-                count = rows,
+                count = 1,
                 onClick = onShareCrashLog,
                 enabled = crashes > 0,
             )
-            if (crashes > 0) {
-                NavigationRow(
+        }
+        SettingsFooter(stringResource(R.string.about_crash_log_footer))
+        if (crashes > 0) {
+            SettingsGroupGap()
+            OrbitListGroup(title = null) {
+                DestructiveRow(
                     title = stringResource(R.string.about_crash_log_clear),
-                    summary = null,
-                    index = 1,
-                    count = rows,
+                    icon = Icons.Filled.Delete,
+                    index = 0,
+                    count = 1,
                     onClick = onClearCrashLog,
                 )
             }
         }
-        Text(
-            text = stringResource(R.string.about_crash_log_footer),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
     }
 }
 

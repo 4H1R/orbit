@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -20,32 +19,47 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -65,7 +79,12 @@ import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.text
 import dev.alializadeh.orbit.interaction.KeepInTouchSheets
 import dev.alializadeh.orbit.interaction.KeepInTouchViewModel
+import dev.alializadeh.orbit.interaction.QuickActionSheet
+import dev.alializadeh.orbit.interaction.QuickActionTarget
 import dev.alializadeh.orbit.interaction.lastTalkedText
+import dev.alializadeh.orbit.lock.AppLockPausedCard
+import dev.alializadeh.orbit.lock.AppLockWarningViewModel
+import dev.alializadeh.orbit.lock.openSecuritySettings
 import dev.alializadeh.orbit.occasion.occasionName
 import dev.alializadeh.orbit.occasion.occasionNameInSentence
 import dev.alializadeh.orbit.person.contact.ContactAction
@@ -82,13 +101,11 @@ import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
 import dev.alializadeh.orbit.reminders.CriticalReminderProblem
-import dev.alializadeh.orbit.lock.AppLockPausedCard
-import dev.alializadeh.orbit.lock.AppLockWarningViewModel
-import dev.alializadeh.orbit.lock.openSecuritySettings
 import dev.alializadeh.orbit.reminders.ReminderWarningCard
 import dev.alializadeh.orbit.reminders.ReminderWarningViewModel
 import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
+import dev.alializadeh.orbit.ui.components.OrbitEmptyState
 import dev.alializadeh.orbit.ui.components.OrbitSectionTitle
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
@@ -221,6 +238,10 @@ fun UpcomingScreen(
     onCloseTask: (UpcomingTask) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    // Long-pressing a Person opens their quick actions (as on People and the Orbit view). Saveable:
+    // it must outlive App lock, which takes the screen out of composition.
+    var quickActionsFor by rememberSaveable { mutableStateOf<Long?>(null) }
+    val onPersonLongClick: (Long) -> Unit = { quickActionsFor = it }
     val pausedCard: (@Composable (Modifier) -> Unit)? = if (appLockPaused) {
         { cardModifier -> AppLockPausedCard(onSetScreenLock = onSetScreenLock, modifier = cardModifier) }
     } else {
@@ -267,6 +288,7 @@ fun UpcomingScreen(
             }
 
             !uiState.feed.hasPeople -> EmptyState(
+                icon = OrbitIcons.People,
                 title = stringResource(R.string.empty_no_people_title),
                 body = stringResource(R.string.empty_no_people_body),
                 modifier = Modifier.padding(innerPadding),
@@ -274,6 +296,7 @@ fun UpcomingScreen(
             )
 
             uiState.isEmpty -> EmptyState(
+                icon = Icons.Filled.Check,
                 title = stringResource(R.string.upcoming_all_caught_up),
                 body = uiState.feed.next?.let { nextLine(it, uiState.today) },
                 modifier = Modifier.padding(innerPadding),
@@ -305,18 +328,93 @@ fun UpcomingScreen(
                             UpcomingSection.BackupNudge -> if (nudgeCard != null) {
                                 item(key = "backup_nudge") { nudgeCard(Modifier.padding(top = 8.dp, bottom = 8.dp)) }
                             }
-                            UpcomingSection.Today ->
-                                todaySection(uiState, onPersonClick, onContactAction, onLogInteraction, onSendWishes, onOccasionClick)
+                            UpcomingSection.Today -> todaySection(
+                                uiState,
+                                onPersonClick,
+                                onPersonLongClick,
+                                onContactAction,
+                                onLogInteraction,
+                                onSnooze,
+                                onSendWishes,
+                                onOccasionClick,
+                            )
                             UpcomingSection.Tasks -> tasksSection(uiState, onPersonClick, onCloseTask)
-                            UpcomingSection.Due ->
-                                dueSection(uiState, onPersonClick, onContactAction, onLogInteraction, onSnooze, onShowAllDue)
-                            UpcomingSection.ComingUp -> comingUpSection(uiState, onPersonClick, onOccasionClick)
+                            UpcomingSection.Due -> dueSection(
+                                uiState,
+                                onPersonClick,
+                                onPersonLongClick,
+                                onContactAction,
+                                onLogInteraction,
+                                onSnooze,
+                                onShowAllDue,
+                            )
+                            UpcomingSection.ComingUp -> comingUpSection(
+                                uiState,
+                                onPersonClick,
+                                onPersonLongClick,
+                                onContactAction,
+                                onLogInteraction,
+                                onSnooze,
+                                onOccasionClick,
+                            )
                         }
                     }
                 }
             }
         }
     }
+    val target = (uiState as? UpcomingUiState.Loaded)?.let { loaded -> quickActionsFor?.let(loaded::quickActionTarget) }
+    if (target != null) {
+        QuickActionSheet(
+            target = target,
+            onContactAction = onContactAction,
+            onLogInteraction = onLogInteraction,
+            onSnooze = onSnooze,
+            onDismiss = { quickActionsFor = null },
+        )
+    }
+}
+
+/** The quick-action sheet's Person: anyone a row on Upcoming shows, with Snooze while they're Due. */
+private fun UpcomingUiState.Loaded.quickActionTarget(personId: Long): QuickActionTarget? {
+    val person = feed.due.map { it.person }.firstOrNull { it.id == personId }
+        ?: feed.today.map { it.person }.firstOrNull { it.id == personId }
+        ?: feed.comingUpEntries.filterIsInstance<UpcomingDate>().map { it.person }.firstOrNull { it.id == personId }
+        ?: return null
+    return QuickActionTarget(
+        personId = person.id,
+        names = person.names,
+        photo = photos[person.id],
+        primaryContactMethod = person.primaryContactMethod,
+        isDue = isDue(person.id),
+    )
+}
+
+private fun UpcomingUiState.Loaded.isDue(personId: Long): Boolean = feed.due.any { it.person.id == personId }
+
+/**
+ * TalkBack's custom actions for a Person's row: what the long-press sheet offers that the row
+ * doesn't show as a button ([contact] and [log] when the row has none, Snooze while [isDue]).
+ */
+@Composable
+private fun hiddenActions(
+    contact: ContactAction?,
+    onContactAction: ((ContactAction) -> Unit)?,
+    onLogInteraction: (() -> Unit)?,
+    onSnooze: (() -> Unit)?,
+): List<CustomAccessibilityAction> {
+    val contactLabel = contact?.kind?.label()
+    val log = stringResource(R.string.interaction_log)
+    val snooze = stringResource(R.string.snooze_action)
+    return listOfNotNull(
+        if (contact != null && contactLabel != null && onContactAction != null) {
+            CustomAccessibilityAction(contactLabel) { onContactAction(contact); true }
+        } else {
+            null
+        },
+        onLogInteraction?.let { CustomAccessibilityAction(log) { it(); true } },
+        onSnooze?.let { CustomAccessibilityAction(snooze) { it(); true } },
+    )
 }
 
 /** Where Due's title sits in the list: after the cards and Today (title, hero, other rows). */
@@ -332,8 +430,10 @@ private fun dueTitleIndex(uiState: UpcomingUiState.Loaded, vararg cards: Boolean
 private fun LazyListScope.todaySection(
     uiState: UpcomingUiState.Loaded,
     onPersonClick: (Long) -> Unit,
+    onPersonLongClick: (Long) -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: (Long) -> Unit,
+    onSnooze: (Long) -> Unit,
     onSendWishes: (personId: Long, dateId: Long) -> Unit,
     onOccasionClick: (occasionId: Long) -> Unit,
 ) {
@@ -372,8 +472,10 @@ private fun LazyListScope.todaySection(
             index = index,
             count = rest.size,
             onClick = { onPersonClick(date.person.id) },
+            onLongClick = { onPersonLongClick(date.person.id) },
             onContactAction = onContactAction,
             onLogInteraction = { onLogInteraction(date.person.id) },
+            onSnooze = if (uiState.isDue(date.person.id)) ({ onSnooze(date.person.id) }) else null,
             onSendWishes = { onSendWishes(date.person.id, date.importantDate.id) },
             modifier = if (index == 0) Modifier.padding(top = 8.dp) else Modifier,
         )
@@ -455,12 +557,14 @@ private fun TaskRow(
 }
 
 /**
- * Everyone Due: innermost Ring first, then longest since the last Interaction. Five show, then
- * "Show all (n)" expands the rest in place, with "Show fewer" at the end.
+ * Everyone Due: innermost Ring first, then longest since the last Interaction. The title says how
+ * many; five show, then the group's last row expands the rest in place ("Show 1 more") and folds
+ * them back ("Show fewer").
  */
 private fun LazyListScope.dueSection(
     uiState: UpcomingUiState.Loaded,
     onPersonClick: (Long) -> Unit,
+    onPersonLongClick: (Long) -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: (Long) -> Unit,
     onSnooze: (Long) -> Unit,
@@ -468,41 +572,91 @@ private fun LazyListScope.dueSection(
 ) {
     val due = uiState.feed.due
     if (due.isEmpty()) return
-    item(key = "due_title") { SectionTitle(stringResource(R.string.upcoming_section_due)) }
+    item(key = "due_title") {
+        val numbers = LocalOrbitFormats.current.numbers
+        SectionTitle(
+            text = stringResource(R.string.upcoming_section_due),
+            count = numbers.format(due.size),
+            countDescription = pluralStringResource(R.plurals.digest_body_several, due.size, numbers.format(due.size)),
+        )
+    }
     val shown = uiState.dueShown
+    // The toggle is the group's last segment, so the group's shapes count it.
+    val count = shown.size + if (uiState.dueHasMore) 1 else 0
     itemsIndexed(shown, key = { _, it -> "due_${it.person.id}" }) { index, row ->
         DueRow(
             row = row,
             photo = uiState.photos[row.person.id],
             today = uiState.today,
             index = index,
-            count = shown.size,
+            count = count,
             onClick = { onPersonClick(row.person.id) },
+            onLongClick = { onPersonLongClick(row.person.id) },
             onContactAction = onContactAction,
             onLogInteraction = { onLogInteraction(row.person.id) },
             onSnooze = { onSnooze(row.person.id) },
+            modifier = Modifier.animateItem(),
         )
     }
     if (uiState.dueHasMore) {
         item(key = "due_more") {
-            val numbers = LocalOrbitFormats.current.numbers
-            TextButton(onClick = { onShowAllDue(!uiState.showAllDue) }) {
-                Text(
-                    if (uiState.showAllDue) {
-                        stringResource(R.string.upcoming_show_fewer)
-                    } else {
-                        stringResource(R.string.upcoming_show_all, numbers.format(due.size))
-                    },
-                )
-            }
+            ShowMoreRow(
+                showingAll = uiState.showAllDue,
+                hidden = due.size - UpcomingUiState.DUE_ROWS,
+                index = count - 1,
+                count = count,
+                onClick = { onShowAllDue(!uiState.showAllDue) },
+                modifier = Modifier.animateItem(),
+            )
         }
     }
 }
 
-/** Important dates and Occasions in the next 30 days. Rows open Person detail or the Occasion; no inline actions. */
+/**
+ * The Due group's last segment: "Show 3 more" with a down arrow, or "Show fewer" with an up one.
+ * The arrow sits where the avatars do, so the label lines up with the names.
+ */
+@Composable
+private fun ShowMoreRow(showingAll: Boolean, hidden: Int, index: Int, count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val numbers = LocalOrbitFormats.current.numbers
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = colors.surfaceContainer),
+        leadingContent = {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                Icon(
+                    if (showingAll) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = colors.primary,
+                )
+            }
+        },
+        modifier = modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+    ) {
+        Text(
+            if (showingAll) {
+                stringResource(R.string.upcoming_show_fewer)
+            } else {
+                pluralStringResource(R.plurals.upcoming_show_more, hidden, numbers.format(hidden))
+            },
+            color = colors.primary,
+        )
+    }
+}
+
+/**
+ * Important dates and Occasions in the next 30 days. Rows open Person detail or the Occasion; no
+ * inline actions (a date's Person still has the long-press sheet).
+ */
 private fun LazyListScope.comingUpSection(
     uiState: UpcomingUiState.Loaded,
     onPersonClick: (Long) -> Unit,
+    onPersonLongClick: (Long) -> Unit,
+    onContactAction: (ContactAction) -> Unit,
+    onLogInteraction: (Long) -> Unit,
+    onSnooze: (Long) -> Unit,
     onOccasionClick: (Long) -> Unit,
 ) {
     val entries = uiState.feed.comingUpEntries
@@ -524,6 +678,13 @@ private fun LazyListScope.comingUpSection(
                 index = index,
                 count = entries.size,
                 onClick = { onPersonClick(entry.person.id) },
+                onLongClick = { onPersonLongClick(entry.person.id) },
+                actions = hiddenActions(
+                    contact = entry.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() },
+                    onContactAction = onContactAction,
+                    onLogInteraction = { onLogInteraction(entry.person.id) },
+                    onSnooze = if (uiState.isDue(entry.person.id)) ({ onSnooze(entry.person.id) }) else null,
+                ),
             )
             is UpcomingOccasion -> OccasionRow(
                 occasion = entry,
@@ -560,7 +721,7 @@ private fun OccasionRow(
         leadingContent = {
             if (whenLine == null) {
                 Box(
-                    Modifier.size(40.dp).clip(OrbitShapes.cookie()).background(MaterialTheme.colorScheme.tertiaryContainer),
+                    Modifier.size(40.dp).clip(OrbitShapes.dateBadge()).background(MaterialTheme.colorScheme.tertiaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(OrbitIcons.Sparkle, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
@@ -599,9 +760,27 @@ private fun whenLine(entry: UpcomingEntry, today: LocalDate): String {
     return listOfNotNull(whenText, second).joinToString(stringResource(R.string.separator))
 }
 
+/** A section's title; with [count], how many it holds next to it ([countDescription] for TalkBack). */
 @Composable
-private fun SectionTitle(text: String) {
-    OrbitSectionTitle(text, horizontalPadding = 4.dp, modifier = Modifier.padding(top = 8.dp))
+private fun SectionTitle(text: String, count: String? = null, countDescription: String? = null) {
+    if (count == null) {
+        OrbitSectionTitle(text, horizontalPadding = 4.dp, modifier = Modifier.padding(top = 8.dp))
+        return
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 8.dp).semantics(mergeDescendants = true) { heading() },
+    ) {
+        OrbitSectionTitle(text, horizontalPadding = 4.dp)
+        Text(
+            count,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .padding(top = 16.dp, bottom = 8.dp)
+                .semantics { countDescription?.let { contentDescription = it } },
+        )
+    }
 }
 
 /**
@@ -631,78 +810,116 @@ private fun HeroCard(
         .occurrenceParts(date.date, date.importantDate.date.calendar, formats.primaryCalendar, today, withWeekday = true)
         .joinToString(separator)
     val colors = MaterialTheme.colorScheme
+    val action = date.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(36.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         color = colors.tertiaryContainer,
         contentColor = colors.onTertiaryContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box {
-            // Decoration: a sunny shape over the corner.
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 46.dp, y = (-46).dp)
-                    .size(170.dp)
-                    .clip(OrbitShapes.sunny())
-                    .background(colors.tertiary.copy(alpha = 0.16f)),
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            PersonAvatar(
+                name = name,
+                photo = photo,
+                size = 64.dp,
+                shape = OrbitShapes.cookie(),
+                textStyle = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 12.dp),
             )
-            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                PersonAvatar(
-                    name = name,
-                    photo = photo,
-                    size = 72.dp,
-                    shape = OrbitShapes.cookie(),
-                    textStyle = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-                Text(title, style = MaterialTheme.typography.headlineSmall)
-                Text(dateLine, style = MaterialTheme.typography.bodyMedium)
-                giftIdeasLine(date.person.openGiftIdeas)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                val action = date.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
-                FlowRow(
-                    modifier = Modifier.padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (action != null) {
-                        Button(
-                            onClick = { onContactAction(action) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.onTertiaryContainer,
-                                contentColor = colors.tertiaryContainer,
-                            ),
-                        ) {
-                            Icon(action.kind.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(action.kind.label(), modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = onSendWishes,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onTertiaryContainer),
-                        border = BorderStroke(1.dp, colors.onTertiaryContainer),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.wishes_send), modifier = Modifier.padding(start = 8.dp))
-                    }
-                    OutlinedButton(
-                        onClick = onLogInteraction,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onTertiaryContainer),
-                        border = BorderStroke(1.dp, colors.onTertiaryContainer),
-                    ) {
-                        Icon(OrbitIcons.LogInteraction, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.interaction_log), modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Text(dateLine, style = MaterialTheme.typography.bodyMedium)
+            giftIdeasLine(date.person.openGiftIdeas)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            HeroActions(action, onContactAction, onSendWishes, onLogInteraction)
+        }
+    }
+}
+
+/**
+ * The hero's buttons on one row: the contact action (filled), Send wishes and Log interaction as
+ * an icon. When a label wouldn't fit (a long translation, a large font size) they wrap instead,
+ * with Log interaction labelled, so no label is ever cut.
+ */
+@Composable
+private fun HeroActions(
+    action: ContactAction?,
+    onContactAction: (ContactAction) -> Unit,
+    onSendWishes: () -> Unit,
+    onLogInteraction: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val filled = ButtonDefaults.buttonColors(containerColor = colors.onTertiaryContainer, contentColor = colors.tertiaryContainer)
+    val outlined = ButtonDefaults.outlinedButtonColors(contentColor = colors.onTertiaryContainer)
+    val border = BorderStroke(1.dp, colors.onTertiaryContainer)
+    val fontScale = LocalDensity.current.fontScale
+    var wrap by remember(action, fontScale) { mutableStateOf(false) }
+    val onOverflow: (TextLayoutResult) -> Unit = { if (it.hasVisualOverflow) wrap = true }
+
+    @Composable
+    fun ButtonLabel(icon: ImageVector, text: String) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(text, maxLines = 1, softWrap = false, onTextLayout = onOverflow, modifier = Modifier.padding(start = 8.dp))
+    }
+
+    @Composable
+    fun ContactButton(modifier: Modifier) {
+        if (action != null) {
+            Button(onClick = { onContactAction(action) }, colors = filled, modifier = modifier) {
+                ButtonLabel(action.kind.icon, action.kind.label())
+            }
+        }
+    }
+
+    @Composable
+    fun WishesButton(modifier: Modifier) {
+        val wishes = stringResource(R.string.wishes_send)
+        if (action != null) {
+            OutlinedButton(onClick = onSendWishes, colors = outlined, border = border, modifier = modifier) {
+                ButtonLabel(Icons.AutoMirrored.Filled.Send, wishes)
+            }
+        } else {
+            Button(onClick = onSendWishes, colors = filled, modifier = modifier) {
+                ButtonLabel(Icons.AutoMirrored.Filled.Send, wishes)
+            }
+        }
+    }
+
+    if (wrap) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ContactButton(Modifier)
+            WishesButton(Modifier)
+            OutlinedButton(onClick = onLogInteraction, colors = outlined, border = border) {
+                Icon(OrbitIcons.LogInteraction, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.interaction_log), modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ContactButton(Modifier)
+            WishesButton(Modifier.weight(1f))
+            OutlinedIconButton(
+                onClick = onLogInteraction,
+                colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = colors.onTertiaryContainer),
+                border = border,
+            ) {
+                Icon(OrbitIcons.LogInteraction, contentDescription = stringResource(R.string.interaction_log), modifier = Modifier.size(20.dp))
             }
         }
     }
 }
 
 /**
- * Another date today: whose it is, the years count and Gift ideas, the contact action, Send wishes
- * and Log interaction.
+ * Another date today: whose it is, the years count and Gift ideas, then Send wishes and Log
+ * interaction. The contact action (and Snooze while Due) are a long-press away, and TalkBack
+ * actions.
  */
 @Composable
 private fun TodayRow(
@@ -711,8 +928,10 @@ private fun TodayRow(
     index: Int,
     count: Int,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: () -> Unit,
+    onSnooze: (() -> Unit)?,
     onSendWishes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -720,19 +939,16 @@ private fun TodayRow(
     val name = date.person.names.displayName(formats.language)
     val supporting = detailsLine(date)
     val action = date.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
+    val hidden = hiddenActions(action, onContactAction, onLogInteraction = null, onSnooze = onSnooze)
     SegmentedListItem(
         onClick = onClick,
+        onLongClick = onLongClick,
         shapes = ListItemDefaults.segmentedShapes(index, count),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         leadingContent = { PersonAvatar(name = name, photo = photo) },
-        supportingContent = supporting?.let { { Text(it) } },
+        supportingContent = supporting?.let { { Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis) } },
         trailingContent = {
-            Row {
-                action?.let {
-                    IconButton(onClick = { onContactAction(it) }) {
-                        Icon(it.kind.icon, contentDescription = it.kind.label())
-                    }
-                }
+            RowActions {
                 IconButton(onClick = onSendWishes) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.wishes_send))
                 }
@@ -741,7 +957,10 @@ private fun TodayRow(
                 }
             }
         },
-        modifier = modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = ListItemDefaults.SegmentedGap)
+            .semantics { customActions = hidden },
     ) {
         Text(
             dateTitle(name, date.importantDate.type, date.importantDate.label),
@@ -751,9 +970,18 @@ private fun TodayRow(
     }
 }
 
+/** A row's (at most two) trailing icon buttons, in neutral `onSurfaceVariant`. */
+@Composable
+private fun RowActions(content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
+        Row(verticalAlignment = Alignment.CenterVertically) { content() }
+    }
+}
+
 /**
- * A Due Person: who, "Close · last talked 34 days ago", and their contact action, Log interaction
- * and Snooze. Tapping opens Person detail.
+ * A Due Person: who, "Close · talked 34 days ago", then the two steps of the core loop as
+ * buttons: their contact action (when they have one) and Log interaction. Tapping opens Person
+ * detail; long-pressing opens the quick-action sheet, which also has Snooze (a TalkBack action too).
  */
 @Composable
 private fun DueRow(
@@ -763,25 +991,34 @@ private fun DueRow(
     index: Int,
     count: Int,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onContactAction: (ContactAction) -> Unit,
     onLogInteraction: () -> Unit,
     onSnooze: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val formats = LocalOrbitFormats.current
     val name = row.person.names.displayName(formats.language)
     val action = row.person.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
-    val supporting = listOfNotNull(
-        row.person.ringName?.let(::bidiIsolate),
-        lastTalkedText(row.state.lastInteraction, today, inline = row.person.ringName != null),
-    ).joinToString(stringResource(R.string.separator))
+    val ring = row.person.ringName
+    val last = row.state.lastInteraction
+    // After the Ring, the short "talked 20 days ago": the line fits beside the two buttons.
+    val talked = if (ring != null && last != null) {
+        stringResource(R.string.upcoming_due_talked, RelativeDays.ago(last, today).text())
+    } else {
+        lastTalkedText(last, today, inline = ring != null)
+    }
+    val supporting = listOfNotNull(ring?.let(::bidiIsolate), talked).joinToString(stringResource(R.string.separator))
+    val hidden = hiddenActions(contact = null, onContactAction = null, onLogInteraction = null, onSnooze = onSnooze)
     SegmentedListItem(
         onClick = onClick,
+        onLongClick = onLongClick,
         shapes = ListItemDefaults.segmentedShapes(index, count),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         leadingContent = { PersonAvatar(name = name, photo = photo) },
         supportingContent = { Text(supporting, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         trailingContent = {
-            Row {
+            RowActions {
                 action?.let {
                     IconButton(onClick = { onContactAction(it) }) {
                         Icon(it.kind.icon, contentDescription = it.kind.label())
@@ -790,12 +1027,12 @@ private fun DueRow(
                 IconButton(onClick = onLogInteraction) {
                     Icon(OrbitIcons.LogInteraction, contentDescription = stringResource(R.string.interaction_log))
                 }
-                IconButton(onClick = onSnooze) {
-                    Icon(OrbitIcons.Snooze, contentDescription = stringResource(R.string.snooze_action))
-                }
             }
         },
-        modifier = Modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = ListItemDefaults.SegmentedGap)
+            .semantics { customActions = hidden },
     ) {
         Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -807,7 +1044,15 @@ private fun DueRow(
  * years count and "2 gift ideas".
  */
 @Composable
-private fun ComingUpRow(date: UpcomingDate, today: LocalDate, index: Int, count: Int, onClick: () -> Unit) {
+private fun ComingUpRow(
+    date: UpcomingDate,
+    today: LocalDate,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    actions: List<CustomAccessibilityAction>,
+) {
     val formats = LocalOrbitFormats.current
     val name = date.person.names.displayName(formats.language)
     val inPrimary = date.date.inCalendar(formats.primaryCalendar)
@@ -815,6 +1060,7 @@ private fun ComingUpRow(date: UpcomingDate, today: LocalDate, index: Int, count:
     val details = detailsLine(date)
     SegmentedListItem(
         onClick = onClick,
+        onLongClick = onLongClick,
         shapes = ListItemDefaults.segmentedShapes(index, count),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         leadingContent = {
@@ -829,7 +1075,10 @@ private fun ComingUpRow(date: UpcomingDate, today: LocalDate, index: Int, count:
                 if (details != null) Text(details)
             }
         },
-        modifier = Modifier.fillMaxWidth().padding(bottom = ListItemDefaults.SegmentedGap),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = ListItemDefaults.SegmentedGap)
+            .semantics { customActions = actions },
     ) {
         Text(dateTitle(name, date.importantDate.type, date.importantDate.label), maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
@@ -865,6 +1114,7 @@ private fun nextLine(entry: UpcomingEntry, today: LocalDate): String {
 /** An empty state, under the Backup nudge [card] when it shows. */
 @Composable
 private fun EmptyState(
+    icon: ImageVector,
     title: String,
     body: String?,
     modifier: Modifier = Modifier,
@@ -873,23 +1123,9 @@ private fun EmptyState(
     if (card != null) {
         Column(modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             card(Modifier.widthIn(max = MaxContentWidth).padding(16.dp))
-            EmptyState(title, body, Modifier.weight(1f))
+            OrbitEmptyState(icon, title, body, Modifier.weight(1f))
         }
         return
     }
-    Column(
-        modifier = modifier.fillMaxSize().padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-        if (body != null) {
-            Text(
-                text = body,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
+    OrbitEmptyState(icon, title, body, modifier)
 }

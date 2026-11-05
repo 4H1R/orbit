@@ -6,25 +6,18 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -48,23 +40,20 @@ import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.ImportantDate
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonItemKind
-import dev.alializadeh.orbit.person.PersonProfile
 import dev.alializadeh.orbit.person.contact.ContactAction
 import dev.alializadeh.orbit.person.contact.ContactActions
 import dev.alializadeh.orbit.person.contact.ContactInput
-import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.person.ui.displayName
 import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
 import dev.alializadeh.orbit.ui.components.OrbitSectionTitle
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
-import dev.alializadeh.orbit.ui.expressive.OrbitShapes
-import dev.alializadeh.orbit.ui.icons.OrbitIcons
 
 @Composable
 internal fun ArchivedBanner(onUnarchive: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.secondaryContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -82,35 +71,26 @@ internal fun ArchivedBanner(onUnarchive: () -> Unit) {
     }
 }
 
-/** Photo, names, Ring and Tag chips, the Cadence line, and the contact button group. */
+/**
+ * Who this is: the photo in its cookie, the name (the page's one headline), the other-script name
+ * and nickname, and the Tags. [nameModifier] lets the screen see when the name scrolls away.
+ */
 @Composable
-internal fun PersonHeader(
-    uiState: PersonDetailUiState.Loaded,
-    keepInTouch: PersonDetailKeepInTouch,
-    onContactAction: (ContactAction) -> Unit,
-    onMoreContact: () -> Unit,
-) {
+internal fun PersonHeader(uiState: PersonDetailUiState.Loaded, nameModifier: Modifier = Modifier) {
     val profile = uiState.profile
     val language = LocalOrbitFormats.current.language
     val separator = stringResource(R.string.separator)
     val displayName = profile.names.displayName(language)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
     ) {
-        PersonAvatar(
-            name = displayName,
-            photo = uiState.photo,
-            size = 128.dp,
-            shape = OrbitShapes.cookie(),
-            textStyle = MaterialTheme.typography.displayMedium,
-        )
+        PersonHeroAvatar(name = displayName, photo = uiState.photo)
         Text(
             text = displayName,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
+            modifier = nameModifier.padding(top = 16.dp).semantics { heading() },
         )
         val subtitle = profile.names.subtitleParts(language)
         if (subtitle.isNotEmpty()) {
@@ -119,107 +99,32 @@ internal fun PersonHeader(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-            )
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            profile.ring?.let { ring ->
-                LabelChip(ring.name, icon = OrbitIcons.Orbit, emphasised = true)
-            }
-            profile.tags.forEach { LabelChip(it.name) }
-        }
-        uiState.due?.let { due ->
-            CadenceLine(
-                due = due,
-                today = uiState.today,
-                onSnooze = keepInTouch::snooze,
-                onCancelSnooze = keepInTouch::cancelSnooze,
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
-        ContactButtons(profile, onContactAction, keepInTouch::logInteraction, onMoreContact, Modifier.padding(top = 8.dp))
-    }
-}
-
-/**
- * The connected button group: [primary contact action] [Log interaction] [More contact ▾]. The
- * first is there when there's a primary Contact method, More contact when there are others.
- */
-@Composable
-private fun ContactButtons(
-    profile: PersonProfile,
-    onContactAction: (ContactAction) -> Unit,
-    onLogInteraction: () -> Unit,
-    onMoreContact: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val primaryAction = profile.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
-    val hasMore = profile.contactMethods.size > 1 || (primaryAction == null && profile.contactMethods.isNotEmpty())
-    val buttons = listOfNotNull(
-        primaryAction?.let { action ->
-            ButtonSpec(action.kind.label(), action.kind.icon, filled = true) { onContactAction(action) }
-        },
-        ButtonSpec(
-            label = stringResource(R.string.interaction_log),
-            icon = OrbitIcons.LogInteraction,
-            filled = primaryAction == null,
-            onClick = onLogInteraction,
-        ),
-        if (hasMore) {
-            ButtonSpec(stringResource(R.string.person_detail_more_contact), Icons.Filled.ArrowDropDown, filled = false, iconAfter = true, onClick = onMoreContact)
-        } else {
-            null
-        },
-    )
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        // With all three, More contact shrinks to its arrow so the other two keep their labels.
-        val compactMore = buttons.size == 3
-        buttons.forEachIndexed { index, button ->
-            val shape: Shape = when {
-                buttons.size == 1 -> ButtonDefaults.shape
-                index == 0 -> ButtonGroupDefaults.connectedLeadingButtonShape
-                index == buttons.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShape
-                else -> ButtonGroupDefaults.connectedMiddleButtonShapes().shape
-            }
-            val iconOnly = compactMore && button.iconAfter
-            val content: @Composable () -> Unit = {
-                if (iconOnly) {
-                    Icon(button.icon, contentDescription = button.label)
-                } else {
-                    if (!button.iconAfter) Icon(button.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(button.label, maxLines = 1, modifier = Modifier.padding(start = 8.dp, end = if (button.iconAfter) 4.dp else 0.dp))
-                    if (button.iconAfter) Icon(button.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                }
-            }
-            val buttonModifier = if (iconOnly) Modifier else Modifier.weight(1f)
-            val padding = PaddingValues(horizontal = if (iconOnly) 16.dp else 12.dp)
-            if (button.filled) {
-                Button(onClick = button.onClick, shape = shape, contentPadding = padding, modifier = buttonModifier) { content() }
-            } else {
-                FilledTonalButton(onClick = button.onClick, shape = shape, contentPadding = padding, modifier = buttonModifier) { content() }
+        if (profile.tags.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            ) {
+                profile.tags.forEach { LabelChip(it.name) }
             }
         }
     }
 }
 
-private class ButtonSpec(
-    val label: String,
-    val icon: ImageVector,
-    val filled: Boolean,
-    val iconAfter: Boolean = false,
-    val onClick: () -> Unit,
-)
-
 /**
- * The sections in order: Follow-ups and Loans first while any is open (what to bring up when you
- * talk), Important dates (when there are any), Gift ideas (always), Follow-ups and Loans here when
- * none is open, then the others that have content, then Interactions (always).
+ * The sections under the keep-in-touch card, in the order the page answers questions.
+ *
+ * What to remember, managed here in place: open Follow-ups and Loans first (what to bring up when
+ * you talk), Important dates, Gift ideas, then Follow-ups and Loans with nothing open. Each ends
+ * with its "+" row; the ones with nothing in them at all become one group of "+ Birthday",
+ * "+ Gift idea", "+ Follow-up" and "+ Lent or borrowed" rows instead of sections holding only an
+ * add row.
+ *
+ * Then the details, edited on the form: Contact methods, Can help with, Likes, Dislikes, How we
+ * met, Notes; then Interactions (when there are any).
  */
 @Composable
 internal fun PersonSections(
@@ -234,6 +139,7 @@ internal fun PersonSections(
     onCopy: (String) -> Unit,
     onSearchPeople: (String) -> Unit,
     onSendWishes: (dateId: Long) -> Unit = {},
+    onAddDate: () -> Unit = {},
     onAddFollowUp: () -> Unit = {},
     onOpenFollowUp: (id: Long) -> Unit = {},
     onMarkFollowUpDone: (id: Long) -> Unit = {},
@@ -248,6 +154,10 @@ internal fun PersonSections(
     val loans = @Composable {
         LoansSection(profile.openLoans, profile.returnedLoans, uiState.today, onAddLoan, onOpenLoan, onMarkLoanReturned)
     }
+    val noGiftIdeas = profile.openGiftIdeas.isEmpty() && profile.givenGiftIdeas.isEmpty()
+    val noFollowUps = profile.openFollowUps.isEmpty() && profile.doneFollowUps.isEmpty()
+    val noLoans = profile.openLoans.isEmpty() && profile.returnedLoans.isEmpty()
+    val addDateLabel = stringResource(if (profile.birthday == null) R.string.important_date_type_birthday else R.string.person_field_important_date)
     if (profile.openFollowUps.isNotEmpty()) followUps()
     if (profile.openLoans.isNotEmpty()) loans()
     // An Archived Person is left out of Upcoming and Reminders, so they get no Wishes either.
@@ -255,22 +165,34 @@ internal fun PersonSections(
         dates = profile.importantDates,
         today = uiState.today,
         onOpen = onOpenDate,
+        addLabel = addDateLabel,
+        onAdd = onAddDate,
         onSendWishes = if (profile.person.isArchived) null else onSendWishes,
     )
-    GiftIdeasSection(
-        open = profile.openGiftIdeas,
-        given = profile.givenGiftIdeas,
-        today = uiState.today,
-        onAdd = onAddGiftIdea,
-        onOpen = onOpenGiftIdea,
-        onMarkGiven = onMarkGiven,
-        onOpenLink = onOpenLink,
+    if (!noGiftIdeas) {
+        GiftIdeasSection(
+            open = profile.openGiftIdeas,
+            given = profile.givenGiftIdeas,
+            today = uiState.today,
+            onAdd = onAddGiftIdea,
+            onOpen = onOpenGiftIdea,
+            onMarkGiven = onMarkGiven,
+            onOpenLink = onOpenLink,
+        )
+    }
+    if (profile.openFollowUps.isEmpty() && !noFollowUps) followUps()
+    if (profile.openLoans.isEmpty() && !noLoans) loans()
+    AddRows(
+        listOfNotNull(
+            if (profile.importantDates.isEmpty()) AddRow(addDateLabel, onAddDate) else null,
+            if (noGiftIdeas) AddRow(stringResource(R.string.gift_idea_add), onAddGiftIdea) else null,
+            if (noFollowUps) AddRow(stringResource(R.string.follow_up_add), onAddFollowUp) else null,
+            if (noLoans) AddRow(stringResource(R.string.loan_add), onAddLoan) else null,
+        ),
     )
-    if (profile.openFollowUps.isEmpty()) followUps()
-    if (profile.openLoans.isEmpty()) loans()
     if (profile.contactMethods.isNotEmpty()) {
         Column {
-            OrbitSectionTitle(stringResource(R.string.person_section_contact_methods), horizontalPadding = 4.dp)
+            OrbitSectionTitle(stringResource(R.string.person_section_contact_methods))
             ContactMethodList(profile.contactMethods, onContactAction, onCopy)
         }
     }
@@ -278,11 +200,12 @@ internal fun PersonSections(
         val items = profile.items(kind)
         if (items.isNotEmpty()) {
             Column {
-                OrbitSectionTitle(stringResource(kind.titleRes), horizontalPadding = 4.dp)
+                OrbitSectionTitle(stringResource(kind.titleRes))
                 // Tapping a chip searches People for its text ("Who else likes jazz?").
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 4.dp),
                 ) {
                     items.forEach { item -> LabelChip(item, onClick = { onSearchPeople(item) }) }
                 }
@@ -296,9 +219,39 @@ internal fun PersonSections(
         interactions = uiState.interactions,
         today = uiState.today,
         onOpen = keepInTouch::openInteraction,
-        onLog = keepInTouch::logInteraction,
         onAll = keepInTouch::allInteractions,
     )
+}
+
+private class AddRow(val label: String, val onClick: () -> Unit)
+
+/** One group of "+ …" rows for the empty Important dates, Gift ideas, Follow-ups and Loans. */
+@Composable
+private fun AddRows(rows: List<AddRow>) {
+    if (rows.isEmpty()) return
+    Column(
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+        modifier = Modifier.padding(top = 24.dp),
+    ) {
+        rows.forEachIndexed { index, row -> AddListItem(row.label, index, rows.size, row.onClick) }
+    }
+}
+
+/**
+ * A "+ Gift idea" row: the one add-affordance of Person detail's groups, at the end of a section
+ * or in the group of empty ones.
+ */
+@Composable
+internal fun AddListItem(label: String, index: Int, count: Int, onClick: () -> Unit) {
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = { Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(label, color = MaterialTheme.colorScheme.primary)
+    }
 }
 
 @Composable
@@ -345,7 +298,7 @@ private fun ContactMethodRow(
                 )
                 .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
         ) {
-            Icon(method.type.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(method.type.icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
                 // Values are shown as entered, left to right in both languages; an Address follows
                 // its own script.
@@ -355,14 +308,6 @@ private fun ContactMethodRow(
                     text = supporting,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (method.isPrimary) {
-                Icon(
-                    Icons.Filled.Star,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
                 )
             }
             actions.forEach { action ->
@@ -383,6 +328,10 @@ internal fun MoreContactSheet(
 ) {
     OrbitBottomSheet(onDismiss = onDismiss) { sheet ->
         Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+            OrbitSheetTitle(
+                stringResource(R.string.person_section_contact_methods),
+                Modifier.padding(start = 8.dp, bottom = 16.dp),
+            )
             ContactMethodList(
                 methods = methods,
                 onContactAction = { action -> sheet.close { onContactAction(action) } },
@@ -395,9 +344,9 @@ internal fun MoreContactSheet(
 @Composable
 private fun TextSection(title: String, text: String) {
     Column {
-        OrbitSectionTitle(title, horizontalPadding = 4.dp)
+        OrbitSectionTitle(title)
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -406,14 +355,18 @@ private fun TextSection(title: String, text: String) {
     }
 }
 
-/** Add details: a chip per empty field, each opening Edit at that field. */
+/**
+ * Add details: a chip per empty detail, each opening Edit at that field. Important dates aren't
+ * among them: they're added here, with the "+ Birthday" / "+ Important date" row.
+ */
 @Composable
 internal fun AddDetails(missing: List<PersonField>, onAddDetail: (PersonField) -> Unit) {
-    if (missing.isEmpty()) return
+    val fields = missing.filter { it != PersonField.Birthday && it != PersonField.ImportantDates }
+    if (fields.isEmpty()) return
     Column {
-        OrbitSectionTitle(stringResource(R.string.person_detail_add_details), horizontalPadding = 4.dp)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            missing.forEach { field ->
+        OrbitSectionTitle(stringResource(R.string.person_detail_add_details))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
+            fields.forEach { field ->
                 AssistChip(
                     onClick = { onAddDetail(field) },
                     label = { Text(fieldName(field)) },
@@ -442,16 +395,15 @@ private fun fieldName(field: PersonField): String = stringResource(
     },
 )
 
-/** A chip showing a value (Ring, Tags); with [onClick], a tappable one (Likes… search People). */
+/** An outlined chip showing a value (Tags); with [onClick], a tappable one (Likes… search People). */
 @Composable
-private fun LabelChip(text: String, icon: ImageVector? = null, emphasised: Boolean = false, onClick: (() -> Unit)? = null) {
-    val shape = RoundedCornerShape(8.dp)
-    val color = if (emphasised) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-    val border = if (emphasised) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+private fun LabelChip(text: String, icon: ImageVector? = null, onClick: (() -> Unit)? = null) {
+    val shape = MaterialTheme.shapes.small
+    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     if (onClick != null) {
-        Surface(onClick = onClick, shape = shape, color = color, border = border) { LabelChipContent(text, icon) }
+        Surface(onClick = onClick, shape = shape, color = Color.Transparent, border = border) { LabelChipContent(text, icon) }
     } else {
-        Surface(shape = shape, color = color, border = border) { LabelChipContent(text, icon) }
+        Surface(shape = shape, color = Color.Transparent, border = border) { LabelChipContent(text, icon) }
     }
 }
 

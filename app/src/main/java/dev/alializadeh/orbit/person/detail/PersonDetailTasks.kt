@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -22,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.RelativeDays
@@ -134,14 +132,14 @@ private fun TaskSection(
     var index = 0
     val colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     Column {
-        OrbitSectionTitle(title, horizontalPadding = 4.dp)
+        OrbitSectionTitle(title)
         Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
             open.forEach { row ->
                 SegmentedListItem(
                     onClick = { onOpen(row.id) },
                     shapes = ListItemDefaults.segmentedShapes(index++, count),
                     colors = colors,
-                    leadingContent = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
+                    leadingContent = { Icon(icon, contentDescription = null) },
                     supportingContent = row.supporting?.let { text ->
                         { Text(text, color = if (row.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }
                     },
@@ -183,15 +181,7 @@ private fun TaskSection(
                     }
                 }
             }
-            SegmentedListItem(
-                onClick = onAdd,
-                shapes = ListItemDefaults.segmentedShapes(index, count),
-                colors = colors,
-                leadingContent = { Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(addLabel, color = MaterialTheme.colorScheme.primary)
-            }
+            AddListItem(addLabel, index, count, onAdd)
         }
     }
 }

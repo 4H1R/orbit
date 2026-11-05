@@ -1,24 +1,8 @@
 package dev.alializadeh.orbit.backup
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +10,8 @@ import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.format.RelativeDays
 import dev.alializadeh.orbit.format.text
+import dev.alializadeh.orbit.ui.components.AttentionTone
+import dev.alializadeh.orbit.ui.components.OrbitAttentionCard
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.todayFlow
 import java.time.Clock
@@ -74,36 +60,23 @@ class BackupNudgeViewModel @Inject constructor(
     }
 }
 
-/** Upcoming's Backup nudge: "Last backup 40 days ago" or "You haven't made a backup yet", Back up now, Not now. */
+/**
+ * Upcoming's Backup nudge: "Last backup 40 days ago" or "You haven't made a backup yet", why it
+ * matters, then Not now and Back up now.
+ */
 @Composable
 fun BackupNudgeCard(nudge: BackupNudgeUi, onBackUpNow: () -> Unit, onNotNow: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = colors.secondaryContainer,
-        contentColor = colors.onSecondaryContainer,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
-                Icon(OrbitIcons.Backup, contentDescription = null, modifier = Modifier.size(28.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = nudge.lastBackup?.let {
-                            stringResource(R.string.backup_nudge_last, RelativeDays.ago(it, nudge.today).text())
-                        } ?: stringResource(R.string.backup_nudge_never),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(stringResource(R.string.backup_nudge_body), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            ) {
-                TextButton(onClick = onNotNow) { Text(stringResource(R.string.common_not_now)) }
-                Button(onClick = onBackUpNow) { Text(stringResource(R.string.backup_now)) }
-            }
-        }
-    }
+    OrbitAttentionCard(
+        icon = OrbitIcons.Backup,
+        title = nudge.lastBackup?.let {
+            stringResource(R.string.backup_nudge_last, RelativeDays.ago(it, nudge.today).text())
+        } ?: stringResource(R.string.backup_nudge_never),
+        body = stringResource(R.string.backup_nudge_body),
+        tone = AttentionTone.Nudge,
+        actionLabel = stringResource(R.string.backup_now),
+        onAction = onBackUpNow,
+        dismissLabel = stringResource(R.string.common_not_now),
+        onDismiss = onNotNow,
+        modifier = modifier,
+    )
 }

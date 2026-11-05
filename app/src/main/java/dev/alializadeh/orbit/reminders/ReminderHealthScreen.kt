@@ -5,7 +5,14 @@ import android.os.Build
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
@@ -18,9 +25,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.IntentCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -151,8 +164,9 @@ fun ReminderHealthScreen(
     modifier: Modifier = Modifier,
 ) {
     OrbitSettingsScaffold(title = stringResource(R.string.reminders_health), onBack = onBack, modifier = modifier) {
-        Footer(stringResource(R.string.reminder_health_intro))
-        val health = uiState.health ?: return@OrbitSettingsScaffold
+        val health = uiState.health
+        HealthHeader(health)
+        if (health == null) return@OrbitSettingsScaffold
         val rows = buildList<@Composable OrbitListGroupScope.(Int, Int) -> Unit> {
             add { index, count ->
                 val summary = when {
@@ -230,6 +244,48 @@ fun ReminderHealthScreen(
         OrbitListGroup(title = null) {
             rows.forEachIndexed { index, row -> row(index, rows.size) }
         }
+    }
+}
+
+/**
+ * The page's summary: a tick or a warning in a tonal circle, "Everything is set" or "2 things to
+ * check", and why these settings matter.
+ */
+@Composable
+private fun HealthHeader(health: ReminderHealth?) {
+    val colors = MaterialTheme.colorScheme
+    val ok = health?.let { it.problems == 0 }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(if (ok == false) colors.errorContainer else colors.secondaryContainer),
+        ) {
+            Icon(
+                imageVector = if (ok == false) Icons.Filled.Warning else Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = if (ok == false) colors.onErrorContainer else colors.onSecondaryContainer,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+        Text(
+            text = health?.let { healthSummary(it) }.orEmpty(),
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            text = stringResource(R.string.reminder_health_intro),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

@@ -203,7 +203,7 @@ class AppLockGateTest {
         lock = AppLockState.Locked
         composeRule.waitForIdle()
         // Only the locked screen is there: no Orbit text, field or sheet, in any window.
-        assertEquals(setOf(text(R.string.locked_title), text(R.string.locked_unlock)), allTexts())
+        assertEquals(setOf(text(R.string.locked_title), text(R.string.locked_body), text(R.string.locked_unlock)), allTexts())
         composeRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true).assertCountEquals(0)
         composeRule.onAllNodes(hasText("Ada", substring = true), useUnmergedTree = true).assertCountEquals(0)
     }

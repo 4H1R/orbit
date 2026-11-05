@@ -185,6 +185,7 @@
     <string name="person_form_contact_primary">اصلی</string>
     <string name="person_form_contact_remove">حذف راه ارتباطی</string>
     <string name="person_form_more_details">جزئیات بیشتر</string>
+    <string name="person_form_more_details_summary">نام خودمانی، برچسب‌ها، یادداشت‌ها و موارد دیگر</string>
     <string name="person_form_tag_add">افزودن برچسب</string>
     <string name="person_form_tag_create">ساختن برچسب «%1$s»</string>
     <string name="person_form_item_add">افزودن…</string>
@@ -204,6 +205,7 @@
     <string name="photo_choose">انتخاب عکس</string>
     <string name="photo_remove">حذف عکس</string>
     <string name="photo_crop_title">برش عکس</string>
+    <string name="photo_crop_hint">با کشیدن جابه‌جا کنید و با دو انگشت بزرگ یا کوچک کنید</string>
     <string name="photo_crop_failed">این عکس باز نشد</string>
 
     <!-- Person detail -->
@@ -341,8 +343,12 @@
 
     <!-- Upcoming: Due -->
     <string name="upcoming_section_due">موعد ارتباط</string>
-    <string name="upcoming_show_all">نمایش همه (%1$s)</string>
     <string name="upcoming_show_fewer">نمایش کمتر</string>
+    <string name="upcoming_due_talked">آخرین ارتباط: %1$s</string>
+    <plurals name="upcoming_show_more">
+        <item quantity="one">نمایش %1$s نفر دیگر</item>
+        <item quantity="other">نمایش %1$s نفر دیگر</item>
+    </plurals>
 
     <!-- People list -->
     <string name="people_date_soon">تاریخ مهمی نزدیک است</string>
@@ -373,13 +379,20 @@
         <item quantity="other">%1$s برچسب</item>
     </plurals>
     <string name="people_filter_date_soon">تاریخ نزدیک</string>
-    <string name="people_filter_archived">بایگانی‌شده‌ها</string>
     <string name="people_filter_ring_title">فیلتر بر اساس حلقه</string>
     <string name="people_filter_tags_title">فیلتر بر اساس برچسب</string>
     <string name="people_archived_title">بایگانی‌شده‌ها</string>
-    <string name="filter_bar_filtered">فیلتر شده</string>
     <string name="filter_bar_clear">پاک کردن</string>
     <string name="search_clear_filters">پاک کردن فیلترها</string>
+    <plurals name="people_count_of">
+        <item quantity="one">%1$s از %2$s</item>
+        <item quantity="other">%1$s از %2$s</item>
+    </plurals>
+    <plurals name="search_result_count">
+        <item quantity="one">%1$s نتیجه</item>
+        <item quantity="other">%1$s نتیجه</item>
+    </plurals>
+    <string name="people_archived_row">افراد بایگانی‌شده</string>
     <plurals name="search_archived_matches">
         <item quantity="one">%1$s فرد بایگانی‌شده هم پیدا شد</item>
         <item quantity="other">%1$s فرد بایگانی‌شده هم پیدا شد</item>
@@ -427,6 +440,8 @@
     </plurals>
     <string name="settings_tags_none">هنوز برچسبی ندارید</string>
     <string name="tags_empty">هنوز برچسبی ندارید. هنگام ویرایش یک فرد می‌توانید برچسب اضافه کنید.</string>
+    <string name="tags_empty_body">هنگام ویرایش یک فرد برچسب اضافه کنید، سپس اینجا نامشان را تغییر دهید، یکی‌شان کنید یا حذفشان کنید.</string>
+    <string name="tags_footer">اگر نام برچسبی را به نام برچسب دیگری تغییر دهید، این دو یکی می‌شوند.</string>
     <string name="tag_name">نام</string>
     <string name="tag_rename">تغییر نام</string>
     <plurals name="tag_delete_title">
@@ -475,9 +490,11 @@
     </plurals>
     <string name="passphrase_rule_ascii">فقط حروف انگلیسی، عدد و نماد</string>
     <string name="passphrase_mismatch">دو عبارت عبور یکی نیستند</string>
+    <string name="passphrase_match">دو عبارت عبور یکی هستند</string>
     <string name="passphrase_current_wrong">این عبارت عبور فعلی شما نیست</string>
     <string name="passphrase_warning">اگر این عبارت عبور را فراموش کنید، هیچ‌کس نمی‌تواند پشتیبان‌هایتان را باز کند، حتی Orbit.</string>
     <string name="passphrase_warning_ack">متوجه هستم</string>
+    <string name="passphrase_warning_title">Orbit نمی‌تواند آن را بازیابی کند</string>
     <string name="passphrase_save">ذخیرهٔ عبارت عبور</string>
     <string name="passphrase_show">نمایش عبارت عبور</string>
     <string name="passphrase_hide">پنهان کردن عبارت عبور</string>
@@ -496,6 +513,8 @@
 
     <string name="backup_progress_writing">در حال پشتیبان‌گیری…</string>
     <string name="backup_progress_verifying">در حال بررسی پشتیبان…</string>
+    <string name="backup_step_write">رمزگذاری و ذخیرهٔ فایل</string>
+    <string name="backup_step_check">بررسی این‌که باز می‌شود</string>
     <string name="backup_result_title">پشتیبان ذخیره و بررسی شد</string>
     <plurals name="backed_up_result">
         <item quantity="one">از %1$s نفر و %2$s پشتیبان گرفته شد</item>
@@ -543,6 +562,7 @@
     <string name="restore_back_up_first">اول از داده‌های فعلی پشتیبان بگیرید</string>
     <string name="restore_confirm">بازیابی</string>
     <string name="restore_progress">در حال بازیابی…</string>
+    <string name="restore_progress_body">تا پایان کار، Orbit را باز نگه دارید. تا همه‌چیز آماده نشود، چیزی تغییر نمی‌کند.</string>
     <string name="restore_failed">Orbit نتوانست این پشتیبان را بازیابی کند. چیزی روی این گوشی تغییر نکرده است.</string>
     <plurals name="restored_snackbar">
         <item quantity="one">%1$s نفر بازیابی شدند</item>
@@ -645,9 +665,11 @@
     <string name="reminder_health_problem">نیاز به بررسی</string>
 
     <!-- Upcoming's warning card -->
-    <string name="reminder_warning_notifications_off">اعلان‌ها خاموش است و یادآوری‌ها به شما نمی‌رسند</string>
-    <string name="reminder_warning_exact_alarms_off">یادآوری‌ها ممکن است دیر برسند: هشدارها مجاز نیستند</string>
     <string name="reminder_warning_fix">رفع مشکل</string>
+    <string name="reminder_warning_notifications_off_title">اعلان‌ها خاموش است</string>
+    <string name="reminder_warning_notifications_off_body">یادآوری‌ها به شما نمی‌رسند.</string>
+    <string name="reminder_warning_exact_alarms_off_title">یادآوری‌ها ممکن است دیر برسند</string>
+    <string name="reminder_warning_exact_alarms_off_body">Orbit اجازهٔ تنظیم هشدار ندارد، برای همین ممکن است یادآوری دیرتر از زمانش برسد.</string>
 
     <string name="battery_ask_body">برای این‌که یادآوری‌ها به‌موقع برسند، اجازه دهید Orbit در پس‌زمینه کار کند.</string>
     <string name="common_continue">ادامه</string>
@@ -661,11 +683,14 @@
     <string name="app_lock_offer_body">هر بار که Orbit را باز کنید از شما خواسته می‌شود. بعداً در تنظیمات می‌توانید تغییرش دهید.</string>
     <string name="app_lock_offer_turn_on">روشن کردن</string>
     <string name="locked_title">Orbit قفل است</string>
+    <string name="locked_body">برای باز کردنش از اثر انگشت یا قفل صفحهٔ گوشی استفاده کنید.</string>
     <string name="locked_unlock">باز کردن قفل</string>
     <string name="locked_prompt_title">باز کردن قفل Orbit</string>
     <string name="app_lock_needs_screen_lock">اول برای گوشی قفل صفحه تنظیم کنید</string>
     <string name="app_lock_paused">قفل برنامه متوقف است: این گوشی قفل صفحه ندارد</string>
     <string name="app_lock_set_screen_lock">تنظیم قفل صفحه</string>
+    <string name="app_lock_paused_title">قفل برنامه متوقف است</string>
+    <string name="app_lock_paused_body">این گوشی قفل صفحه ندارد، برای همین Orbit نمی‌تواند آن را بخواهد. با تنظیم قفل صفحه، قفل برنامه دوباره کار می‌کند.</string>
     <string name="settings_app_lock_title">قفل برنامه</string>
     <string name="settings_app_lock_on">روشن</string>
     <string name="settings_app_lock_off">خاموش</string>
@@ -784,6 +809,7 @@
     </plurals>
     <string name="occasions_add">افزودن مناسبت</string>
     <string name="occasions_empty">نوروز، عیدها یا روزی دلخواه را اضافه کنید تا Orbit یادآوری کند به چه کسانی تبریک بگویید.</string>
+    <string name="occasions_footer">هر مناسبت در روز خودش، در تقویم خودش، یادآوری می‌کند به چه کسانی تبریک بگویید.</string>
     <string name="occasion_custom">مناسبت دلخواه</string>
     <string name="occasion_new_title">مناسبت جدید</string>
     <string name="occasion_edit_title">ویرایش مناسبت</string>
@@ -804,6 +830,7 @@
         <item quantity="other">برای %1$s نفر</item>
     </plurals>
     <string name="occasion_reaches_nobody">هنوز برای کسی نیست</string>
+    <string name="occasion_edit_who">انتخاب افراد</string>
     <plurals name="occasion_reached">
         <item quantity="one">با %1$s نفر از %2$s نفر ارتباط گرفتید</item>
         <item quantity="other">با %1$s نفر از %2$s نفر ارتباط گرفتید</item>

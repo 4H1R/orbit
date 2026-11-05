@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
@@ -41,23 +40,27 @@ import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import java.time.LocalDate
 
 /**
- * Important dates, first among the sections: each date's type or label, the date in the Primary
- * calendar (plus its own Calendar when that differs), the years count when the year is known, and
- * a Birthday's current age. Tapping a date opens the date sheet. A date that falls today has Send
- * wishes, unless [onSendWishes] is null.
+ * Important dates: each date's type or label, the date in the Primary calendar (plus its own
+ * Calendar when that differs), the years count when the year is known, and a Birthday's current
+ * age. Tapping a date opens the date sheet; the last row ([addLabel]: "+ Birthday" until there is
+ * one, then "+ Important date") opens it on a new date. A date that falls today has Send wishes,
+ * unless [onSendWishes] is null.
  */
 @Composable
 internal fun ImportantDatesSection(
     dates: List<ImportantDate>,
     today: LocalDate,
     onOpen: (ImportantDate) -> Unit,
+    addLabel: String,
+    onAdd: () -> Unit,
     onSendWishes: ((dateId: Long) -> Unit)? = null,
 ) {
     if (dates.isEmpty()) return
+    val count = dates.size + 1
     val formats = LocalOrbitFormats.current
     val separator = stringResource(R.string.separator)
     Column {
-        OrbitSectionTitle(stringResource(R.string.person_section_important_dates), horizontalPadding = 4.dp)
+        OrbitSectionTitle(stringResource(R.string.person_section_important_dates))
         Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
             dates.forEachIndexed { index, date ->
                 val dateLine = formats.dates.importantDateParts(date.date, formats.primaryCalendar, today).joinToString(separator)
@@ -67,13 +70,13 @@ internal fun ImportantDatesSection(
                 val wishes = onSendWishes?.takeIf { occurrence.date == today }
                 SegmentedListItem(
                     onClick = { onOpen(date) },
-                    shapes = ListItemDefaults.segmentedShapes(index, dates.size),
+                    shapes = ListItemDefaults.segmentedShapes(index, count),
                     colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     leadingContent = { DateTypeBadge(date.type) },
                     supportingContent = {
                         Column {
                             Text(dateLine)
-                            if (years != null) Text(years, color = MaterialTheme.colorScheme.tertiary)
+                            if (years != null) Text(years)
                         }
                     },
                     trailingContent = if (age == null && wishes == null) {
@@ -95,6 +98,7 @@ internal fun ImportantDatesSection(
                     Text(importantDateName(date.type, date.label?.let(::bidiIsolate)))
                 }
             }
+            AddListItem(addLabel, count - 1, count, onAdd)
         }
     }
 }
@@ -119,14 +123,14 @@ internal fun GiftIdeasSection(
     var index = 0
     val colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     Column {
-        OrbitSectionTitle(stringResource(R.string.person_section_gift_ideas), horizontalPadding = 4.dp)
+        OrbitSectionTitle(stringResource(R.string.person_section_gift_ideas))
         Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
             open.forEach { idea ->
                 SegmentedListItem(
                     onClick = { onOpen(idea) },
                     shapes = ListItemDefaults.segmentedShapes(index++, count),
                     colors = colors,
-                    leadingContent = { Icon(OrbitIcons.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
+                    leadingContent = { Icon(OrbitIcons.Lightbulb, contentDescription = null) },
                     supportingContent = ideaDetails(idea),
                     trailingContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -174,15 +178,7 @@ internal fun GiftIdeasSection(
                     }
                 }
             }
-            SegmentedListItem(
-                onClick = onAdd,
-                shapes = ListItemDefaults.segmentedShapes(index, count),
-                colors = colors,
-                leadingContent = { Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.gift_idea_add), color = MaterialTheme.colorScheme.primary)
-            }
+            AddListItem(stringResource(R.string.gift_idea_add), index, count, onAdd)
         }
     }
 }

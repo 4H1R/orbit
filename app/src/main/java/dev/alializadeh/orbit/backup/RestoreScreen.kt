@@ -13,14 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -48,6 +46,7 @@ import dev.alializadeh.orbit.settings.MaxContentWidth
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
 
@@ -113,13 +112,13 @@ fun RestoreScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState()),
         ) {
             Column(
-                modifier = Modifier.widthIn(max = MaxContentWidth).fillMaxWidth().padding(horizontal = 24.dp),
+                modifier = Modifier.widthIn(max = MaxContentWidth).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 when (uiState) {
                     is RestoreUiState.Passphrase -> PassphraseStep(uiState, passphrase, onOpen)
                     is RestoreUiState.Summary -> SummaryStep(uiState, zone)
-                    RestoreUiState.Restoring, RestoreUiState.Done -> Progress(stringResource(R.string.restore_progress))
+                    RestoreUiState.Restoring, RestoreUiState.Done -> RestoringStep()
                 }
             }
         }
@@ -128,12 +127,11 @@ fun RestoreScreen(
 
 @Composable
 private fun PassphraseStep(uiState: RestoreUiState.Passphrase, passphrase: TextFieldState, onOpen: () -> Unit) {
-    Title(stringResource(R.string.restore_title))
-    Text(
-        text = stringResource(R.string.restore_passphrase_body),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 8.dp),
+    FlowHeader(
+        icon = OrbitIcons.Restore,
+        title = stringResource(R.string.restore_title),
+        body = stringResource(R.string.restore_passphrase_body),
+        modifier = Modifier.padding(bottom = 12.dp),
     )
     val fieldError = when (uiState.error) {
         RestoreError.WrongPassphrase -> stringResource(R.string.restore_wrong_passphrase)
@@ -148,57 +146,98 @@ private fun PassphraseStep(uiState: RestoreUiState.Passphrase, passphrase: TextF
         imeAction = ImeAction.Done,
         onDone = onOpen,
     )
-    if (fieldError == null && uiState.error != null) ErrorCard(restoreErrorText(uiState.error))
-    if (uiState.opening) Progress(stringResource(R.string.restore_checking))
+    if (fieldError == null && uiState.error != null) FlowErrorCard(restoreErrorText(uiState.error))
+    if (uiState.opening) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            OrbitLoadingIndicator(Modifier.size(40.dp))
+            Text(stringResource(R.string.restore_checking), style = MaterialTheme.typography.bodyLarge)
+        }
+    }
 }
 
+/**
+ * What the opened Backup holds, before anything changes: its day, then People, Interactions and
+ * photos as rows, what restoring replaces, and, when there is something to lose, the replace
+ * warning.
+ */
 @Composable
 private fun SummaryStep(uiState: RestoreUiState.Summary, zone: ZoneId) {
     val formats = LocalOrbitFormats.current
     val numbers = formats.numbers
     val summary = uiState.summary
     val date = formats.dates.format(summary.createdAt.atZone(zone).toLocalDate().inCalendar(formats.primaryCalendar))
-    Title(stringResource(R.string.restore_summary_title, date))
-    Text(
-        text = listOf(
-            pluralStringResource(R.plurals.restore_summary_people, summary.people, numbers.format(summary.people)),
+    FlowHeader(
+        icon = OrbitIcons.Backup,
+        title = stringResource(R.string.restore_summary_title, date),
+        body = stringResource(R.string.restore_summary_body),
+        modifier = Modifier.padding(bottom = 4.dp),
+    )
+    val rows = listOf(
+        OrbitIcons.People to pluralStringResource(R.plurals.restore_summary_people, summary.people, numbers.format(summary.people)),
+        OrbitIcons.LogInteraction to
             pluralStringResource(R.plurals.restore_summary_interactions, summary.interactions, numbers.format(summary.interactions)),
-            pluralStringResource(R.plurals.restore_summary_photos, summary.photos, numbers.format(summary.photos)),
-        ).joinToString(stringResource(R.string.separator)),
-        style = MaterialTheme.typography.titleMedium,
+        OrbitIcons.Photo to pluralStringResource(R.plurals.restore_summary_photos, summary.photos, numbers.format(summary.photos)),
     )
-    Text(
-        text = stringResource(R.string.restore_summary_body),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    if (uiState.confirmsReplace) {
-        val colors = MaterialTheme.colorScheme
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = colors.errorContainer,
-            contentColor = colors.onErrorContainer,
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-        ) {
-            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(24.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.restore_replace_title), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.restore_replace_body,
-                            uiState.devicePeople,
-                            numbers.format(uiState.devicePeople),
-                            date,
-                            pluralStringResource(R.plurals.restore_summary_people, summary.people, numbers.format(summary.people)),
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+    Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+        rows.forEachIndexed { index, (icon, text) ->
+            Surface(
+                shape = ListItemDefaults.segmentedShapes(index, rows.size).shape,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text, style = MaterialTheme.typography.bodyLarge)
                 }
             }
         }
     }
-    uiState.error?.let { ErrorCard(restoreErrorText(it)) }
+    if (uiState.confirmsReplace) {
+        FlowErrorCard(
+            title = stringResource(R.string.restore_replace_title),
+            text = pluralStringResource(
+                R.plurals.restore_replace_body,
+                uiState.devicePeople,
+                numbers.format(uiState.devicePeople),
+                date,
+                pluralStringResource(R.plurals.restore_summary_people, summary.people, numbers.format(summary.people)),
+            ),
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+    uiState.error?.let { FlowErrorCard(restoreErrorText(it), Modifier.padding(top = 4.dp)) }
+}
+
+/** Swapping the data in: nothing to do but wait, and Back is off. */
+@Composable
+private fun RestoringStep() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 96.dp),
+    ) {
+        OrbitLoadingIndicator(Modifier.size(64.dp))
+        Text(
+            stringResource(R.string.restore_progress),
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            stringResource(R.string.restore_progress_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable
@@ -248,36 +287,6 @@ private fun RestoreButtons(
 
             RestoreUiState.Restoring, RestoreUiState.Done -> Unit
         }
-    }
-}
-
-@Composable
-private fun Title(text: String) {
-    Text(text, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-}
-
-@Composable
-private fun Progress(text: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-    ) {
-        OrbitLoadingIndicator()
-        Text(text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-private fun ErrorCard(text: String) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = colors.errorContainer,
-        contentColor = colors.onErrorContainer,
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-    ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
     }
 }
 

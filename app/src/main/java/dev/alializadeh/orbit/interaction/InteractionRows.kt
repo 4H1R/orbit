@@ -36,7 +36,7 @@ fun InteractionListItem(
         shapes = ListItemDefaults.segmentedShapes(index, count),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         leadingContent = {
-            Icon(interaction.type.icon, contentDescription = interaction.type.displayName(), tint = MaterialTheme.colorScheme.primary)
+            Icon(interaction.type.icon, contentDescription = interaction.type.displayName(), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         supportingContent = if (withOthers == null && note == null) {
             null

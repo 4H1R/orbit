@@ -4,8 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,15 +14,10 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -53,6 +45,9 @@ import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.reminders.LeadTime
 import dev.alializadeh.orbit.reminders.LeadTimeChips
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
+import dev.alializadeh.orbit.ui.components.OrbitSheetActionRow
+import dev.alializadeh.orbit.ui.components.OrbitSheetLabel
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePicker
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePickerState
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
@@ -122,11 +117,7 @@ internal fun ImportantDateSheetContent(
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(if (initial == null) R.string.important_date_sheet_new else R.string.important_date_sheet_edit),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        OrbitSheetTitle(stringResource(if (initial == null) R.string.important_date_sheet_new else R.string.important_date_sheet_edit))
         val typeLabel = stringResource(R.string.important_date_type)
         OrbitConnectedChoice(
             options = types,
@@ -149,34 +140,23 @@ internal fun ImportantDateSheetContent(
         }
         WheelDatePicker(state = picker, onStateChange = { picker = it }, calendars = CalendarSystem.entries)
         RemindersChoice(leadTimes = leadTimes, defaultLeadTimes = defaultLeadTimes, onChange = { leadTimes = it })
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            if (onDelete != null) {
-                TextButton(
-                    onClick = { sheet.close(onDelete) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
-            Button(
-                enabled = canSave,
-                onClick = {
-                    val draft = ImportantDateDraft(
-                        id = initial?.id,
-                        type = type,
-                        label = label.text.toString(),
-                        date = picker.date,
-                        leadTimes = leadTimes,
-                    ).normalised()
-                    sheet.close { onDone(draft) }
-                },
-                modifier = Modifier.padding(start = 8.dp),
-            ) {
-                Text(stringResource(R.string.common_done))
-            }
-        }
+        OrbitSheetActionRow(
+            confirmLabel = stringResource(R.string.common_done),
+            confirmEnabled = canSave,
+            onConfirm = {
+                val draft = ImportantDateDraft(
+                    id = initial?.id,
+                    type = type,
+                    label = label.text.toString(),
+                    date = picker.date,
+                    leadTimes = leadTimes,
+                ).normalised()
+                sheet.close { onDone(draft) }
+            },
+            onCancel = { sheet.close {} },
+            destructiveLabel = stringResource(R.string.common_delete),
+            onDestructive = onDelete?.let { delete -> { sheet.close(delete) } },
+        )
     }
 }
 
@@ -188,36 +168,28 @@ internal fun ImportantDateSheetContent(
 @Composable
 internal fun RemindersChoice(leadTimes: Set<LeadTime>?, defaultLeadTimes: Set<LeadTime>, onChange: (Set<LeadTime>?) -> Unit) {
     val label = stringResource(R.string.important_date_reminders)
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Icon(
-            Icons.Filled.Notifications,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp),
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
+        OrbitSheetLabel(label)
+        OrbitConnectedChoice(
+            options = listOf(false, true),
+            selected = leadTimes != null,
+            onSelect = { custom -> onChange(if (custom) leadTimes ?: defaultLeadTimes else null) },
+            label = { custom ->
+                stringResource(
+                    if (custom) R.string.important_date_reminders_mode_custom else R.string.important_date_reminders_mode_default,
+                )
+            },
+            modifier = Modifier.semantics { contentDescription = label },
         )
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            OrbitConnectedChoice(
-                options = listOf(false, true),
-                selected = leadTimes != null,
-                onSelect = { custom -> onChange(if (custom) leadTimes ?: defaultLeadTimes else null) },
-                label = { custom ->
-                    stringResource(
-                        if (custom) R.string.important_date_reminders_mode_custom else R.string.important_date_reminders_mode_default,
-                    )
-                },
-                modifier = Modifier.semantics { contentDescription = label },
-            )
-            LeadTimeChips(
-                selected = leadTimes ?: defaultLeadTimes,
-                enabled = leadTimes != null,
-                onToggle = { lead ->
-                    val current = leadTimes.orEmpty()
-                    onChange(if (lead in current) current - lead else current + lead)
-                },
-                onNoReminders = { onChange(emptySet()) },
-            )
-        }
+        LeadTimeChips(
+            selected = leadTimes ?: defaultLeadTimes,
+            enabled = leadTimes != null,
+            onToggle = { lead ->
+                val current = leadTimes.orEmpty()
+                onChange(if (lead in current) current - lead else current + lead)
+            },
+            onNoReminders = { onChange(emptySet()) },
+        )
     }
 }
 

@@ -2,10 +2,9 @@ package dev.alializadeh.orbit.person.loans
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -13,24 +12,18 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
@@ -40,6 +33,9 @@ import dev.alializadeh.orbit.person.LoanDirection
 import dev.alializadeh.orbit.person.LoanDraft
 import dev.alializadeh.orbit.person.dates.rememberFutureDateChoice
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
+import dev.alializadeh.orbit.ui.components.OrbitSheetActionRow
+import dev.alializadeh.orbit.ui.components.OrbitSheetLabel
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.SheetCloser
 import java.time.LocalDate
@@ -92,11 +88,23 @@ internal fun LoanSheetContent(
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(if (initial == null) R.string.loan_sheet_new else R.string.loan_sheet_edit),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        OrbitSheetTitle(stringResource(if (initial == null) R.string.loan_sheet_new else R.string.loan_sheet_edit))
+        // Its state first: marking it returned is what reopening an open one is most often for.
+        val returnedOn = initial?.returnedOn
+        if (returnedOn != null) {
+            val formats = LocalOrbitFormats.current
+            Text(
+                text = stringResource(R.string.loan_returned_on, formats.dates.format(returnedOn, formats.primaryCalendar, today)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (onMarkReturned != null) {
+            FilledTonalButton(onClick = { sheet.close(onMarkReturned) }) {
+                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(18.dp))
+                Text(stringResource(R.string.loan_mark_returned))
+            }
+        }
         OrbitConnectedChoice(
             options = LoanDirection.entries,
             selected = direction,
@@ -110,48 +118,18 @@ internal fun LoanSheetContent(
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(
-            stringResource(R.string.loan_return_by),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        OrbitSheetLabel(stringResource(R.string.loan_return_by), Modifier.padding(top = 4.dp))
         day.Field()
-        val returnedOn = initial?.returnedOn
-        if (returnedOn != null) {
-            val formats = LocalOrbitFormats.current
-            Text(
-                text = stringResource(R.string.loan_returned_on, formats.dates.format(returnedOn, formats.primaryCalendar, today)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (onMarkReturned != null) {
-            OutlinedButton(onClick = { sheet.close(onMarkReturned) }) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text(stringResource(R.string.loan_mark_returned))
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            if (onDelete != null) {
-                TextButton(
-                    onClick = { sheet.close(onDelete) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
-            Button(
-                enabled = canSave,
-                onClick = {
-                    val draft = LoanDraft(initial?.id, direction, text.text.toString(), day.date).normalised()
-                    sheet.close { onSave(draft) }
-                },
-                modifier = Modifier.padding(start = 8.dp),
-            ) {
-                Text(stringResource(R.string.common_save))
-            }
-        }
+        OrbitSheetActionRow(
+            confirmLabel = stringResource(R.string.common_save),
+            confirmEnabled = canSave,
+            onConfirm = {
+                val draft = LoanDraft(initial?.id, direction, text.text.toString(), day.date).normalised()
+                sheet.close { onSave(draft) }
+            },
+            onCancel = { sheet.close {} },
+            destructiveLabel = stringResource(R.string.common_delete),
+            onDestructive = onDelete?.let { delete -> { sheet.close(delete) } },
+        )
     }
 }

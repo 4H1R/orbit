@@ -4,7 +4,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,10 +13,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -47,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -73,6 +69,10 @@ import dev.alializadeh.orbit.ring.RingRepository
 import dev.alializadeh.orbit.ring.RingWithCount
 import dev.alializadeh.orbit.ui.components.ChoiceRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
+import dev.alializadeh.orbit.ui.components.OrbitListGroupScope
+import dev.alializadeh.orbit.ui.components.OrbitSheetActions
+import dev.alializadeh.orbit.ui.components.OrbitSheetDestructiveButton
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.OrbitSelectField
 import dev.alializadeh.orbit.ui.expressive.SheetCloser
@@ -169,30 +169,23 @@ fun RingsScreen(
     val loaded = uiState as? RingsUiState.Loaded
     OrbitSettingsScaffold(title = stringResource(R.string.settings_rings_title), onBack = onBack, modifier = modifier) {
         if (loaded == null) return@OrbitSettingsScaffold
-        Text(
-            text = stringResource(R.string.rings_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+        val maxText = pluralStringResource(R.plurals.rings_max, Ring.MAX_COUNT, LocalOrbitFormats.current.numbers.format(Ring.MAX_COUNT))
+        ReorderableRings(
+            rings = loaded.rings,
+            onOpen = { sheetFor = it },
+            onReorder = onReorder,
+            addRow = { index, count ->
+                AddRow(
+                    title = stringResource(R.string.rings_add),
+                    summary = if (loaded.canAdd) null else maxText,
+                    enabled = loaded.canAdd,
+                    index = index,
+                    count = count,
+                    onClick = { sheetFor = NEW_RING },
+                )
+            },
         )
-        ReorderableRings(rings = loaded.rings, onOpen = { sheetFor = it }, onReorder = onReorder)
-        Spacer(Modifier.height(24.dp))
-        FilledTonalButton(
-            onClick = { sheetFor = NEW_RING },
-            enabled = loaded.canAdd,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.rings_add), modifier = Modifier.padding(start = 8.dp))
-        }
-        if (!loaded.canAdd) {
-            Text(
-                text = pluralStringResource(R.plurals.rings_max, Ring.MAX_COUNT, LocalOrbitFormats.current.numbers.format(Ring.MAX_COUNT)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
-            )
-        }
+        SettingsFooter(stringResource(R.string.rings_hint))
     }
 
     val open = sheetFor
@@ -222,7 +215,13 @@ private const val NEW_RING = -1L
  * with its neighbour, and letting go stores the order. TalkBack gets Move inward / outward.
  */
 @Composable
-private fun ReorderableRings(rings: List<RingWithCount>, onOpen: (Long) -> Unit, onReorder: (List<Long>) -> Unit) {
+private fun ReorderableRings(
+    rings: List<RingWithCount>,
+    onOpen: (Long) -> Unit,
+    onReorder: (List<Long>) -> Unit,
+    /** The group's last row, after the Rings: Add ring, given its index and the group's size. */
+    addRow: @Composable OrbitListGroupScope.(index: Int, count: Int) -> Unit,
+) {
     val byId = rings.associateBy { it.ring.id }
     var order by remember(rings) { mutableStateOf(rings.map { it.ring.id }) }
     var dragging by remember { mutableStateOf<Long?>(null) }
@@ -250,7 +249,7 @@ private fun ReorderableRings(rings: List<RingWithCount>, onOpen: (Long) -> Unit,
                 RingRow(
                     row = row,
                     index = index,
-                    count = order.size,
+                    count = order.size + 1,
                     dragged = isDragged,
                     onClick = { onOpen(id) },
                     handle = Modifier
@@ -294,6 +293,7 @@ private fun ReorderableRings(rings: List<RingWithCount>, onOpen: (Long) -> Unit,
                 )
             }
         }
+        OrbitListGroupScope.addRow(order.size, order.size + 1)
     }
 }
 
@@ -374,11 +374,7 @@ internal fun RingSheetContent(
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(if (ring == null) R.string.ring_sheet_new else R.string.ring_sheet_edit),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        OrbitSheetTitle(stringResource(if (ring == null) R.string.ring_sheet_new else R.string.ring_sheet_edit))
         OutlinedTextField(
             state = name,
             label = { Text(stringResource(R.string.ring_name)) },
@@ -434,17 +430,17 @@ internal fun RingSheetContent(
                 }
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            if (ring != null) {
-                TextButton(
-                    enabled = rings.size > 1 && ring.peopleCount == 0,
-                    onClick = { sheet.close { onRemove(ring.ring.id) } },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(stringResource(R.string.ring_remove))
+        OrbitSheetActions(
+            destructive = ring?.let {
+                {
+                    OrbitSheetDestructiveButton(
+                        text = stringResource(R.string.ring_remove),
+                        enabled = rings.size > 1 && ring.peopleCount == 0,
+                        onClick = { sheet.close { onRemove(ring.ring.id) } },
+                    )
                 }
-            }
-            Spacer(Modifier.weight(1f))
+            },
+        ) {
             TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
             Button(
                 enabled = canSave,
@@ -453,7 +449,6 @@ internal fun RingSheetContent(
                     val newCadence = if (hasCadence) cadence else null
                     sheet.close { onSave(newName, newCadence) }
                 },
-                modifier = Modifier.padding(start = 8.dp),
             ) {
                 Text(stringResource(R.string.common_save))
             }

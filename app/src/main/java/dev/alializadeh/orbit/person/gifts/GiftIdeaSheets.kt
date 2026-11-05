@@ -3,35 +3,29 @@ package dev.alializadeh.orbit.person.gifts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,6 +37,8 @@ import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.person.GiftIdea
 import dev.alializadeh.orbit.person.GiftIdeaDraft
 import dev.alializadeh.orbit.person.dates.WheelDatePickerStateSaver
+import dev.alializadeh.orbit.ui.components.OrbitSheetActionRow
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePicker
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePickerState
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
@@ -93,11 +89,29 @@ internal fun GiftIdeaSheetContent(
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(if (initial == null) R.string.gift_idea_sheet_new else R.string.gift_idea_sheet_edit),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        OrbitSheetTitle(stringResource(if (initial == null) R.string.gift_idea_sheet_new else R.string.gift_idea_sheet_edit))
+        // Its state first: marking it given is what reopening an idea is most often for.
+        val givenOn = initial?.givenOn
+        if (givenOn != null) {
+            val formats = LocalOrbitFormats.current
+            Text(
+                text = stringResource(R.string.gift_idea_given_on, formats.dates.format(givenOn, formats.primaryCalendar, today)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (onMarkGiven != null) {
+            FilledTonalButton(
+                enabled = canSave,
+                onClick = {
+                    val draft = draft()
+                    sheet.close { onMarkGiven(draft) }
+                },
+            ) {
+                Icon(OrbitIcons.Gift, contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(18.dp))
+                Text(stringResource(R.string.gift_idea_mark_given))
+            }
+        }
         OutlinedTextField(
             state = text,
             label = { Text(stringResource(R.string.gift_idea_text)) },
@@ -130,49 +144,17 @@ internal fun GiftIdeaSheetContent(
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             modifier = Modifier.fillMaxWidth(),
         )
-        val givenOn = initial?.givenOn
-        if (givenOn != null) {
-            val formats = LocalOrbitFormats.current
-            Text(
-                text = stringResource(R.string.gift_idea_given_on, formats.dates.format(givenOn, formats.primaryCalendar, today)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (onMarkGiven != null) {
-            OutlinedButton(
-                enabled = canSave,
-                onClick = {
-                    val draft = draft()
-                    sheet.close { onMarkGiven(draft) }
-                },
-            ) {
-                Icon(OrbitIcons.Gift, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text(stringResource(R.string.gift_idea_mark_given))
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            if (onDelete != null) {
-                TextButton(
-                    onClick = { sheet.close(onDelete) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
-            Button(
-                enabled = canSave,
-                onClick = {
-                    val draft = draft()
-                    sheet.close { onSave(draft) }
-                },
-                modifier = Modifier.padding(start = 8.dp),
-            ) {
-                Text(stringResource(R.string.common_save))
-            }
-        }
+        OrbitSheetActionRow(
+            confirmLabel = stringResource(R.string.common_save),
+            confirmEnabled = canSave,
+            onConfirm = {
+                val draft = draft()
+                sheet.close { onSave(draft) }
+            },
+            onCancel = { sheet.close {} },
+            destructiveLabel = stringResource(R.string.common_delete),
+            onDestructive = onDelete?.let { delete -> { sheet.close(delete) } },
+        )
     }
 }
 
@@ -204,7 +186,7 @@ internal fun GivenDateSheetContent(today: LocalDate, onConfirm: (LocalDate) -> U
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(stringResource(R.string.gift_idea_given_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+        OrbitSheetTitle(stringResource(R.string.gift_idea_given_title))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = !picking,
@@ -218,11 +200,11 @@ internal fun GivenDateSheetContent(today: LocalDate, onConfirm: (LocalDate) -> U
             )
         }
         if (picking) WheelDatePicker(state = picker, onStateChange = { picker = it })
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
-            Button(enabled = !date.isAfter(today), onClick = { sheet.close { onConfirm(date) } }) {
-                Text(stringResource(R.string.gift_idea_mark_given))
-            }
-        }
+        OrbitSheetActionRow(
+            confirmLabel = stringResource(R.string.gift_idea_mark_given),
+            confirmEnabled = !date.isAfter(today),
+            onConfirm = { sheet.close { onConfirm(date) } },
+            onCancel = { sheet.close {} },
+        )
     }
 }

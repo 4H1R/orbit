@@ -26,7 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,6 +36,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -172,8 +176,10 @@ fun PersonDetailRoute(
 }
 
 /**
- * Person detail: the header (photo, names, Ring and Tags, the contact button group), then the
- * sections that have content, then Add details for the rest.
+ * Person detail, top to bottom: who this is (photo, names, Tags), how you're doing (the
+ * keep-in-touch card, with the contact and Log interaction buttons), what to remember (Follow-ups,
+ * Loans, Important dates, Gift ideas), then the details and Interactions, then Add details for
+ * what's still empty. Once the name scrolls away, it shows in the top bar.
  */
 @Composable
 fun PersonDetailScreen(
@@ -206,12 +212,18 @@ fun PersonDetailScreen(
     var givenSheet by rememberSaveable { mutableStateOf<Long?>(null) }
     var followUpSheet by rememberSaveable { mutableStateOf<Long?>(null) }
     var loanSheet by rememberSaveable { mutableStateOf<Long?>(null) }
+    val scroll = rememberScrollState()
+    // Where the name's bottom and the scrolling content's top are on screen: the top bar shows the
+    // name once it has scrolled under the bar.
+    var nameBottom by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    var contentTop by remember { mutableFloatStateOf(0f) }
+    val nameScrolledAway by remember { derivedStateOf { nameBottom <= contentTop } }
     Scaffold(
         modifier = modifier,
         snackbarHost = { OrbitSnackbarHost() },
         topBar = {
             OrbitTopAppBar(
-                title = null,
+                title = loaded?.takeIf { nameScrolledAway }?.profile?.names?.displayName(LocalOrbitFormats.current.language),
                 onBack = onBack,
                 actions = {
                     if (loaded != null) {
@@ -251,7 +263,8 @@ fun PersonDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .verticalScroll(rememberScrollState()),
+                    .onGloballyPositioned { contentTop = it.boundsInRoot().top }
+                    .verticalScroll(scroll),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Column(
@@ -259,14 +272,23 @@ fun PersonDetailScreen(
                         .widthIn(max = MaxContentWidth)
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (uiState.profile.person.isArchived) ArchivedBanner(onUnarchive)
                     PersonHeader(
                         uiState = uiState,
+                        nameModifier = Modifier.onGloballyPositioned { nameBottom = it.boundsInRoot().bottom },
+                    )
+                    KeepInTouchCard(
+                        profile = uiState.profile,
+                        due = uiState.due,
+                        // Due's own fact when there is one, so the card agrees with its Due state.
+                        lastInteraction = uiState.due?.lastInteraction ?: uiState.interactions.maxOfOrNull { it.interaction.date },
+                        today = uiState.today,
                         keepInTouch = keepInTouch,
                         onContactAction = onContactAction,
                         onMoreContact = { moreContactSheet = true },
+                        modifier = Modifier.padding(top = 16.dp),
                     )
                     PersonSections(
                         uiState = uiState,
@@ -280,6 +302,7 @@ fun PersonDetailScreen(
                         onCopy = onCopy,
                         onSearchPeople = onSearchPeople,
                         onSendWishes = onSendWishes,
+                        onAddDate = { dateSheet = NEW_GIFT_IDEA },
                         onAddFollowUp = { followUpSheet = NEW_GIFT_IDEA },
                         onOpenFollowUp = { followUpSheet = it },
                         onMarkFollowUpDone = onMarkFollowUpDone,
@@ -378,7 +401,7 @@ private fun OverflowMenu(archived: Boolean, onArchive: () -> Unit, onUnarchive: 
     }
 }
 
-/** A sheet open on no existing row: a new Gift idea, Follow-up or Loan. */
+/** A sheet open on no existing row: a new Important date, Gift idea, Follow-up or Loan. */
 private const val NEW_GIFT_IDEA = -1L
 
 /** The Follow-up sheet and the Loan sheet, whichever is open. */
@@ -440,15 +463,17 @@ private fun DetailSheets(
 ) {
     val profile = uiState.profile
     val date = dateSheet?.let { id -> profile.importantDates.firstOrNull { it.id == id } }
-    if (date != null) {
+    // A deleted date's sheet doesn't reopen as a new one.
+    if (date != null || dateSheet == NEW_GIFT_IDEA) {
         ImportantDateSheet(
-            initial = ImportantDateDraft.of(date),
-            newType = date.type,
-            birthdayTaken = profile.importantDates.any { it.type == ImportantDateType.Birthday && it.id != date.id },
+            initial = date?.let(ImportantDateDraft::of),
+            // A new date starts as their Birthday until they have one.
+            newType = date?.type ?: if (profile.birthday == null) ImportantDateType.Birthday else ImportantDateType.Anniversary,
+            birthdayTaken = profile.importantDates.any { it.type == ImportantDateType.Birthday && it.id != date?.id },
             defaultLeadTimes = uiState.defaultLeadTimes,
             today = uiState.today,
             onDone = edits::saveImportantDate,
-            onDelete = { edits.deleteImportantDate(date.id) },
+            onDelete = date?.let { { edits.deleteImportantDate(it.id) } },
             onDismiss = onDismissDate,
         )
     }

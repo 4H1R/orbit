@@ -25,21 +25,21 @@ sealed interface UpcomingUiState {
         val feed: UpcomingFeed,
         /** Each Person's photo file by Person id, for those who have one. */
         val photos: Map<Long, File> = emptyMap(),
-        /** "Show all (n)" was tapped: every Due Person shows, not only the first [DUE_ROWS]. */
+        /** "Show n more" was tapped: every Due Person shows, not only the first [DUE_ROWS]. */
         val showAllDue: Boolean = false,
     ) : UpcomingUiState {
         /** Nothing to show in any section: the screen shows an empty state instead. */
         val isEmpty: Boolean get() = feed.isEmpty
 
-        /** The Due rows on screen: the first [DUE_ROWS], or all of them after "Show all". */
+        /** The Due rows on screen: the first [DUE_ROWS], or all of them after "Show n more". */
         val dueShown: List<DuePerson> get() = if (showAllDue) feed.due else feed.due.take(DUE_ROWS)
 
-        /** Whether there are more Due People than [DUE_ROWS], so "Show all (n)" / "Show fewer" appears. */
+        /** Whether there are more Due People than [DUE_ROWS], so "Show n more" / "Show fewer" ends the group. */
         val dueHasMore: Boolean get() = feed.due.size > DUE_ROWS
     }
 
     companion object {
-        /** The Due section shows this many rows until "Show all (n)". */
+        /** The Due section shows this many rows until "Show n more". */
         const val DUE_ROWS = 5
     }
 }
@@ -77,7 +77,7 @@ class UpcomingViewModel @Inject constructor(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UpcomingUiState.Loading)
 
-    /** "Show all (n)" (true) expands the Due section in place; "Show fewer" (false) folds it back. */
+    /** "Show n more" (true) expands the Due section in place; "Show fewer" (false) folds it back. */
     fun showAllDue(show: Boolean) {
         showAllDue.value = show
     }

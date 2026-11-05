@@ -54,7 +54,7 @@ sealed interface PersonDetailUiState {
         val exit: DetailExit? = null,
         /** Their Interactions, newest first (the section shows the latest [LATEST_INTERACTIONS]). */
         val interactions: List<InteractionWithPeople> = emptyList(),
-        /** Where they stand with their Cadence: the header's Cadence line. */
+        /** Where they stand with their Cadence: the keep-in-touch card. */
         val due: DueState? = null,
     ) : PersonDetailUiState {
         /** What the Add details row offers: the fields with nothing in them yet. */

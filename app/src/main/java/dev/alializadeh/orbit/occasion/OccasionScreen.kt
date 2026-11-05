@@ -17,11 +17,14 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,11 +45,13 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.R
+import dev.alializadeh.orbit.calendar.inCalendar
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.RelativeDays
 import dev.alializadeh.orbit.format.bidiIsolate
 import dev.alializadeh.orbit.format.text
 import dev.alializadeh.orbit.interaction.InteractionRepository
+import dev.alializadeh.orbit.person.dates.DateBadge
 import dev.alializadeh.orbit.person.photo.PhotoStore
 import dev.alializadeh.orbit.person.ui.PersonAvatar
 import dev.alializadeh.orbit.settings.MaxContentWidth
@@ -60,7 +65,6 @@ import dev.alializadeh.orbit.upcoming.todayFlow
 import java.io.File
 import java.time.Clock
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -213,39 +217,28 @@ fun OccasionScreen(
                 ),
             ) {
                 item(key = "when") {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
-                        val whenText = RelativeDays.ahead(loaded.date, loaded.today)?.text()
-                        val dateParts = formats.dates.occurrenceParts(
-                            loaded.date,
-                            loaded.occasion.date.calendar,
-                            formats.primaryCalendar,
-                            loaded.today,
-                            withWeekday = true,
-                        )
-                        Text(listOfNotNull(whenText, *dateParts.toTypedArray()).joinToString(separator), style = MaterialTheme.typography.titleMedium)
-                        if (loaded.isToday && loaded.people.isNotEmpty()) {
-                            val reached = loaded.people.count { it.id in loaded.reached }
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.occasion_reached,
-                                    reached,
-                                    formats.numbers.format(reached),
-                                    formats.numbers.format(loaded.people.size),
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
-                        }
-                    }
+                    OccasionHeader(loaded)
                 }
                 if (loaded.people.isEmpty()) {
                     item(key = "nobody") {
-                        Text(
-                            stringResource(R.string.occasion_reaches_nobody),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(4.dp),
-                        )
+                        Surface(
+                            shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                            ) {
+                                Text(
+                                    stringResource(R.string.occasion_reaches_nobody),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = onEdit) { Text(stringResource(R.string.occasion_edit_who)) }
+                            }
+                        }
                     }
                 } else {
                     item(key = "people_title") { OrbitSectionTitle(stringResource(R.string.occasion_who_people), horizontalPadding = 4.dp) }
@@ -262,6 +255,57 @@ fun OccasionScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * When the Occasion falls: its badge (the day in the Primary calendar), "Today · Wed 28 Oct · 6
+ * Aban", and on the day how many of its People have been reached, as a line and a progress bar.
+ */
+@Composable
+private fun OccasionHeader(loaded: OccasionUiState.Loaded) {
+    val formats = LocalOrbitFormats.current
+    val separator = stringResource(R.string.separator)
+    val whenText = RelativeDays.ahead(loaded.date, loaded.today)?.text()
+    val dateParts = formats.dates.occurrenceParts(
+        loaded.date,
+        loaded.occasion.date.calendar,
+        formats.primaryCalendar,
+        loaded.today,
+        withWeekday = true,
+    )
+    val inPrimary = loaded.date.inCalendar(formats.primaryCalendar)
+    Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            DateBadge(
+                day = formats.numbers.format(inPrimary.day),
+                month = formats.dates.monthName(formats.primaryCalendar, inPrimary.month),
+            )
+            Text(
+                listOfNotNull(whenText, *dateParts.toTypedArray()).joinToString(separator),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (loaded.isToday && loaded.people.isNotEmpty()) {
+            val reached = loaded.people.count { it.id in loaded.reached }
+            Text(
+                pluralStringResource(
+                    R.plurals.occasion_reached,
+                    reached,
+                    formats.numbers.format(reached),
+                    formats.numbers.format(loaded.people.size),
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+            )
+            LinearProgressIndicator(
+                progress = { reached.toFloat() / loaded.people.size },
+                modifier = Modifier.fillMaxWidth(),
+                drawStopIndicator = {},
+            )
         }
     }
 }
@@ -289,7 +333,7 @@ private fun PersonRow(
                     Icon(
                         Icons.Filled.CheckCircle,
                         contentDescription = stringResource(R.string.occasion_reached_a11y),
-                        tint = MaterialTheme.colorScheme.tertiary,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
                 IconButton(onClick = onSendWishes) {

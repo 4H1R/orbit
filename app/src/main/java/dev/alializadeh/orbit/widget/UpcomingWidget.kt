@@ -90,8 +90,11 @@ class UpcomingWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = UpcomingWidget()
 }
 
-/** One row as drawn: everything already in words, so the composition only lays it out. */
-private data class WidgetRow(val title: String, val whenText: String, val avatar: Bitmap?, val open: Intent)
+/**
+ * One row as drawn: everything already in words, so the composition only lays it out. [today]: a
+ * date or Occasion today, drawn apricot like Upcoming's Today hero.
+ */
+private data class WidgetRow(val title: String, val whenText: String, val avatar: Bitmap?, val open: Intent, val today: Boolean)
 
 /** The widget's words and taps, worked out before anything is drawn. */
 private data class WidgetUi(
@@ -159,6 +162,7 @@ class UpcomingWidget : GlanceAppWidget() {
                         whenText = if (today) yearsCountText(resources, numbers, date.type, entry.occurrence.yearsCount).orEmpty() else whenText,
                         avatar = avatars.of(name, entry.person.photoFileName?.let(photos::file)),
                         open = intents.openIntent(NotificationEntry.PersonDetail(entry.person.id)),
+                        today = today,
                     )
                 }
                 is UpcomingOccasion -> WidgetRow(
@@ -169,6 +173,7 @@ class UpcomingWidget : GlanceAppWidget() {
                     ).joinToString(separator),
                     avatar = null,
                     open = intents.openIntent(NotificationEntry.Occasion(entry.occasion.id)),
+                    today = entry.daysAway == 0,
                 )
             }
         }
@@ -256,19 +261,27 @@ private fun Content(ui: WidgetUi) {
     }
 }
 
+/**
+ * A row, with Upcoming's hierarchy: the avatar (or the Occasion badge), the title in `onSurface`
+ * and when in `onSurfaceVariant`, on a neutral row. Apricot only marks dates: a row for today is
+ * `tertiaryContainer` (like the Today hero), and the Occasion badge is apricot.
+ */
 @Composable
 private fun RowItem(row: WidgetRow, rtl: Boolean) {
     val colors = GlanceTheme.colors
     val align = if (rtl) TextAlign.Right else TextAlign.Left
+    val container = if (row.today) colors.tertiaryContainer else colors.surface
+    val titleColor = if (row.today) colors.onTertiaryContainer else colors.onSurface
+    val whenColor = if (row.today) colors.onTertiaryContainer else colors.onSurfaceVariant
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = GlanceModifier
             .fillMaxWidth()
             .padding(bottom = 4.dp)
             .cornerRadius(16.dp)
-            .background(colors.secondaryContainer)
+            .background(container)
             .clickable(actionStartActivity(row.open))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         val badge: @Composable () -> Unit = {
             if (row.avatar != null) {
@@ -276,12 +289,15 @@ private fun RowItem(row: WidgetRow, rtl: Boolean) {
             } else {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = GlanceModifier.size(32.dp).cornerRadius(16.dp).background(colors.tertiaryContainer),
+                    modifier = GlanceModifier
+                        .size(32.dp)
+                        .cornerRadius(16.dp)
+                        .background(if (row.today) colors.tertiary else colors.tertiaryContainer),
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.ic_occasion),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(colors.onTertiaryContainer),
+                        colorFilter = ColorFilter.tint(if (row.today) colors.onTertiary else colors.onTertiaryContainer),
                         modifier = GlanceModifier.size(18.dp),
                     )
                 }
@@ -289,26 +305,26 @@ private fun RowItem(row: WidgetRow, rtl: Boolean) {
         }
         if (!rtl) {
             badge()
-            Spacer(GlanceModifier.width(10.dp))
+            Spacer(GlanceModifier.width(12.dp))
         }
         Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
                 row.title,
-                style = TextStyle(color = colors.onSecondaryContainer, fontSize = 14.sp, fontWeight = FontWeight.Medium, textAlign = align),
+                style = TextStyle(color = titleColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, textAlign = align),
                 maxLines = 1,
                 modifier = GlanceModifier.fillMaxWidth(),
             )
             if (row.whenText.isNotEmpty()) {
                 Text(
                     row.whenText,
-                    style = TextStyle(color = colors.onSecondaryContainer, fontSize = 12.sp, textAlign = align),
+                    style = TextStyle(color = whenColor, fontSize = 12.sp, textAlign = align),
                     maxLines = 1,
                     modifier = GlanceModifier.fillMaxWidth(),
                 )
             }
         }
         if (rtl) {
-            Spacer(GlanceModifier.width(10.dp))
+            Spacer(GlanceModifier.width(12.dp))
             badge()
         }
     }

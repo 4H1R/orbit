@@ -523,12 +523,18 @@ private fun OrbitCanvas(
                 drawPerson(item, size, Offset(x, y), alpha, glow, photos[person.photo], colors, initials, measurer, initialStyle)
                 if (person.id in showNames) {
                     val layout = nameLayout(item.label)
-                    drawText(
-                        layout,
-                        color = colors.onSurface,
-                        topLeft = Offset(x - layout.size.width / 2f, y + radius + 2f * d),
-                        alpha = alpha,
+                    val topLeft = Offset(x - layout.size.width / 2f, y + radius + 2f * d)
+                    // A soft pill in the background colour keeps the name readable over Rings and dots.
+                    val padX = NAME_PILL_PAD_X * d
+                    val h = layout.size.height.toFloat()
+                    drawRoundRect(
+                        colors.surface,
+                        topLeft = Offset(topLeft.x - padX, topLeft.y),
+                        size = Size(layout.size.width + 2 * padX, h),
+                        cornerRadius = CornerRadius(h / 2),
+                        alpha = alpha * NAME_PILL_ALPHA,
                     )
+                    drawText(layout, color = colors.onSurface, topLeft = topLeft, alpha = alpha)
                 }
             }
         }
@@ -565,6 +571,10 @@ private class NameCache {
 
 /** "You"'s half-size, kept clear of names. */
 private const val FrameYou = OrbitFrame.YOU_RADIUS + 4f
+
+/** The pill behind a name: its side padding (dp) and how opaque it is. */
+private const val NAME_PILL_PAD_X = 4f
+private const val NAME_PILL_ALPHA = 0.85f
 
 /** The widest a name under an Avatar gets before it's cut short. */
 private const val NAME_MAX_WIDTH = 72f

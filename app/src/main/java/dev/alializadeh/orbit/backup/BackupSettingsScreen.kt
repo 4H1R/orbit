@@ -2,11 +2,22 @@ package dev.alializadeh.orbit.backup
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -24,9 +35,13 @@ import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.RelativeDays
 import dev.alializadeh.orbit.format.text
 import dev.alializadeh.orbit.settings.OrbitSettingsScaffold
+import dev.alializadeh.orbit.settings.SettingsFooter
+import dev.alializadeh.orbit.settings.SettingsGroupGap
 import dev.alializadeh.orbit.ui.components.ChoiceRow
 import dev.alializadeh.orbit.ui.components.NavigationRow
+import dev.alializadeh.orbit.ui.components.OrbitIconCircle
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import dev.alializadeh.orbit.upcoming.todayFlow
 import java.time.Clock
 import java.time.LocalDate
@@ -133,33 +148,30 @@ fun BackupSettingsScreen(
 ) {
     OrbitSettingsScaffold(title = stringResource(R.string.settings_backup_title), onBack = onBack, modifier = modifier) {
         if (uiState !is BackupSettingsUiState.Loaded) return@OrbitSettingsScaffold
-        val rows = if (uiState.hasPassphrase) 3 else 2
+        BackupStatusCard(lastBackup = uiState.lastBackup, today = uiState.today, onBackUpNow = onBackUpNow)
+        SettingsGroupGap()
+        val rows = if (uiState.hasPassphrase) 2 else 1
         OrbitListGroup(title = null) {
-            NavigationRow(
-                title = stringResource(R.string.backup_now),
-                summary = lastBackupLine(uiState.lastBackup, uiState.today, withDate = true),
-                index = 0,
-                count = rows,
-                onClick = onBackUpNow,
-            )
             NavigationRow(
                 title = stringResource(R.string.backup_settings_restore),
                 summary = stringResource(R.string.backup_settings_restore_summary),
-                index = 1,
+                index = 0,
                 count = rows,
                 onClick = onRestore,
+                icon = OrbitIcons.Restore,
             )
             if (uiState.hasPassphrase) {
                 NavigationRow(
                     title = stringResource(R.string.backup_settings_change_passphrase),
                     summary = null,
-                    index = 2,
+                    index = 1,
                     count = rows,
                     onClick = onChangePassphrase,
+                    icon = OrbitIcons.Key,
                 )
             }
         }
-        OrbitListGroup(title = stringResource(R.string.backup_settings_nudge_title), modifier = Modifier.padding(top = 8.dp)) {
+        OrbitListGroup(title = stringResource(R.string.backup_settings_nudge_title)) {
             BackupNudgeInterval.entries.forEachIndexed { index, interval ->
                 ChoiceRow(
                     title = nudgeIntervalName(interval),
@@ -171,12 +183,47 @@ fun BackupSettingsScreen(
                 )
             }
         }
-        Text(
-            text = stringResource(R.string.backup_settings_nudge_footer),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
+        SettingsFooter(stringResource(R.string.backup_settings_nudge_footer))
+    }
+}
+
+/**
+ * The page's primary action with the state it acts on: when the last Backup was (or that there's
+ * none yet), what a Backup is, and Back up now.
+ */
+@Composable
+private fun BackupStatusCard(lastBackup: LocalDate?, today: LocalDate, onBackUpNow: () -> Unit) {
+    val formats = LocalOrbitFormats.current
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = ListItemDefaults.segmentedColors().containerColor,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                OrbitIconCircle(OrbitIcons.Backup)
+                Column(Modifier.weight(1f)) {
+                    Text(lastBackupLine(lastBackup, today), style = MaterialTheme.typography.titleMedium)
+                    if (lastBackup != null && lastBackup < today.minusDays(1)) {
+                        Text(
+                            formats.dates.format(lastBackup, formats.primaryCalendar, today),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Text(
+                text = stringResource(R.string.backup_nudge_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Button(onClick = onBackUpNow, modifier = Modifier.align(Alignment.End).padding(top = 12.dp)) {
+                Icon(OrbitIcons.Backup, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.backup_now), modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
+            }
+        }
     }
 }
 

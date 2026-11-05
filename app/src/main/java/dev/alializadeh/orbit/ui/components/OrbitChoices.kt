@@ -1,5 +1,6 @@
 package dev.alializadeh.orbit.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -8,9 +9,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -24,13 +28,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -146,7 +154,10 @@ fun OrbitListGroup(
 /** Marks [OrbitListGroup]'s content; items take their shape from their index and the count. */
 object OrbitListGroupScope
 
-/** A row of an [OrbitListGroup] that opens something: a title and a one-line summary. */
+/**
+ * A row of an [OrbitListGroup] that opens something: a title and a one-line summary, with an
+ * [icon] in a tonal circle when the row stands for a whole area (Settings' root).
+ */
 @Composable
 fun OrbitListGroupScope.NavigationRow(
     title: String,
@@ -156,13 +167,15 @@ fun OrbitListGroupScope.NavigationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    icon: ImageVector? = null,
 ) {
     SegmentedListItem(
         onClick = onClick,
         shapes = ListItemDefaults.segmentedShapes(index, count),
         modifier = modifier,
         enabled = enabled,
-        supportingContent = summary?.let { { Text(it, maxLines = 1) } },
+        leadingContent = icon?.let { { OrbitIconCircle(it) } },
+        supportingContent = summary?.takeIf { it.isNotEmpty() }?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
     ) {
         Text(title)
     }
@@ -233,6 +246,20 @@ fun OrbitListGroupScope.ContentRow(
         modifier = modifier.fillMaxWidth(),
     ) {
         Box(Modifier.padding(16.dp)) { content() }
+    }
+}
+
+/** An icon in a 40dp tonal circle: the leading icon of a row that stands for an area. */
+@Composable
+fun OrbitIconCircle(icon: ImageVector, modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
     }
 }
 

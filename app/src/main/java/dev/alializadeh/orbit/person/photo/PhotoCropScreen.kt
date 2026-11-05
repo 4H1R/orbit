@@ -9,13 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,13 +74,15 @@ fun PhotoCropScreen(
                     }
                 },
                 actions = {
-                    TextButton(
+                    // The screen's one primary action, filled like Save on the form.
+                    Button(
                         onClick = { transform?.let { onDone(it.cropRect()) } },
                         enabled = state is CropUiState.Ready && transform != null,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = Color.White,
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = Color.White.copy(alpha = 0.12f),
                             disabledContentColor = Color.White.copy(alpha = 0.38f),
                         ),
+                        modifier = Modifier.padding(end = 8.dp),
                     ) {
                         Text(stringResource(R.string.common_done))
                     }
@@ -103,11 +105,20 @@ fun PhotoCropScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(32.dp),
                 )
-                is CropUiState.Ready -> CropArea(
-                    image = state.image,
-                    transform = transform,
-                    onTransform = { transform = it },
-                )
+                is CropUiState.Ready -> {
+                    CropArea(
+                        image = state.image,
+                        transform = transform,
+                        onTransform = { transform = it },
+                    )
+                    Text(
+                        text = stringResource(R.string.photo_crop_hint),
+                        color = Color.White.copy(alpha = 0.72f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 32.dp, vertical = 24.dp),
+                    )
+                }
             }
         }
     }

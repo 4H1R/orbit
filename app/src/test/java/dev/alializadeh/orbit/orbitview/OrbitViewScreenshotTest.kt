@@ -46,7 +46,7 @@ class OrbitViewScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
-    /** Due only, in two Rings: everyone else dimmed in place; the Filtered bar. */
+    /** Due only, in two Rings: everyone else dimmed in place; "5 of 20 people · Clear". */
     @Test
     fun filtered() = captureScreen("orbit_filtered", variant) {
         Orbit(orbitFewPeople(variant.persian), PeopleFilters(ringIds = setOf(1, 3), due = true))

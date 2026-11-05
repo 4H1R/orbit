@@ -51,9 +51,21 @@ class OccasionScreenshotTest(private val variant: ScreenshotVariant) {
         val club = occasionOf(3, RecurringDate(CalendarSystem.Gregorian, 11, 12), personIds = setOf(1, 3), label = if (fa) "باشگاه کتاب" else "Book club")
         OccasionsSettingsScreen(
             uiState = OccasionsSettingsUiState.Loaded(
-                items = listOf(OccasionListItem(club, 15, 2), OccasionListItem(nowruz, 144, 4), OccasionListItem(teachers, 186, 1)),
+                items = listOf(OccasionListItem(club, 5, 2), OccasionListItem(nowruz, 144, 4), OccasionListItem(teachers, 186, 1)),
                 addable = BuiltInOccasion.entries - setOf(BuiltInOccasion.Nowruz, BuiltInOccasion.TeachersDay),
+                today = today,
             ),
+            onBack = {},
+            onOpen = {},
+            onAdd = {},
+        )
+    }
+
+    /** No Occasions yet: the empty state, with Add occasion. */
+    @Test
+    fun occasionsSettingsEmpty() = captureScreen("occasions_settings_empty", variant) {
+        OccasionsSettingsScreen(
+            uiState = OccasionsSettingsUiState.Loaded(items = emptyList(), addable = BuiltInOccasion.entries, today = today),
             onBack = {},
             onOpen = {},
             onAdd = {},
@@ -99,6 +111,24 @@ class OccasionScreenshotTest(private val variant: ScreenshotVariant) {
                 date = today,
                 today = today,
                 reached = setOf(1, 3),
+            ),
+            onBack = {},
+            onEdit = {},
+            onPersonClick = {},
+            onSendWishes = {},
+        )
+    }
+
+    /** An Occasion ahead that reaches nobody yet: the in-place prompt to choose who. */
+    @Test
+    fun occasionNobody() = captureScreen("occasion_nobody", variant) {
+        OccasionScreen(
+            uiState = OccasionUiState.Loaded(
+                occasion = Occasion(id = 3, label = if (fa) "باشگاه کتاب" else "Book club", date = RecurringDate(CalendarSystem.Gregorian, 11, 2)),
+                people = emptyList(),
+                date = today.plusDays(5),
+                today = today,
+                reached = emptySet(),
             ),
             onBack = {},
             onEdit = {},

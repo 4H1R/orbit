@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldState
@@ -29,7 +27,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -39,11 +36,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.LocaleList
@@ -125,26 +121,21 @@ fun PassphraseFormScreen(
         ) {
             Column(
                 modifier = Modifier.widthIn(max = MaxContentWidth).fillMaxWidth().padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = stringResource(
+                FlowHeader(
+                    icon = OrbitIcons.Key,
+                    title = stringResource(
                         when (form.mode) {
                             PassphraseFormMode.Setup -> R.string.passphrase_setup_title
                             PassphraseFormMode.NewAfterCheck -> R.string.passphrase_new_title
                             PassphraseFormMode.Change -> R.string.passphrase_change_title
                         },
                     ),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = stringResource(
+                    body = stringResource(
                         if (form.mode == PassphraseFormMode.Setup) R.string.passphrase_setup_body else R.string.passphrase_change_body,
                     ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
                 )
                 if (form.mode == PassphraseFormMode.Change) {
                     PassphraseField(
@@ -156,28 +147,30 @@ fun PassphraseFormScreen(
                 }
                 val problem = form.problem
                 val notAscii = problem == PassphraseRules.Problem.NotAscii
+                val lengthRule = pluralStringResource(
+                    R.plurals.passphrase_rule_length,
+                    PassphraseRules.MIN_LENGTH,
+                    LocalOrbitFormats.current.numbers.format(PassphraseRules.MIN_LENGTH),
+                )
                 PassphraseField(
                     state = form.passphrase,
                     label = stringResource(
                         if (form.mode == PassphraseFormMode.Change) R.string.passphrase_new_field else R.string.passphrase_field,
                     ),
-                    supportingText = if (notAscii) {
-                        stringResource(R.string.passphrase_rule_ascii)
-                    } else {
-                        pluralStringResource(
-                            R.plurals.passphrase_rule_length,
-                            PassphraseRules.MIN_LENGTH,
-                            LocalOrbitFormats.current.numbers.format(PassphraseRules.MIN_LENGTH),
-                        )
-                    },
+                    supportingText = if (notAscii) stringResource(R.string.passphrase_rule_ascii) else lengthRule,
                     isError = notAscii,
+                    supportingContent = if (notAscii) null else { { RequirementLine(lengthRule, met = problem == null) } },
                 )
+                val matches = form.repeat.text.isNotEmpty() && !form.repeatMismatch &&
+                    PassphraseRules.normalise(form.repeat.text) == form.newPassphrase
+                val matchText = stringResource(R.string.passphrase_match)
                 PassphraseField(
                     state = form.repeat,
                     label = stringResource(R.string.passphrase_repeat_field),
                     supportingText = if (form.repeatMismatch) stringResource(R.string.passphrase_mismatch) else null,
                     isError = form.repeatMismatch,
                     imeAction = ImeAction.Done,
+                    supportingContent = if (matches) { { RequirementLine(matchText, met = true) } } else null,
                 )
                 PassphraseWarning(
                     acknowledged = form.acknowledged,
@@ -189,31 +182,30 @@ fun PassphraseFormScreen(
     }
 }
 
-/** "If you forget this passphrase…", with the "I understand" box that must be ticked. */
+/**
+ * "Orbit can't recover it: if you forget this passphrase…", with the "I understand" box that must
+ * be ticked. A thing to know, not a problem, so it isn't drawn in the error colours: the real
+ * errors (a wrong letter, a mismatch) stay the only red on the screen.
+ */
 @Composable
 private fun PassphraseWarning(acknowledged: Boolean, onAcknowledgedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = colors.errorContainer,
-        contentColor = colors.onErrorContainer,
-        modifier = modifier.fillMaxWidth(),
+    FlowNoticeCard(
+        icon = Icons.Filled.Warning,
+        title = stringResource(R.string.passphrase_warning_title),
+        text = stringResource(R.string.passphrase_warning),
+        modifier = modifier,
     ) {
-        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(24.dp))
-                Text(stringResource(R.string.passphrase_warning), style = MaterialTheme.typography.bodyLarge)
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-                    .toggleable(value = acknowledged, role = Role.Checkbox, onValueChange = onAcknowledgedChange),
-            ) {
-                Checkbox(checked = acknowledged, onCheckedChange = null, modifier = Modifier.padding(12.dp))
-                Text(stringResource(R.string.passphrase_warning_ack), style = MaterialTheme.typography.labelLarge)
-            }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .toggleable(value = acknowledged, role = Role.Checkbox, onValueChange = onAcknowledgedChange)
+                .padding(vertical = 4.dp),
+        ) {
+            Checkbox(checked = acknowledged, onCheckedChange = null, modifier = Modifier.padding(end = 12.dp))
+            Text(stringResource(R.string.passphrase_warning_ack), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -232,6 +224,8 @@ fun PassphraseField(
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Next,
     onDone: (() -> Unit)? = null,
+    /** Drawn instead of [supportingText] when given (a rule with its tick). */
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     var visible by rememberSaveable { mutableStateOf(false) }
     OutlinedSecureTextField(
@@ -249,7 +243,7 @@ fun PassphraseField(
         ),
         onKeyboardAction = onDone?.let { done -> KeyboardActionHandler { done() } },
         isError = isError,
-        supportingText = supportingText?.let { { Text(it) } },
+        supportingText = supportingContent ?: supportingText?.let { { Text(it) } },
         trailingIcon = {
             IconButton(onClick = { visible = !visible }) {
                 Icon(

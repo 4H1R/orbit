@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +47,7 @@ fun OrbitLegendSheetContent(sheet: SheetCloser) {
     Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
         Text(
             text = stringResource(R.string.orbit_legend_title),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp).semantics { heading() },
         )
         LegendRow(stringResource(R.string.orbit_legend_rings)) { drawRingsExample(it) }
@@ -57,7 +57,7 @@ fun OrbitLegendSheetContent(sheet: SheetCloser) {
             drawBadgeExample(it)
         }
         LegendRow(stringResource(R.string.orbit_legend_angle)) { drawAngleExample(it) }
-        TextButton(onClick = { sheet.close {} }, modifier = Modifier.align(Alignment.End).padding(end = 16.dp)) {
+        Button(onClick = { sheet.close {} }, modifier = Modifier.align(Alignment.End).padding(start = 24.dp, end = 24.dp, top = 8.dp)) {
             Text(stringResource(R.string.common_done))
         }
     }

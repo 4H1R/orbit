@@ -2,6 +2,7 @@ package dev.alializadeh.orbit.person.edit
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -9,14 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -26,15 +25,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,44 +53,75 @@ import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.format.bidiIsolate
-import dev.alializadeh.orbit.person.ImportantDateType
-import dev.alializadeh.orbit.person.dates.DateTypeBadge
-import dev.alializadeh.orbit.person.dates.importantDateName
-import dev.alializadeh.orbit.person.dates.remindersShort
 import dev.alializadeh.orbit.person.CadenceSetting
+import dev.alializadeh.orbit.person.ImportantDateType
 import dev.alializadeh.orbit.person.PersonField
 import dev.alializadeh.orbit.person.PersonItem
 import dev.alializadeh.orbit.person.PersonItemKind
 import dev.alializadeh.orbit.person.PersonNames
 import dev.alializadeh.orbit.person.contact.ContactInput
 import dev.alializadeh.orbit.person.contact.ContactType
-import dev.alializadeh.orbit.person.ui.PersonAvatar
+import dev.alializadeh.orbit.person.dates.DateTypeBadge
+import dev.alializadeh.orbit.person.dates.importantDateName
+import dev.alializadeh.orbit.person.dates.remindersShort
+import dev.alializadeh.orbit.person.detail.AddListItem
+import dev.alializadeh.orbit.person.detail.PersonHeroAvatar
 import dev.alializadeh.orbit.person.ui.cadenceText
 import dev.alializadeh.orbit.person.ui.displayName
 import dev.alializadeh.orbit.person.ui.icon
+import dev.alializadeh.orbit.person.ui.sentenceStart
 import dev.alializadeh.orbit.ui.components.OrbitAdaptiveChoice
 import dev.alializadeh.orbit.ui.components.OrbitSectionTitle
 import dev.alializadeh.orbit.ui.expressive.OrbitAutocompleteField
 import dev.alializadeh.orbit.ui.expressive.OrbitSelectField
-import dev.alializadeh.orbit.ui.expressive.OrbitShapes
 import dev.alializadeh.orbit.ui.expressive.OrbitSuggestion
 import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import java.io.File
 
-/** The photo slot (flower shape) and its "Add photo" / "Change photo" button. */
+/*
+ * The form's anatomy matches Person detail's: titled groups of segmented rows on the surface, a
+ * field in a row of its own, and one add-affordance, the "+" row (AddListItem), at the end of a
+ * group.
+ */
+
+/** One row of a [FormGroup]: drawn with its place in the group, for its segmented shape. */
+internal class FormItem(val key: Any, val content: @Composable (index: Int, count: Int) -> Unit)
+
+/** A titled group of [items], each with its segmented shape and the Expressive gap between them. */
+@Composable
+internal fun FormGroup(title: String?, items: List<FormItem>, modifier: Modifier = Modifier) {
+    if (items.isEmpty()) return
+    Column(modifier) {
+        if (title != null) OrbitSectionTitle(title)
+        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+            items.forEachIndexed { index, item -> key(item.key) { item.content(index, items.size) } }
+        }
+    }
+}
+
+/** A group row holding a field (or a field with its chips). */
+@Composable
+internal fun FieldRow(index: Int, count: Int, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        shape = ListItemDefaults.segmentedShapes(index, count).shape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) { content() }
+    }
+}
+
+/** The photo slot (the cookie Person detail shows it in) and its "Add photo" / "Change photo" button. */
 @Composable
 internal fun PhotoSlot(name: String, photo: File?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val displayName = PersonNames(name).displayName(LocalOrbitFormats.current.language)
     Column(modifier.padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        PersonAvatar(
+        PersonHeroAvatar(
             name = displayName,
             photo = photo,
-            size = 112.dp,
-            shape = OrbitShapes.flower(),
-            textStyle = MaterialTheme.typography.displaySmall,
             modifier = Modifier.clickable(onClickLabel = stringResource(R.string.photo_choose), onClick = onClick),
         )
-        TextButton(onClick = onClick) {
+        TextButton(onClick = onClick, modifier = Modifier.padding(top = 4.dp)) {
             Icon(OrbitIcons.Photo, contentDescription = null, modifier = Modifier.size(18.dp))
             Text(
                 text = stringResource(if (photo == null) R.string.person_form_photo_add else R.string.person_form_photo_change),
@@ -97,6 +129,61 @@ internal fun PhotoSlot(name: String, photo: File?, onClick: () -> Unit, modifier
             )
         }
     }
+}
+
+/**
+ * Who they are: Name, then Nickname and Name in other script once they're showing, then
+ * "+ Add from contacts" on a new Person.
+ */
+@Composable
+internal fun NameGroup(
+    uiState: PersonFormUiState,
+    fields: PersonFormFields,
+    focus: FormFocus,
+    onSave: () -> Unit,
+    onAddFromContacts: () -> Unit,
+) {
+    val items = buildList {
+        add(FormItem("name") { index, count -> FieldRow(index, count) { NameField(fields.name, focus.requester(null), onSave) } })
+        if (PersonField.Nickname in uiState.visibleFields) {
+            add(
+                FormItem(PersonField.Nickname) { index, count ->
+                    FieldRow(index, count, Modifier.bringIntoViewRequester(focus.bringer(PersonField.Nickname))) {
+                        SingleLineField(fields.nickname, stringResource(R.string.person_field_nickname), focus.requester(PersonField.Nickname))
+                    }
+                },
+            )
+        }
+        if (PersonField.OtherScriptName in uiState.visibleFields) {
+            add(
+                FormItem(PersonField.OtherScriptName) { index, count ->
+                    FieldRow(index, count, Modifier.bringIntoViewRequester(focus.bringer(PersonField.OtherScriptName))) {
+                        SingleLineField(
+                            fields.otherScriptName,
+                            stringResource(R.string.person_field_other_script_name),
+                            focus.requester(PersonField.OtherScriptName),
+                        )
+                    }
+                },
+            )
+        }
+        if (uiState.isNew) {
+            add(
+                FormItem("contacts") { index, count ->
+                    SegmentedListItem(
+                        onClick = onAddFromContacts,
+                        shapes = ListItemDefaults.segmentedShapes(index, count),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        leadingContent = { Icon(OrbitIcons.People, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.person_form_add_from_contacts), color = MaterialTheme.colorScheme.primary)
+                    }
+                },
+            )
+        }
+    }
+    FormGroup(title = null, items = items, modifier = Modifier.padding(top = 8.dp))
 }
 
 @Composable
@@ -111,58 +198,66 @@ internal fun NameField(state: TextFieldState, focusRequester: FocusRequester, on
     )
 }
 
-/** The Ring picker and, under it, "Cadence: every 30 days (from ring)" with Change. */
+/** Ring: the Ring picker, then the Cadence row ("Every 30 days (from ring)"), which opens the Cadence sheet. */
 @Composable
 internal fun RingSection(uiState: PersonFormUiState, onSelect: (Long) -> Unit, onChangeCadence: () -> Unit) {
-    Column {
-        OrbitSectionTitle(stringResource(R.string.person_section_ring), horizontalPadding = 4.dp)
-        OrbitAdaptiveChoice(
-            options = uiState.rings,
-            selected = uiState.selectedRing,
-            onSelect = { onSelect(it.id) },
-            label = { it.name },
-        )
-        val cadence = when (val setting = uiState.cadence) {
-            CadenceSetting.FromRing ->
-                stringResource(R.string.person_form_cadence_from_ring, cadenceText(uiState.selectedRing?.cadence, inline = true))
-            is CadenceSetting.Own -> cadenceText(setting.cadence, inline = true)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
-            Text(
-                text = stringResource(R.string.person_form_cadence, cadence),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onChangeCadence) { Text(stringResource(R.string.person_form_cadence_change)) }
-        }
+    val cadence = when (val setting = uiState.cadence) {
+        CadenceSetting.FromRing ->
+            stringResource(R.string.person_form_cadence_from_ring, sentenceStart(cadenceText(uiState.selectedRing?.cadence)))
+        is CadenceSetting.Own -> sentenceStart(cadenceText(setting.cadence))
     }
+    FormGroup(
+        title = stringResource(R.string.person_section_ring),
+        items = listOf(
+            FormItem("ring") { index, count ->
+                FieldRow(index, count) {
+                    OrbitAdaptiveChoice(
+                        options = uiState.rings,
+                        selected = uiState.selectedRing,
+                        onSelect = { onSelect(it.id) },
+                        label = { it.name },
+                    )
+                }
+            },
+            FormItem("cadence") { index, count ->
+                SegmentedListItem(
+                    onClick = onChangeCadence,
+                    shapes = ListItemDefaults.segmentedShapes(index, count),
+                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    supportingContent = { Text(cadence) },
+                    trailingContent = {
+                        Text(
+                            stringResource(R.string.person_form_cadence_change),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.person_field_cadence))
+                }
+            },
+        ),
+    )
 }
 
+/** Contact methods: an editor row each, then "+ Add contact method". */
 @Composable
 internal fun ContactMethodsSection(uiState: PersonFormUiState, actions: PersonFormActions, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OrbitSectionTitle(stringResource(R.string.person_section_contact_methods), horizontalPadding = 4.dp)
-        uiState.contacts.forEach { row ->
-            ContactRowEditor(row, autoFocus = row.key == uiState.newContactKey, actions = actions)
-        }
-        TextButton(onClick = actions::addContact) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.person_form_contact_add), modifier = Modifier.padding(start = 8.dp))
-        }
+    val items = uiState.contacts.map { row ->
+        FormItem(row.key) { index, count -> ContactRowEditor(row, autoFocus = row.key == uiState.newContactKey, actions, index, count) }
+    } + FormItem("add") { index, count ->
+        AddListItem(stringResource(R.string.person_form_contact_add), index, count, actions::addContact)
     }
+    FormGroup(stringResource(R.string.person_section_contact_methods), items, modifier)
 }
 
 @Composable
-private fun ContactRowEditor(row: ContactRow, autoFocus: Boolean, actions: PersonFormActions) {
+private fun ContactRowEditor(row: ContactRow, autoFocus: Boolean, actions: PersonFormActions, index: Int, count: Int) {
     val valueFocus = remember { FocusRequester() }
     LaunchedEffect(autoFocus) { if (autoFocus) runCatching { valueFocus.requestFocus() } }
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FieldRow(index, count) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OrbitSelectField(
                     selected = row.type,
@@ -188,7 +283,11 @@ private fun ContactRowEditor(row: ContactRow, autoFocus: Boolean, actions: Perso
                     )
                 }
                 IconButton(onClick = { actions.removeContact(row.key) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.person_form_contact_remove))
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = stringResource(R.string.person_form_contact_remove),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             OutlinedTextField(
@@ -232,64 +331,74 @@ private fun ContactType.keyboardOptions(): KeyboardOptions = when (input) {
     ContactInput.Text -> KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next)
 }
 
-/** The Birthday, up front: its row, or Add birthday. */
+/**
+ * Important dates: the Birthday up front (its row, or "+ Add birthday"); the other dates and
+ * "+ Add important date" once they're showing (behind More details).
+ */
 @Composable
-internal fun BirthdaySection(uiState: PersonFormUiState, actions: PersonFormActions, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OrbitSectionTitle(stringResource(R.string.important_date_type_birthday), horizontalPadding = 4.dp)
-        val birthday = uiState.birthday
-        if (birthday != null) {
-            DateRowItem(birthday, onClick = { actions.editImportantDate(birthday.key) })
-        } else {
-            TextButton(onClick = { actions.addImportantDate(ImportantDateType.Birthday) }) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(stringResource(R.string.person_form_birthday_add), modifier = Modifier.padding(start = 8.dp))
+internal fun ImportantDatesSection(uiState: PersonFormUiState, actions: PersonFormActions, focus: FormFocus) {
+    val birthday = uiState.birthday
+    val showsOthers = PersonField.ImportantDates in uiState.visibleFields
+    val birthdayModifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.Birthday))
+    val othersModifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.ImportantDates))
+    val items = buildList {
+        add(
+            if (birthday != null) {
+                FormItem(birthday.key) { index, count ->
+                    DateRowItem(birthday, index, count, birthdayModifier, onClick = { actions.editImportantDate(birthday.key) })
+                }
+            } else {
+                FormItem("add_birthday") { index, count ->
+                    Box(birthdayModifier) {
+                        AddListItem(stringResource(R.string.person_form_birthday_add), index, count) {
+                            actions.addImportantDate(ImportantDateType.Birthday)
+                        }
+                    }
+                }
+            },
+        )
+        if (showsOthers) {
+            uiState.otherDates.forEach { row ->
+                add(FormItem(row.key) { index, count -> DateRowItem(row, index, count, onClick = { actions.editImportantDate(row.key) }) })
             }
+            add(
+                FormItem("add_date") { index, count ->
+                    Box(othersModifier) {
+                        AddListItem(stringResource(R.string.person_form_important_date_add), index, count) {
+                            actions.addImportantDate(ImportantDateType.Anniversary)
+                        }
+                    }
+                },
+            )
         }
     }
+    FormGroup(stringResource(R.string.person_section_important_dates), items)
 }
 
-/** The other Important dates, behind More details: a row each, then Add important date. */
+/** One date as entered: "Birthday" over "14 Farvardin 1370 · default reminders". Tapping opens its sheet. */
 @Composable
-private fun ImportantDatesField(uiState: PersonFormUiState, actions: PersonFormActions, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OrbitSectionTitle(stringResource(R.string.person_section_important_dates), horizontalPadding = 4.dp)
-        uiState.otherDates.forEach { row -> DateRowItem(row, onClick = { actions.editImportantDate(row.key) }) }
-        TextButton(onClick = { actions.addImportantDate(ImportantDateType.Anniversary) }) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.person_form_important_date_add), modifier = Modifier.padding(start = 8.dp))
-        }
-    }
-}
-
-/** One date as entered: "Birthday · 14 Farvardin 1370 · default reminders". Tapping opens its sheet. */
-@Composable
-private fun DateRowItem(row: DateRow, onClick: () -> Unit) {
+private fun DateRowItem(row: DateRow, index: Int, count: Int, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val formats = LocalOrbitFormats.current
     val draft = row.draft
-    val text = listOf(
-        importantDateName(draft.type, draft.label?.let(::bidiIsolate)),
-        formats.dates.format(draft.date),
-        remindersShort(draft.leadTimes),
-    ).joinToString(stringResource(R.string.separator))
-    Surface(
+    SegmentedListItem(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
+        shapes = ListItemDefaults.segmentedShapes(index, count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = { DateTypeBadge(draft.type) },
+        supportingContent = {
+            Text(listOf(formats.dates.format(draft.date), remindersShort(draft.leadTimes)).joinToString(stringResource(R.string.separator)))
+        },
+        modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(12.dp),
-        ) {
-            DateTypeBadge(draft.type, size = 40.dp)
-            Text(text, style = MaterialTheme.typography.bodyLarge)
-        }
+        Text(importantDateName(draft.type, draft.label?.let(::bidiIsolate)))
     }
 }
 
-/** The fields behind "More details" that are showing, in the form's order. */
+/**
+ * The fields behind "More details" that live in their own groups (Tags, Can help with, Likes,
+ * Dislikes, How we met and Notes), once showing, in the form's order. Nickname, Name in other
+ * script and the other Important dates join their groups above.
+ */
 @Composable
 internal fun MoreDetailFields(
     uiState: PersonFormUiState,
@@ -297,139 +406,112 @@ internal fun MoreDetailFields(
     actions: PersonFormActions,
     focus: FormFocus,
 ) {
-    PersonField.moreDetails.filter { it in uiState.visibleFields }.forEach { field ->
-        val modifier = Modifier.bringIntoViewRequester(focus.bringer(field))
-        when (field) {
-            PersonField.Nickname -> SingleLineField(
-                state = fields.nickname,
-                label = stringResource(R.string.person_field_nickname),
-                focusRequester = focus.requester(field),
-                modifier = modifier,
+    val visible = uiState.visibleFields
+    if (PersonField.Tags in visible) {
+        ChipsGroup(
+            title = stringResource(R.string.person_section_tags),
+            modifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.Tags)),
+        ) {
+            ChipRow(
+                texts = uiState.tags,
+                selectedIndex = null,
+                onClick = { index -> actions.removeTag(uiState.tags[index]) },
+                onRemove = { index -> actions.removeTag(uiState.tags[index]) },
             )
-            PersonField.OtherScriptName -> SingleLineField(
-                state = fields.otherScriptName,
-                label = stringResource(R.string.person_field_other_script_name),
-                focusRequester = focus.requester(field),
-                modifier = modifier,
+            OrbitAutocompleteField(
+                state = fields.tagInput,
+                label = stringResource(R.string.person_form_tag_add),
+                suggestions = uiState.tagSuggestions.map { suggestion ->
+                    OrbitSuggestion(
+                        text = suggestion.name,
+                        label = if (suggestion.isNew) {
+                            stringResource(R.string.person_form_tag_create, suggestion.name)
+                        } else {
+                            suggestion.name
+                        },
+                    )
+                },
+                onSuggestion = { picked -> actions.pickTag(uiState.tagSuggestions.first { it.name == picked.text }) },
+                onSubmit = actions::submitTag,
+                modifier = Modifier.fillMaxWidth().focusRequester(focus.requester(PersonField.Tags)),
             )
-            PersonField.Tags -> TagsField(uiState, fields.tagInput, actions, focus.requester(field), modifier)
-            PersonField.ImportantDates -> ImportantDatesField(uiState, actions, modifier)
-            PersonField.CanHelpWith -> ItemsField(PersonItemKind.CanHelpWith, uiState, fields, actions, focus, modifier)
-            PersonField.Likes -> ItemsField(PersonItemKind.Like, uiState, fields, actions, focus, modifier)
-            PersonField.Dislikes -> ItemsField(PersonItemKind.Dislike, uiState, fields, actions, focus, modifier)
-            PersonField.HowWeMet -> MultiLineField(
-                state = fields.howWeMet,
-                label = stringResource(R.string.person_section_how_we_met),
-                focusRequester = focus.requester(field),
-                modifier = modifier,
-            )
-            PersonField.Notes -> MultiLineField(
-                state = fields.notes,
-                label = stringResource(R.string.person_section_notes),
-                focusRequester = focus.requester(field),
-                modifier = modifier,
-            )
-            PersonField.Photo, PersonField.ContactMethods, PersonField.Birthday -> Unit
         }
     }
+    listOf(PersonItemKind.CanHelpWith, PersonItemKind.Like, PersonItemKind.Dislike).forEach { kind ->
+        val field = PersonField.of(kind)
+        if (field in visible) {
+            val items = uiState.items[kind].orEmpty()
+            ChipsGroup(stringResource(kind.titleRes), Modifier.bringIntoViewRequester(focus.bringer(field))) {
+                ChipRow(
+                    texts = items,
+                    selectedIndex = uiState.editingItem?.takeIf { it.kind == kind }?.index,
+                    onClick = { index -> actions.editItem(kind, index) },
+                    onRemove = { index -> actions.removeItem(kind, index) },
+                )
+                OrbitAutocompleteField(
+                    state = fields.itemInputs.getValue(kind),
+                    label = stringResource(R.string.person_form_item_add),
+                    suggestions = uiState.itemSuggestions[kind].orEmpty().map { OrbitSuggestion(it) },
+                    onSuggestion = { actions.pickItem(kind, it.text) },
+                    onSubmit = { actions.submitItem(kind) },
+                    inputTransformation = ItemLength,
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus.requester(field)),
+                )
+            }
+        }
+    }
+    // How we met and Notes: one group of the two free-text fields, each labelled by its field.
+    val texts = listOfNotNull(
+        (PersonField.HowWeMet to fields.howWeMet).takeIf { PersonField.HowWeMet in visible },
+        (PersonField.Notes to fields.notes).takeIf { PersonField.Notes in visible },
+    )
+    FormGroup(
+        title = null,
+        items = texts.map { (field, state) ->
+            FormItem(field) { index, count ->
+                FieldRow(index, count, Modifier.bringIntoViewRequester(focus.bringer(field))) {
+                    MultiLineField(
+                        state = state,
+                        label = stringResource(if (field == PersonField.HowWeMet) R.string.person_section_how_we_met else R.string.person_section_notes),
+                        focusRequester = focus.requester(field),
+                    )
+                }
+            }
+        },
+        modifier = Modifier.padding(top = 24.dp),
+    )
+}
+
+/** A titled group of one row: the chips entered so far, then the field that adds one. */
+@Composable
+private fun ChipsGroup(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    FormGroup(
+        title = title,
+        items = listOf(FormItem(title) { index, count -> FieldRow(index, count) { Column { content() } } }),
+        modifier = modifier,
+    )
 }
 
 @Composable
-private fun SingleLineField(
-    state: TextFieldState,
-    label: String,
-    focusRequester: FocusRequester,
-    modifier: Modifier = Modifier,
-) {
+private fun SingleLineField(state: TextFieldState, label: String, focusRequester: FocusRequester) {
     OutlinedTextField(
         state = state,
         label = { Text(label) },
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
-        modifier = modifier.fillMaxWidth().padding(top = 8.dp).focusRequester(focusRequester),
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
     )
 }
 
 @Composable
-private fun MultiLineField(
-    state: TextFieldState,
-    label: String,
-    focusRequester: FocusRequester,
-    modifier: Modifier = Modifier,
-) {
+private fun MultiLineField(state: TextFieldState, label: String, focusRequester: FocusRequester) {
     OutlinedTextField(
         state = state,
         label = { Text(label) },
         lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 2),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        modifier = modifier.fillMaxWidth().padding(top = 8.dp).focusRequester(focusRequester),
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
     )
-}
-
-@Composable
-private fun TagsField(
-    uiState: PersonFormUiState,
-    input: TextFieldState,
-    actions: PersonFormActions,
-    focusRequester: FocusRequester,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier) {
-        OrbitSectionTitle(stringResource(R.string.person_section_tags), horizontalPadding = 4.dp)
-        ChipRow(
-            texts = uiState.tags,
-            selectedIndex = null,
-            onClick = { index -> actions.removeTag(uiState.tags[index]) },
-            onRemove = { index -> actions.removeTag(uiState.tags[index]) },
-        )
-        OrbitAutocompleteField(
-            state = input,
-            label = stringResource(R.string.person_form_tag_add),
-            suggestions = uiState.tagSuggestions.map { suggestion ->
-                OrbitSuggestion(
-                    text = suggestion.name,
-                    label = if (suggestion.isNew) {
-                        stringResource(R.string.person_form_tag_create, suggestion.name)
-                    } else {
-                        suggestion.name
-                    },
-                )
-            },
-            onSuggestion = { picked -> actions.pickTag(uiState.tagSuggestions.first { it.name == picked.text }) },
-            onSubmit = actions::submitTag,
-            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-        )
-    }
-}
-
-@Composable
-private fun ItemsField(
-    kind: PersonItemKind,
-    uiState: PersonFormUiState,
-    fields: PersonFormFields,
-    actions: PersonFormActions,
-    focus: FormFocus,
-    modifier: Modifier = Modifier,
-) {
-    val items = uiState.items[kind].orEmpty()
-    Column(modifier) {
-        OrbitSectionTitle(stringResource(kind.titleRes), horizontalPadding = 4.dp)
-        ChipRow(
-            texts = items,
-            selectedIndex = uiState.editingItem?.takeIf { it.kind == kind }?.index,
-            onClick = { index -> actions.editItem(kind, index) },
-            onRemove = { index -> actions.removeItem(kind, index) },
-        )
-        OrbitAutocompleteField(
-            state = fields.itemInputs.getValue(kind),
-            label = stringResource(R.string.person_form_item_add),
-            suggestions = uiState.itemSuggestions[kind].orEmpty().map { OrbitSuggestion(it) },
-            onSuggestion = { actions.pickItem(kind, it.text) },
-            onSubmit = { actions.submitItem(kind) },
-            inputTransformation = ItemLength,
-            modifier = Modifier.fillMaxWidth().focusRequester(focus.requester(PersonField.of(kind))),
-        )
-    }
 }
 
 private val ItemLength = InputTransformation.maxLength(PersonItem.MAX_LENGTH)
@@ -467,14 +549,17 @@ private fun ChipRow(
     }
 }
 
+/** "More details ⌄" with what's behind it: a group row of its own, revealing the rest of the form. */
 @Composable
 internal fun MoreDetailsButton(onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-        Text(stringResource(R.string.person_form_more_details))
-        Icon(
-            Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            modifier = Modifier.padding(start = 8.dp).size(18.dp),
-        )
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(0, 1),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        supportingContent = { Text(stringResource(R.string.person_form_more_details_summary)) },
+        trailingContent = { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null) },
+        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+    ) {
+        Text(stringResource(R.string.person_form_more_details), color = MaterialTheme.colorScheme.primary)
     }
 }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,7 +21,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
@@ -43,10 +41,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -75,6 +73,9 @@ import dev.alializadeh.orbit.person.ui.label
 import dev.alializadeh.orbit.search.SearchText
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
+import dev.alializadeh.orbit.ui.components.OrbitSheetActions
+import dev.alializadeh.orbit.ui.components.OrbitSheetDestructiveButton
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePicker
 import dev.alializadeh.orbit.ui.datepicker.WheelDatePickerState
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
@@ -188,11 +189,7 @@ internal fun LogInteractionSheetContent(
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(if (state.interactionId == null) R.string.interaction_log else R.string.interaction_sheet_edit),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        OrbitSheetTitle(stringResource(if (state.interactionId == null) R.string.interaction_log else R.string.interaction_sheet_edit))
         val typeLabel = stringResource(R.string.interaction_type_label)
         OrbitConnectedChoice(
             options = InteractionType.entries,
@@ -290,17 +287,12 @@ internal fun LogInteractionSheetContent(
                 )
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            val id = state.interactionId
-            if (id != null) {
-                TextButton(
-                    onClick = { sheet.close { onDelete(id) } },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            }
-            Spacer(Modifier.weight(1f))
+        val id = state.interactionId
+        OrbitSheetActions(
+            destructive = id?.let {
+                { OrbitSheetDestructiveButton(stringResource(R.string.common_delete), onClick = { sheet.close { onDelete(id) } }) }
+            },
+        ) {
             TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
             Button(
                 enabled = canSave,
@@ -319,7 +311,6 @@ internal fun LogInteractionSheetContent(
                         if (followUpFor != null && followUp != null) onSaveFollowUp(followUpFor, followUp)
                     }
                 },
-                modifier = Modifier.padding(start = 8.dp),
             ) {
                 Text(stringResource(R.string.common_save))
             }
@@ -374,10 +365,9 @@ internal fun PeoplePickerContent(candidates: List<PickablePerson>, onPick: (Long
     val key = SearchText.normalise(query.text.toString()).trim()
     val shown = if (key.isEmpty()) sorted else sorted.filter { it.names.matches(key) }
     Column(Modifier.fillMaxHeight(0.85f).padding(horizontal = 16.dp)) {
-        Text(
-            text = stringResource(R.string.interaction_people_title),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp).semantics { heading() },
+        OrbitSheetTitle(
+            stringResource(R.string.interaction_people_title),
+            Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp),
         )
         OutlinedTextField(
             state = query,
@@ -429,10 +419,9 @@ internal fun SnoozeSheetContent(state: SnoozeSheetState, onPick: (SnoozeDuration
     val formats = LocalOrbitFormats.current
     val name = state.names.displayName(formats.language)
     Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
-        Text(
-            text = stringResource(R.string.snooze_title, bidiIsolate(name)),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp).semantics { heading() },
+        OrbitSheetTitle(
+            stringResource(R.string.snooze_title, bidiIsolate(name)),
+            Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
             SnoozeDuration.entries.forEachIndexed { index, duration ->
@@ -441,7 +430,7 @@ internal fun SnoozeSheetContent(state: SnoozeSheetState, onPick: (SnoozeDuration
                     onClick = { onPick(duration) },
                     shapes = ListItemDefaults.segmentedShapes(index, SnoozeDuration.entries.size),
                     colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    leadingContent = { Icon(OrbitIcons.Snooze, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    leadingContent = { Icon(OrbitIcons.Snooze, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     supportingContent = { Text(stringResource(R.string.snoozed_until, until)) },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -494,31 +483,32 @@ internal fun QuickActionSheetContent(
 ) {
     val name = target.names.displayName(LocalOrbitFormats.current.language)
     val action = target.primaryContactMethod?.let { ContactActions.of(it).firstOrNull() }
-    Column(Modifier.padding(bottom = 16.dp)) {
+    val rows = buildList<Triple<ImageVector, String, () -> Unit>> {
+        if (action != null) add(Triple(action.kind.icon, action.kind.label(), { onContactAction(action) }))
+        add(Triple(OrbitIcons.LogInteraction, stringResource(R.string.interaction_log), onLogInteraction))
+        if (target.isDue) add(Triple(OrbitIcons.Snooze, stringResource(R.string.snooze_action), onSnooze))
+    }
+    Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 16.dp),
         ) {
             PersonAvatar(name = name, photo = target.photo, size = 48.dp)
-            Text(name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            OrbitSheetTitle(name)
         }
-        if (action != null) {
-            QuickActionRow(action.kind.icon, action.kind.label()) { onContactAction(action) }
+        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+            rows.forEachIndexed { index, (icon, label, onClick) ->
+                SegmentedListItem(
+                    onClick = onClick,
+                    shapes = ListItemDefaults.segmentedShapes(index, rows.size),
+                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    leadingContent = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(label)
+                }
+            }
         }
-        QuickActionRow(OrbitIcons.LogInteraction, stringResource(R.string.interaction_log), onLogInteraction)
-        if (target.isDue) QuickActionRow(OrbitIcons.Snooze, stringResource(R.string.snooze_action), onSnooze)
-    }
-}
-
-@Composable
-private fun QuickActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
-    ListItem(
-        onClick = onClick,
-        leadingContent = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.padding(horizontal = 8.dp),
-    ) {
-        Text(label)
     }
 }

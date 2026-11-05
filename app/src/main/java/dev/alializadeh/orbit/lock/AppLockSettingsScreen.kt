@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,8 +23,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.format.LocalOrbitFormats
-import dev.alializadeh.orbit.reminders.Footer
 import dev.alializadeh.orbit.settings.OrbitSettingsScaffold
+import dev.alializadeh.orbit.settings.SettingsFooter
+import dev.alializadeh.orbit.settings.SettingsGroupGap
 import dev.alializadeh.orbit.ui.components.ChoiceRow
 import dev.alializadeh.orbit.ui.components.NavigationRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
@@ -178,6 +181,12 @@ fun AppLockSettingsScreen(
                 index = 0,
                 count = rows,
                 onCheckedChange = onEnabledChange,
+                // The page's main switch: tinted while App lock is on, like Android's own.
+                colors = if (settings.enabled) {
+                    ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                } else {
+                    ListItemDefaults.segmentedColors()
+                },
             )
             if (!uiState.hasScreenLock) {
                 NavigationRow(
@@ -202,7 +211,8 @@ fun AppLockSettingsScreen(
                 )
             }
         }
-        Footer(stringResource(R.string.app_lock_relock_footer))
+        SettingsFooter(stringResource(R.string.app_lock_relock_footer))
+        SettingsGroupGap()
         OrbitListGroup(title = null) {
             SwitchRow(
                 title = stringResource(R.string.app_lock_show_details),
@@ -213,7 +223,7 @@ fun AppLockSettingsScreen(
                 onCheckedChange = onShowDetailsChange,
             )
         }
-        Footer(stringResource(R.string.app_lock_show_details_footer))
+        SettingsFooter(stringResource(R.string.app_lock_show_details_footer))
     }
 }
 

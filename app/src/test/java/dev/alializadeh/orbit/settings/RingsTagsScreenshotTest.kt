@@ -107,10 +107,23 @@ class RingsTagsScreenshotTest(private val variant: ScreenshotVariant) {
         )
     }
 
+    /** No Tags yet: the empty state. */
+    @Test
+    fun tagsEmpty() = captureScreen("tags_empty", variant) {
+        TagsScreen(
+            uiState = TagsUiState.Loaded(emptyList()),
+            onBack = {},
+            onRename = { _, _ -> },
+            onConfirmMerge = {},
+            onDismissMerge = {},
+            onDelete = {},
+        )
+    }
+
     @Test
     fun tagSheet() = captureScreen("tag_sheet", variant) {
         SheetFrame {
-            TagSheetContent(tag = tags.first(), onRename = {}, onDelete = {}, onShowPeople = null, sheet = NoCloser)
+            TagSheetContent(tag = tags.first(), onRename = {}, onDelete = {}, onShowPeople = {}, sheet = NoCloser)
         }
     }
 

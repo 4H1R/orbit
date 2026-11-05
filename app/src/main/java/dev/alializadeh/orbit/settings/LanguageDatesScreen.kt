@@ -1,18 +1,14 @@
 package dev.alializadeh.orbit.settings
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dev.alializadeh.orbit.R
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.ui.res.pluralStringResource
 import dev.alializadeh.orbit.calendar.CalendarSystem
 import dev.alializadeh.orbit.calendar.LunarHijriAdjustment
 import dev.alializadeh.orbit.calendar.LunarHijriRules
@@ -90,7 +86,8 @@ fun LanguageDatesScreen(
             }
         }
         if (language == OrbitLanguage.Persian) {
-            OrbitListGroup(title = null, modifier = Modifier.padding(top = 24.dp)) {
+            SettingsGroupGap()
+            OrbitListGroup(title = null) {
                 SwitchRow(
                     title = stringResource(R.string.language_dates_latin_digits),
                     summary = stringResource(R.string.language_dates_latin_digits_summary),
@@ -102,7 +99,7 @@ fun LanguageDatesScreen(
             }
         }
         val adjustments = (-LunarHijriAdjustment.MAX_DAYS..LunarHijriAdjustment.MAX_DAYS).toList()
-        OrbitListGroup(title = stringResource(R.string.language_dates_lunar_title), modifier = Modifier.padding(top = 24.dp)) {
+        OrbitListGroup(title = stringResource(R.string.language_dates_lunar_title)) {
             adjustments.forEachIndexed { index, days ->
                 ChoiceRow(
                     title = lunarAdjustmentName(days),
@@ -114,12 +111,7 @@ fun LanguageDatesScreen(
                 )
             }
         }
-        Text(
-            text = stringResource(R.string.lunar_adjustment_footer),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+        SettingsFooter(stringResource(R.string.lunar_adjustment_footer))
     }
 }
 

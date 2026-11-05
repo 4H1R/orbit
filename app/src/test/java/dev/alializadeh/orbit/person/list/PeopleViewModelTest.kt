@@ -92,6 +92,7 @@ class PeopleViewModelTest {
         assertEquals(1, viewModel.loaded.archivedCount)
         assertFalse(viewModel.loaded.searching)
         assertTrue(viewModel.loaded.hasPeople)
+        assertEquals(3, viewModel.loaded.activeCount)
     }
 
     @Test
@@ -128,6 +129,8 @@ class PeopleViewModelTest {
         viewModel.toggleDue()
         assertEquals(setOf("Sara Ahmadi"), viewModel.names)
         assertTrue(viewModel.loaded.filters.isActive)
+        // "1 of 3 people": the filters don't change who there is.
+        assertEquals(3, viewModel.loaded.activeCount)
 
         type(viewModel, "reza")
         assertTrue(viewModel.loaded.people.isEmpty())

@@ -37,7 +37,13 @@ fun PersonAvatar(
     shape: Shape = CircleShape,
     textStyle: TextStyle = MaterialTheme.typography.titleMedium,
 ) {
-    val colours = AvatarColours.of(name, MaterialTheme.colorScheme.isDarkScheme())
+    val initial = AvatarColours.initial(name)
+    // No name yet (a new Person on the form): the theme's neutral tone, not a Person's hue.
+    val colours = if (initial.isEmpty()) {
+        AvatarColours(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+    } else {
+        AvatarColours.of(name, MaterialTheme.colorScheme.isDarkScheme())
+    }
     Box(
         modifier = modifier
             .size(size)
@@ -45,9 +51,8 @@ fun PersonAvatar(
             .background(colours.container),
         contentAlignment = Alignment.Center,
     ) {
-        val initial = AvatarColours.initial(name)
         if (initial.isEmpty()) {
-            // No name yet (a new Person on the form): a photo glyph instead of a letter.
+            // A photo glyph instead of a letter.
             Icon(OrbitIcons.Photo, contentDescription = null, tint = colours.content, modifier = Modifier.size(size / 3))
         } else {
             Text(text = initial, style = textStyle, color = colours.content)

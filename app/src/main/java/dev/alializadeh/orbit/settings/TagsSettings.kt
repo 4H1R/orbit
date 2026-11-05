@@ -2,17 +2,18 @@ package dev.alializadeh.orbit.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,12 +23,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -44,9 +42,14 @@ import dev.alializadeh.orbit.person.TagRepository
 import dev.alializadeh.orbit.person.TagWithCount
 import dev.alializadeh.orbit.person.nameComparator
 import dev.alializadeh.orbit.ui.components.NavigationRow
+import dev.alializadeh.orbit.ui.components.OrbitEmptyState
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
+import dev.alializadeh.orbit.ui.components.OrbitSheetActions
+import dev.alializadeh.orbit.ui.components.OrbitSheetDestructiveButton
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.SheetCloser
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -150,22 +153,28 @@ fun TagsScreen(
     val loaded = uiState as? TagsUiState.Loaded
     val language = LocalOrbitFormats.current.language
     val numbers = LocalOrbitFormats.current.numbers
-    OrbitSettingsScaffold(title = stringResource(R.string.settings_tags_title), onBack = onBack, modifier = modifier) {
+    OrbitSettingsScaffold(
+        title = stringResource(R.string.settings_tags_title),
+        onBack = onBack,
+        modifier = modifier,
+        emptyState = if (loaded?.tags?.isEmpty() == true) {
+            {
+                OrbitEmptyState(
+                    icon = OrbitIcons.Label,
+                    title = stringResource(R.string.settings_tags_none),
+                    body = stringResource(R.string.tags_empty_body),
+                )
+            }
+        } else {
+            null
+        },
+    ) {
         if (loaded == null) return@OrbitSettingsScaffold
-        if (loaded.tags.isEmpty()) {
-            Text(
-                text = stringResource(R.string.tags_empty),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
-            )
-            return@OrbitSettingsScaffold
-        }
         val sorted = remember(loaded.tags, language) {
             val comparator = nameComparator(language)
             loaded.tags.sortedWith { a, b -> comparator.compare(a.tag.name, b.tag.name) }
         }
-        OrbitListGroup(title = null, modifier = Modifier.padding(top = 8.dp)) {
+        OrbitListGroup(title = null) {
             sorted.forEachIndexed { index, item ->
                 NavigationRow(
                     title = item.tag.name,
@@ -176,6 +185,7 @@ fun TagsScreen(
                 )
             }
         }
+        SettingsFooter(stringResource(R.string.tags_footer))
     }
 
     val open = loaded?.tags?.firstOrNull { it.tag.id == sheetFor }
@@ -213,6 +223,7 @@ fun TagsScreen(
                         confirmingDelete = null
                         onDelete(deleting.tag.id)
                     },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text(stringResource(R.string.tag_delete_confirm)) }
             },
             dismissButton = {
@@ -248,8 +259,10 @@ internal fun TagSheetContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(tag.tag.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-        Text(peopleCountText(tag.peopleCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column {
+            OrbitSheetTitle(tag.tag.name)
+            Text(peopleCountText(tag.peopleCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         OutlinedTextField(
             state = name,
             label = { Text(stringResource(R.string.tag_name)) },
@@ -258,16 +271,14 @@ internal fun TagSheetContent(
             modifier = Modifier.fillMaxWidth(),
         )
         if (onShowPeople != null) {
-            TextButton(onClick = { sheet.close(onShowPeople) }) { Text(stringResource(R.string.tag_show_people)) }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            TextButton(
-                onClick = { sheet.close(onDelete) },
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            ) {
-                Text(stringResource(R.string.common_delete))
+            OutlinedButton(onClick = { sheet.close(onShowPeople) }) {
+                Icon(OrbitIcons.People, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.tag_show_people), modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
-            Spacer(Modifier.weight(1f))
+        }
+        OrbitSheetActions(
+            destructive = { OrbitSheetDestructiveButton(stringResource(R.string.common_delete), onClick = { sheet.close(onDelete) }) },
+        ) {
             TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
             Button(
                 enabled = changed,
@@ -275,7 +286,6 @@ internal fun TagSheetContent(
                     val newName = name.text.toString()
                     sheet.close { onRename(newName) }
                 },
-                modifier = Modifier.padding(start = 8.dp),
             ) {
                 Text(stringResource(R.string.tag_rename))
             }

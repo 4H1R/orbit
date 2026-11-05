@@ -146,6 +146,20 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
         )
     }
 
+    /** A large font: the card's buttons leave their one row (Log interaction under Call) rather than clip. */
+    @Test
+    @Config(fontScale = 1.5f)
+    fun personDetailLargeFont() = captureScreen("person_detail_large_font", variant) {
+        Detail(
+            PersonDetailUiState.Loaded(
+                data.fullProfile,
+                today = ScreenshotToday,
+                interactions = data.interactions,
+                due = keepInTouch(Cadence.days(30), lastDaysAgo = 34).on(ScreenshotToday),
+            ),
+        )
+    }
+
     /** Snoozed: "Snoozed until 4 Nov · Cancel snooze". */
     @Test
     fun personDetailSnoozed() = captureScreen("person_detail_snoozed", variant) {
@@ -240,6 +254,38 @@ class PersonScreenshotTest(private val variant: ScreenshotVariant) {
                 canSave = true,
             ),
             fields = fields,
+            actions = NoActions,
+            onChoosePhoto = {},
+            onClose = {},
+            onDiscard = {},
+        )
+    }
+
+    /** Everything behind More details showing, without contacts or dates: Tags, Likes… and the notes group. */
+    @Test
+    fun personFormDetails() = captureScreen("person_form_details", variant, tall = true) {
+        val profile = data.fullProfile
+        PersonFormScreen(
+            uiState = PersonFormUiState(
+                isNew = false,
+                isLoading = false,
+                rings = data.rings,
+                ringId = profile.person.ringId,
+                tags = profile.tags.map(Tag::name),
+                items = mapOf(
+                    PersonItemKind.CanHelpWith to profile.canHelpWith,
+                    PersonItemKind.Like to profile.likes,
+                    PersonItemKind.Dislike to profile.dislikes,
+                ),
+                visibleFields = PersonField.entries.toSet() - PersonField.Nickname - PersonField.OtherScriptName,
+                showsMoreDetails = false,
+                canSave = true,
+            ),
+            fields = PersonFormFields(
+                name = TextFieldState(profile.person.name),
+                howWeMet = TextFieldState(profile.person.howWeMet.orEmpty()),
+                notes = TextFieldState(profile.person.notes.orEmpty()),
+            ),
             actions = NoActions,
             onChoosePhoto = {},
             onClose = {},

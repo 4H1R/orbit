@@ -198,6 +198,7 @@
     <string name="person_form_contact_primary">Primary</string>
     <string name="person_form_contact_remove">Remove contact method</string>
     <string name="person_form_more_details">More details</string>
+    <string name="person_form_more_details_summary">Nickname, tags, notes and more</string>
     <string name="person_form_tag_add">Add tag</string>
     <string name="person_form_tag_create">Create “%1$s”</string>
     <string name="person_form_item_add">Add…</string>
@@ -217,6 +218,7 @@
     <string name="photo_choose">Choose photo</string>
     <string name="photo_remove">Remove photo</string>
     <string name="photo_crop_title">Crop photo</string>
+    <string name="photo_crop_hint">Drag to move, pinch to zoom</string>
     <string name="photo_crop_failed">This photo couldn\'t be opened</string>
 
     <!-- Person detail -->
@@ -369,8 +371,12 @@
 
     <!-- Upcoming: Due -->
     <string name="upcoming_section_due">Due</string>
-    <string name="upcoming_show_all">Show all (%1$s)</string>
     <string name="upcoming_show_fewer">Show fewer</string>
+    <string name="upcoming_due_talked">talked %1$s</string>
+    <plurals name="upcoming_show_more">
+        <item quantity="one">Show %1$s more</item>
+        <item quantity="other">Show %1$s more</item>
+    </plurals>
 
     <!-- People list: the date badge, for TalkBack -->
     <string name="people_date_soon">Important date soon</string>
@@ -402,13 +408,22 @@
         <item quantity="other">%1$s tags</item>
     </plurals>
     <string name="people_filter_date_soon">Date soon</string>
-    <string name="people_filter_archived">Archived</string>
     <string name="people_filter_ring_title">Filter by ring</string>
     <string name="people_filter_tags_title">Filter by tag</string>
     <string name="people_archived_title">Archived</string>
-    <string name="filter_bar_filtered">Filtered</string>
     <string name="filter_bar_clear">Clear</string>
     <string name="search_clear_filters">Clear filters</string>
+    <!-- The line over the People list and the Orbit view: "3 of 24 people" (the second count is "24 people") -->
+    <plurals name="people_count_of">
+        <item quantity="one">%1$s of %2$s</item>
+        <item quantity="other">%1$s of %2$s</item>
+    </plurals>
+    <plurals name="search_result_count">
+        <item quantity="one">%1$s result</item>
+        <item quantity="other">%1$s results</item>
+    </plurals>
+    <!-- The row at the end of the People list that opens the Archived view -->
+    <string name="people_archived_row">Archived people</string>
     <plurals name="search_archived_matches">
         <item quantity="one">%1$s archived person matches</item>
         <item quantity="other">%1$s archived people match</item>
@@ -456,6 +471,8 @@
     </plurals>
     <string name="settings_tags_none">No tags yet</string>
     <string name="tags_empty">No tags yet. Add them while editing a person.</string>
+    <string name="tags_empty_body">Add tags while editing a person, then rename, merge or delete them here.</string>
+    <string name="tags_footer">Renaming a tag to the name of another merges the two.</string>
     <string name="tag_name">Name</string>
     <string name="tag_rename">Rename</string>
     <plurals name="tag_delete_title">
@@ -504,9 +521,11 @@
     </plurals>
     <string name="passphrase_rule_ascii">Only English letters, numbers and symbols</string>
     <string name="passphrase_mismatch">The passphrases don\'t match</string>
+    <string name="passphrase_match">The passphrases match</string>
     <string name="passphrase_current_wrong">That isn\'t your current passphrase</string>
     <string name="passphrase_warning">If you forget this passphrase, no one can open your backups, not even Orbit.</string>
     <string name="passphrase_warning_ack">I understand</string>
+    <string name="passphrase_warning_title">Orbit can\'t recover it</string>
     <string name="passphrase_save">Save passphrase</string>
     <string name="passphrase_show">Show passphrase</string>
     <string name="passphrase_hide">Hide passphrase</string>
@@ -525,6 +544,8 @@
 
     <string name="backup_progress_writing">Backing up…</string>
     <string name="backup_progress_verifying">Checking the backup…</string>
+    <string name="backup_step_write">Encrypt and save the file</string>
+    <string name="backup_step_check">Check that it opens</string>
     <string name="backup_result_title">Backup saved and checked</string>
     <!-- %2$s is backup_result_photos: "Backed up 84 people · 41 photos" -->
     <plurals name="backed_up_result">
@@ -574,6 +595,7 @@
     <string name="restore_back_up_first">Back up current data first</string>
     <string name="restore_confirm">Restore</string>
     <string name="restore_progress">Restoring…</string>
+    <string name="restore_progress_body">Keep Orbit open until it\'s done. Nothing changes until everything is in place.</string>
     <string name="restore_failed">Orbit couldn\'t restore this backup. Nothing on this phone has changed.</string>
     <plurals name="restored_snackbar">
         <item quantity="one">Restored %1$s person</item>
@@ -683,9 +705,11 @@
     <string name="reminder_health_problem">Needs attention</string>
 
     <!-- Upcoming's warning card for a critical Reminder health problem -->
-    <string name="reminder_warning_notifications_off">Notifications are off, so reminders can\'t reach you</string>
-    <string name="reminder_warning_exact_alarms_off">Reminders may be late: alarms aren\'t allowed</string>
     <string name="reminder_warning_fix">Fix</string>
+    <string name="reminder_warning_notifications_off_title">Notifications are off</string>
+    <string name="reminder_warning_notifications_off_body">Reminders can\'t reach you.</string>
+    <string name="reminder_warning_exact_alarms_off_title">Reminders may be late</string>
+    <string name="reminder_warning_exact_alarms_off_body">Orbit isn\'t allowed to set alarms, so a reminder can arrive after its time.</string>
 
     <!-- Asked once, right after notifications are allowed; then the system prompt -->
     <string name="battery_ask_body">So reminders arrive on time, let Orbit run in the background.</string>
@@ -700,11 +724,14 @@
     <string name="app_lock_offer_body">Orbit will ask for it each time you open it. You can change this in Settings.</string>
     <string name="app_lock_offer_turn_on">Turn on</string>
     <string name="locked_title">Orbit is locked</string>
+    <string name="locked_body">Use your fingerprint or screen lock to open it.</string>
     <string name="locked_unlock">Unlock</string>
     <string name="locked_prompt_title">Unlock Orbit</string>
     <string name="app_lock_needs_screen_lock">Set a screen lock on your phone first</string>
     <string name="app_lock_paused">App lock is paused: this phone has no screen lock</string>
     <string name="app_lock_set_screen_lock">Set screen lock</string>
+    <string name="app_lock_paused_title">App lock is paused</string>
+    <string name="app_lock_paused_body">This phone has no screen lock, so Orbit can\'t ask for it. Set one and App lock works again.</string>
     <string name="settings_app_lock_title">App lock</string>
     <string name="settings_app_lock_on">On</string>
     <string name="settings_app_lock_off">Off</string>
@@ -749,6 +776,8 @@
     <string name="orbit_empty">People you add appear here, on their ring</string>
     <!-- Settings → About (slice 10) -->
     <string name="settings_about_title">About</string>
+    <!-- The product name on About, "Orbit" in both languages (app_name is "Orbit debug" in debug builds). -->
+    <string name="about_product_name" translatable="false">Orbit</string>
     <string name="about_version">Version</string>
     <!-- The version name, then its code: "0.1.0 (1)" -->
     <string name="about_version_value">%1$s (%2$s)</string>
@@ -835,6 +864,7 @@
     </plurals>
     <string name="occasions_add">Add occasion</string>
     <string name="occasions_empty">Add Nowruz, Eid or a day of your own, and Orbit reminds you whom to send wishes to.</string>
+    <string name="occasions_footer">Each occasion reminds you whom to send wishes to, on its day in its own calendar.</string>
     <string name="occasion_custom">Your own occasion</string>
     <string name="occasion_new_title">New occasion</string>
     <string name="occasion_edit_title">Edit occasion</string>
@@ -855,6 +885,7 @@
         <item quantity="other">Reaches %1$s people</item>
     </plurals>
     <string name="occasion_reaches_nobody">Reaches nobody yet</string>
+    <string name="occasion_edit_who">Choose who</string>
     <!-- On the Occasion's day: %1$s of everyone it's for (%2$s) have an interaction logged that day -->
     <plurals name="occasion_reached">
         <item quantity="one">Reached %1$s of %2$s</item>

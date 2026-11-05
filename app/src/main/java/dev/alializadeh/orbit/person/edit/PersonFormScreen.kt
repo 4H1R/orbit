@@ -8,7 +8,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -29,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,7 +61,6 @@ import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
 import dev.alializadeh.orbit.ui.expressive.OrbitTopAppBar
-import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -154,7 +151,12 @@ fun PersonFormRoute(
     }
 }
 
-/** The form itself: Photo, Name, Ring, Contact methods up front, the rest behind More details. */
+/**
+ * The form itself, in groups like Person detail's: the photo, the names (and Add from contacts),
+ * Ring and Cadence, Contact methods, Important dates (the Birthday up front), then More details
+ * for the rest: Nickname and Name in other script join the names, other dates join the dates, and
+ * Tags, Can help with, Likes, Dislikes, How we met and Notes follow in their own groups.
+ */
 @Composable
 fun PersonFormScreen(
     uiState: PersonFormUiState,
@@ -214,7 +216,6 @@ fun PersonFormScreen(
                     .widthIn(max = MaxContentWidth)
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 PhotoSlot(
                     name = fields.name.text.toString(),
@@ -225,19 +226,16 @@ fun PersonFormScreen(
                     },
                     modifier = Modifier.align(Alignment.CenterHorizontally).bringIntoViewRequester(focus.bringer(PersonField.Photo)),
                 )
-                if (uiState.isNew) {
-                    OutlinedButton(
-                        onClick = {
-                            focusManager.clearFocus()
-                            onAddFromContacts()
-                        },
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    ) {
-                        Icon(OrbitIcons.People, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                        Text(stringResource(R.string.person_form_add_from_contacts))
-                    }
-                }
-                NameField(fields.name, focus.requester(null), onDone = actions::save)
+                NameGroup(
+                    uiState = uiState,
+                    fields = fields,
+                    focus = focus,
+                    onSave = actions::save,
+                    onAddFromContacts = {
+                        focusManager.clearFocus()
+                        onAddFromContacts()
+                    },
+                )
                 RingSection(
                     uiState = uiState,
                     onSelect = actions::selectRing,
@@ -251,15 +249,11 @@ fun PersonFormScreen(
                     actions = actions,
                     modifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.ContactMethods)),
                 )
-                BirthdaySection(
-                    uiState = uiState,
-                    actions = actions,
-                    modifier = Modifier.bringIntoViewRequester(focus.bringer(PersonField.Birthday)),
-                )
-                MoreDetailFields(uiState, fields, actions, focus)
+                ImportantDatesSection(uiState, actions, focus)
                 if (uiState.showsMoreDetails) {
                     MoreDetailsButton(onClick = actions::showMoreDetails)
                 }
+                MoreDetailFields(uiState, fields, actions, focus)
             }
         }
     }

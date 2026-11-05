@@ -1,9 +1,13 @@
 package dev.alializadeh.orbit.reminders
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -27,6 +30,8 @@ import dev.alializadeh.orbit.data.BackedUpPreferences
 import dev.alializadeh.orbit.data.PreferencesRepository
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.settings.OrbitSettingsScaffold
+import dev.alializadeh.orbit.settings.SettingsFooter
+import dev.alializadeh.orbit.settings.SettingsGroupGap
 import dev.alializadeh.orbit.ui.components.ContentRow
 import dev.alializadeh.orbit.ui.components.NavigationRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
@@ -137,23 +142,25 @@ fun RemindersSettingsScreen(
                 onClick = onReminderTimeClick,
             )
         }
-        Footer(stringResource(R.string.reminders_time_footer))
+        SettingsFooter(stringResource(R.string.reminders_time_footer))
         OrbitListGroup(title = stringResource(R.string.reminders_lead_times)) {
             ContentRow(index = 0, count = 1) {
                 LeadTimeChips(selected = uiState.defaultLeadTimes, onToggle = onLeadTimeToggle)
             }
         }
-        Footer(stringResource(R.string.reminders_lead_times_footer))
+        SettingsFooter(stringResource(R.string.reminders_lead_times_footer))
+        SettingsGroupGap()
         OrbitListGroup(title = null) {
-            NavigationRow(
-                title = stringResource(R.string.reminders_health),
-                summary = uiState.health?.let { healthSummary(it) },
-                index = 0,
-                count = 1,
+            val health = uiState.health
+            SegmentedListItem(
                 onClick = onHealthClick,
-            )
+                shapes = ListItemDefaults.segmentedShapes(0, 1),
+                leadingContent = { HealthIcon(ok = health?.let { it.problems == 0 }) },
+                supportingContent = health?.let { { Text(healthSummary(it)) } },
+            ) {
+                Text(stringResource(R.string.reminders_health))
+            }
         }
-        Spacer(Modifier.height(8.dp))
         OrbitListGroup(title = stringResource(R.string.reminders_notifications)) {
             ReminderChannel.entries.forEachIndexed { index, channel ->
                 val off = uiState.health?.let { !it.notificationsAllowed || channel in it.channelsOff } == true
@@ -187,12 +194,13 @@ fun channelName(channel: ReminderChannel): String = stringResource(
     },
 )
 
+/** Reminder health at a glance: a tick when everything is set, a warning when something isn't. */
 @Composable
-internal fun Footer(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-    )
+internal fun HealthIcon(ok: Boolean?, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    when (ok) {
+        true -> Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = colors.primary, modifier = modifier)
+        false -> Icon(Icons.Filled.Warning, contentDescription = null, tint = colors.error, modifier = modifier)
+        null -> Icon(Icons.Filled.Info, contentDescription = null, tint = colors.onSurfaceVariant, modifier = modifier)
+    }
 }

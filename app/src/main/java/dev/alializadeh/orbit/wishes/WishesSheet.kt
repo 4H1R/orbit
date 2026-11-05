@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDirection
@@ -55,6 +53,8 @@ import dev.alializadeh.orbit.person.ui.icon
 import dev.alializadeh.orbit.person.ui.label
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitConnectedChoice
+import dev.alializadeh.orbit.ui.components.OrbitSheetActions
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.components.sensitiveClipData
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.SheetCloser
@@ -154,11 +154,7 @@ internal fun WishesSheetContent(
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.wishes_sheet_title, bidiIsolate(name)),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        OrbitSheetTitle(stringResource(R.string.wishes_sheet_title, bidiIsolate(name)))
         val languageLabel = stringResource(R.string.wishes_language)
         OrbitConnectedChoice(
             options = OrbitLanguage.entries,
@@ -218,14 +214,12 @@ internal fun WishesSheetContent(
             Checkbox(checked = state.logAsMessage, onCheckedChange = null)
             Text(stringResource(R.string.wishes_log_as_message), modifier = Modifier.padding(start = 12.dp))
         }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Spacer(Modifier.weight(1f))
+        OrbitSheetActions {
             TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
             Button(
                 enabled = message.text.isNotBlank(),
                 // Send closes the sheet itself (the ViewModel), once the app has opened.
                 onClick = onSend,
-                modifier = Modifier.padding(start = 8.dp),
             ) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(stringResource(R.string.wishes_send_action), modifier = Modifier.padding(start = 8.dp))

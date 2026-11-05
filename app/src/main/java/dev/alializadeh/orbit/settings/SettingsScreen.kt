@@ -2,6 +2,10 @@ package dev.alializadeh.orbit.settings
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,6 +31,7 @@ import dev.alializadeh.orbit.reminders.RemindersSettingsKey
 import dev.alializadeh.orbit.ui.components.NavigationRow
 import dev.alializadeh.orbit.ui.components.OrbitListGroup
 import dev.alializadeh.orbit.ui.datepicker.calendarName
+import dev.alializadeh.orbit.ui.icons.OrbitIcons
 import kotlinx.serialization.Serializable
 
 /** The Settings tab's root. */
@@ -66,6 +71,7 @@ fun SettingsScreen(
                 index = 0,
                 count = 2,
                 onClick = { onOpen(AppearanceSettingsKey) },
+                icon = OrbitIcons.Palette,
             )
             NavigationRow(
                 title = stringResource(R.string.settings_language_dates_title),
@@ -76,6 +82,7 @@ fun SettingsScreen(
                 index = 1,
                 count = 2,
                 onClick = { onOpen(LanguageDatesSettingsKey) },
+                icon = OrbitIcons.Translate,
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -86,6 +93,7 @@ fun SettingsScreen(
                 index = 0,
                 count = 3,
                 onClick = { onOpen(RingsSettingsKey) },
+                icon = OrbitIcons.Orbit,
             )
             NavigationRow(
                 title = stringResource(R.string.settings_tags_title),
@@ -101,6 +109,7 @@ fun SettingsScreen(
                 index = 1,
                 count = 3,
                 onClick = { onOpen(TagsSettingsKey) },
+                icon = OrbitIcons.Label,
             )
             NavigationRow(
                 title = stringResource(R.string.settings_occasions_title),
@@ -116,6 +125,7 @@ fun SettingsScreen(
                 index = 2,
                 count = 3,
                 onClick = { onOpen(OccasionsSettingsKey) },
+                icon = OrbitIcons.Sparkle,
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -129,6 +139,7 @@ fun SettingsScreen(
                 index = 0,
                 count = 2,
                 onClick = { onOpen(RemindersSettingsKey) },
+                icon = Icons.Filled.Notifications,
             )
             NavigationRow(
                 title = stringResource(R.string.settings_app_lock_title),
@@ -143,6 +154,7 @@ fun SettingsScreen(
                 index = 1,
                 count = 2,
                 onClick = { onOpen(AppLockSettingsKey) },
+                icon = Icons.Filled.Lock,
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -153,6 +165,7 @@ fun SettingsScreen(
                 index = 0,
                 count = 1,
                 onClick = { onOpen(BackupSettingsKey) },
+                icon = OrbitIcons.Backup,
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -167,6 +180,7 @@ fun SettingsScreen(
                 index = 0,
                 count = 1,
                 onClick = { onOpen(AboutKey) },
+                icon = Icons.Filled.Info,
             )
         }
     }

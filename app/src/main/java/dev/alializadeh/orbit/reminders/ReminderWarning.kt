@@ -1,5 +1,7 @@
 package dev.alializadeh.orbit.reminders
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -40,13 +42,16 @@ class ReminderWarningViewModel @Inject constructor(
 /** The warning card (Upcoming's Warnings slot): what's wrong, and Fix, which opens Reminder health. */
 @Composable
 fun ReminderWarningCard(problem: CriticalReminderProblem, onFix: () -> Unit, modifier: Modifier = Modifier) {
+    val (title, body) = when (problem) {
+        CriticalReminderProblem.NotificationsOff ->
+            R.string.reminder_warning_notifications_off_title to R.string.reminder_warning_notifications_off_body
+        CriticalReminderProblem.ExactAlarmsOff ->
+            R.string.reminder_warning_exact_alarms_off_title to R.string.reminder_warning_exact_alarms_off_body
+    }
     OrbitWarningCard(
-        text = stringResource(
-            when (problem) {
-                CriticalReminderProblem.NotificationsOff -> R.string.reminder_warning_notifications_off
-                CriticalReminderProblem.ExactAlarmsOff -> R.string.reminder_warning_exact_alarms_off
-            },
-        ),
+        icon = Icons.Filled.Notifications,
+        title = stringResource(title),
+        body = stringResource(body),
         actionLabel = stringResource(R.string.reminder_warning_fix),
         onAction = onFix,
         modifier = modifier,

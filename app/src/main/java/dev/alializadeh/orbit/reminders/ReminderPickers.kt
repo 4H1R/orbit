@@ -27,13 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.alializadeh.orbit.R
 import dev.alializadeh.orbit.format.LocalOrbitFormats
 import dev.alializadeh.orbit.person.dates.leadTimeChipLabel
+import dev.alializadeh.orbit.ui.components.OrbitSheetActions
+import dev.alializadeh.orbit.ui.components.OrbitSheetTitle
 import dev.alializadeh.orbit.ui.datepicker.Wheel
 import dev.alializadeh.orbit.ui.expressive.OrbitBottomSheet
 import dev.alializadeh.orbit.ui.expressive.SheetCloser
@@ -108,7 +108,7 @@ internal fun ReminderTimeSheetContent(initial: LocalTime, onDone: (LocalTime) ->
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
-        Text(stringResource(R.string.reminders_time), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+        OrbitSheetTitle(stringResource(R.string.reminders_time))
         // A time reads hours then minutes left to right in Persian too.
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -133,15 +133,13 @@ internal fun ReminderTimeSheetContent(initial: LocalTime, onDone: (LocalTime) ->
                 Spacer(Modifier.weight(0.5f))
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Spacer(Modifier.weight(1f))
+        OrbitSheetActions {
             TextButton(onClick = { sheet.close {} }) { Text(stringResource(R.string.common_cancel)) }
             Button(
                 onClick = {
                     val time = LocalTime.of(hour, minute)
                     sheet.close { onDone(time) }
                 },
-                modifier = Modifier.padding(start = 8.dp),
             ) {
                 Text(stringResource(R.string.common_done))
             }

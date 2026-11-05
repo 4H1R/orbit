@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -37,10 +39,11 @@ import dev.alializadeh.orbit.interaction.KeepInTouchViewModel
 import dev.alializadeh.orbit.interaction.QuickActionSheet
 import dev.alializadeh.orbit.interaction.QuickActionTarget
 import dev.alializadeh.orbit.person.contact.ContactAction
-import dev.alializadeh.orbit.search.FilteredBar
+import dev.alializadeh.orbit.search.FilterSummaryRow
 import dev.alializadeh.orbit.search.PeopleFilterChips
 import dev.alializadeh.orbit.search.RingFilterSheet
 import dev.alializadeh.orbit.search.TagFilterSheet
+import dev.alializadeh.orbit.search.filterSummary
 import dev.alializadeh.orbit.ui.components.LocalOrbitSnackbars
 import dev.alializadeh.orbit.ui.components.OrbitSnackbarHost
 import dev.alializadeh.orbit.ui.expressive.OrbitLoadingIndicator
@@ -95,9 +98,10 @@ fun OrbitViewRoute(
 private enum class OrbitSheet { Rings, Tags, Legend }
 
 /**
- * The Orbit view's screen: the top bar with ⓘ (the legend), the filter chips (Ring ▾, Tags ▾, Due,
- * Date soon) over this tab's own filters, "Filtered · Clear" (or "No one matches · Clear"), and the
- * drawing. With no People yet: the Rings drawn faintly, a line and Add person. No search, no FAB.
+ * The Orbit view's screen: the top bar with ⓘ (the legend), the People list's filter row (Ring ▾,
+ * Tags ▾, Due, Date soon) over this tab's own filters, the line saying who's shown ("5 of 22 people
+ * · Clear", "No one matches · Clear"), and the drawing. With no People yet: the Rings drawn
+ * faintly over the empty state's title, line and Add person. No search, no FAB.
  */
 @Composable
 fun OrbitViewScreen(
@@ -150,13 +154,12 @@ fun OrbitViewScreen(
                     onToggleDue = filterActions::toggleDue,
                     onToggleDateSoon = filterActions::toggleDateSoon,
                 )
-                if (loaded.filters.isActive) {
-                    FilteredBar(
-                        onClear = filterActions::clearFilters,
-                        label = stringResource(if (loaded.nobodyMatches) R.string.search_no_matches else R.string.filter_bar_filtered),
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+                val summary = if (loaded.nobodyMatches) {
+                    stringResource(R.string.search_no_matches)
+                } else {
+                    filterSummary(shown = loaded.people.count(OrbitPerson::matches), total = loaded.people.size, filtering = loaded.filters.isActive)
                 }
+                FilterSummaryRow(summary = summary, onClear = if (loaded.filters.isActive) filterActions::clearFilters else null)
             }
             OrbitDrawing(
                 rings = loaded.rings,
@@ -196,7 +199,7 @@ fun OrbitViewScreen(
     }
 }
 
-/** Under the faint Rings when there's nobody yet: the copy deck's line and Add person. */
+/** Under the faint Rings when there's nobody yet: the empty state's title, line and Add person. */
 @Composable
 private fun NoPeopleYet(onAddPerson: () -> Unit) {
     Column(
@@ -204,12 +207,19 @@ private fun NoPeopleYet(onAddPerson: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 8.dp, bottom = 32.dp),
     ) {
         Text(
+            text = stringResource(R.string.empty_no_people_title),
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
             text = stringResource(R.string.orbit_empty),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
         )
-        Button(onClick = onAddPerson, modifier = Modifier.padding(top = 16.dp)) {
+        Button(onClick = onAddPerson, modifier = Modifier.padding(top = 24.dp)) {
             Text(stringResource(R.string.action_add_person))
         }
     }

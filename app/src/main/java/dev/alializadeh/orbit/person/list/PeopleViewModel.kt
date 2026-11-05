@@ -78,6 +78,8 @@ sealed interface PeopleUiState {
         val archivedView: Boolean = false,
         /** Anyone who isn't Archived, whatever the filters and query. */
         val hasPeople: Boolean = people.isNotEmpty(),
+        /** How many People aren't Archived, whatever the filters and query: "3 of 24 people". */
+        val activeCount: Int = if (hasPeople) people.size else 0,
         val archivedCount: Int = 0,
         /** With a query, outside the Archived view: the Archived People it finds. */
         val archivedMatches: Int = 0,
@@ -210,6 +212,7 @@ class PeopleViewModel @Inject constructor(
             filters = filters,
             archivedView = controls.archivedView,
             hasPeople = active.isNotEmpty(),
+            activeCount = active.size,
             archivedCount = archived.size,
             archivedMatches = if (hits == null || controls.archivedView) 0 else archived.count { it.summary.id in hits },
             rings = rings.sortedBy(Ring::position),

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -103,7 +104,7 @@ fun FastScrollThumb(
                 .offset { IntOffset(0, thumbY) }
                 .padding(end = 4.dp)
                 .size(width = if (dragging) 8.dp else 6.dp, height = ThumbHeight)
-                .clip(RoundedCornerShape(50))
+                .clip(CircleShape)
                 .background(if (dragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
         )
         // Recomposes only when the bubble's letter changes, not on every scrolled item.

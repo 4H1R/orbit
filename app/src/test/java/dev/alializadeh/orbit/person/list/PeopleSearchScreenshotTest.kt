@@ -38,9 +38,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The People list of slice 8: search results with their "why it matched" lines, the chips with
- * filters on and the Filtered bar, the filter sheets, each sort's headers (letters with the
- * fast-scroll thumb, Rings, none), the Archived view and the empty states, in en and fa.
+ * The People list: search results with their "why it matched" lines, the filter row with filters
+ * on and the "3 of 24 people · Clear" line, the filter sheets, each sort's headers (letters with
+ * the fast-scroll thumb, Rings, none) and the Archived row, the Archived view and the empty states,
+ * in en and fa.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -61,7 +62,7 @@ class PeopleSearchScreenshotTest(private val variant: ScreenshotVariant) {
         People(data.state(query = data.phoneQuery), query = data.phoneQuery)
     }
 
-    /** Sorted by Ring with its headers; one Ring, two Tags and Due picked; the Filtered bar. */
+    /** Sorted by Ring with its headers; one Ring, two Tags and Due picked; "2 of 19 people · Clear". */
     @Test
     fun filtered() = captureScreen("people_filtered", variant) {
         People(
@@ -98,6 +99,12 @@ class PeopleSearchScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun archivedEmpty() = captureScreen("people_archived_empty", variant) {
         People(data.state(archivedView = true, withArchived = false))
+    }
+
+    /** Everyone is Archived: the first-person invitation, with the way to the Archived view. */
+    @Test
+    fun onlyArchived() = captureScreen("people_only_archived", variant) {
+        People(data.state(withActive = false))
     }
 
     /** Nothing left with the filters on: Clear filters, and the Archived match below. */
@@ -151,8 +158,9 @@ private class PeopleData(
         filters: PeopleFilters = PeopleFilters(),
         archivedView: Boolean = false,
         withArchived: Boolean = true,
+        withActive: Boolean = true,
     ): PeopleUiState.Loaded {
-        val everyone = if (withArchived) people else people.filterNot { it.isArchived }
+        val everyone = people.filter { if (it.isArchived) withArchived else withActive }
         val rows = everyone.map {
             PersonRow(it, photo = null, due = it.keepInTouch.on(ScreenshotToday), dateSoon = DateSoon.of(it.importantDates, ScreenshotToday))
         }
@@ -167,6 +175,7 @@ private class PeopleData(
             filters = filters,
             archivedView = archivedView,
             hasPeople = active.isNotEmpty(),
+            activeCount = active.size,
             archivedCount = archived.size,
             archivedMatches = if (hits == null || archivedView) 0 else archived.count { it.summary.id in hits },
             rings = rings,
