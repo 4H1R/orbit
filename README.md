@@ -115,3 +115,7 @@ Kotlin, Jetpack Compose and Material 3 Expressive, Navigation 3, Room, Hilt, Gla
 - [GLOSSARY.md](GLOSSARY.md): the domain words (Person, Ring, Cadence, Due…) and their Persian UI words.
 - [docs/adr/](docs/adr/): the decisions that are hard to reverse, such as [Android only, no sync](docs/adr/0001-android-only-single-device-no-sync.md), [encrypting Backups and not the database](docs/adr/0002-encrypt-backups-not-the-on-device-database.md) and [dates keeping their own calendar](docs/adr/0003-important-dates-keep-their-own-calendar.md).
 - [CLAUDE.md](CLAUDE.md): commands, code layout and conventions for working on the code.
+
+## Licence
+
+Orbit is released under the [MIT License](LICENSE). The fonts and libraries it bundles keep their own licences; the app lists them under Settings → About → Open-source licences.
